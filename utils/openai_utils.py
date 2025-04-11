@@ -3,77 +3,93 @@ import base64
 from openai import OpenAI
 from flask import current_app
 from .anthropic_utils import analyze_medical_study_with_anthropic
+from dotenv import load_dotenv
 
+# Cargar variables de entorno
+load_dotenv()
+
+# Inicializar el cliente de OpenAI
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def analyze_medical_study(image_path, study_type):
     """
-    Analiza un estudio médico usando Anthropic Claude Vision
+    Analiza un estudio médico usando la API de OpenAI con GPT-4o
     """
-    # Usar Anthropic Claude para el análisis de estudios médicos
-    return analyze_medical_study_with_anthropic(image_path, study_type)
+    try:
+        # Abrir la imagen
+        with open(image_path, "rb") as image_file:
+            # Usar la API de OpenAI para analizar la imagen con GPT-4o
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Usar el modelo GPT-4o
+                messages=[
+                    {
+                        "role": "system",
+                        "content": f"Eres un médico especialista analizando un {study_type}. Proporciona una interpretación detallada y profesional."
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": f"Por favor, analiza este estudio médico ({study_type}) y proporciona una interpretación detallada:"},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=1000
+            )
+            
+            # Extraer la interpretación de la respuesta
+            interpretation = response.choices[0].message.content
+            return interpretation
+            
+    except Exception as e:
+        print(f"Error al analizar el estudio médico: {str(e)}")
+        # Si falla OpenAI, intentar con Anthropic como respaldo
+        try:
+            return analyze_medical_study_with_anthropic(image_path, study_type)
+        except:
+            return f"No se pudo analizar el estudio médico. Error: {str(e)}"
 
 def analyze_food_image(file_path):
     """
-    Analiza una imagen de alimentos usando OpenAI Vision
+    Analiza una imagen de comida y devuelve información nutricional
     """
     try:
-        print(f"Iniciando análisis de imagen de alimentos: {file_path}")
-        
-        # Verificar si el archivo existe
-        if not os.path.exists(file_path):
-            print(f"ERROR: El archivo no existe: {file_path}")
-            return "No se pudo analizar la imagen de alimentos. El archivo no existe."
-        
-        # Codificar la imagen en base64
-        print(f"Cargando imagen desde: {file_path}")
         with open(file_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-        print(f"Imagen cargada y codificada en base64 (primeros 50 caracteres): {base64_image[:50]}...")
-        
-        # Verificar la clave API
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            print("ERROR: No se encontró la clave API de OpenAI en las variables de entorno")
-            return "No se pudo analizar la imagen de alimentos. Falta la configuración de la API."
-        
-        # Realizar la solicitud a OpenAI
-        print("Llamando a la API de OpenAI con modelo gpt-4o")
-        response = client.chat.completions.create(
-            model="gpt-4o",  # Actualizado al modelo actual
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Eres un nutricionista experto. Analiza las imágenes de alimentos y proporciona información nutricional detallada."
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Analiza esta imagen de alimentos y proporciona la siguiente información: 1) Identificación de los alimentos, 2) Valor calórico aproximado, 3) Macronutrientes (proteínas, carbohidratos, grasas), 4) Beneficios para la salud, 5) Posibles advertencias o contraindicaciones, 6) Recomendaciones nutricionales."},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+            
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Eres un nutricionista experto. Analiza la imagen de comida y proporciona información nutricional detallada."
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Analiza esta imagen de comida y proporciona la siguiente información:\n1. Identificación de los alimentos\n2. Calorías aproximadas\n3. Macronutrientes (proteínas, carbohidratos, grasas)\n4. Valoración nutricional\n5. Recomendaciones\n\nFormatea la respuesta de manera clara y estructurada."},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
                             }
-                        }
-                    ]
-                }
-            ],
-            max_tokens=1000
-        )
-        
-        # Extraer y devolver el análisis
-        print("Respuesta recibida de OpenAI")
-        analysis = response.choices[0].message.content
-        print(f"Análisis (primeros 100 caracteres): {analysis[:100]}...")
-        
-        return analysis
-        
+                        ]
+                    }
+                ],
+                max_tokens=1000
+            )
+            
+            return response.choices[0].message.content
+            
     except Exception as e:
-        print(f"ERROR en analyze_food_image: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return f"Error al analizar la imagen de alimentos: {str(e)}"
+        print(f"Error al analizar la imagen de comida: {str(e)}")
+        return f"No se pudo analizar la imagen. Error: {str(e)}"
 
 def extract_nutritional_data(analysis_text):
     """
