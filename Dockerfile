@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar Gunicorn explícitamente
+RUN pip install gunicorn
+
 # Copiar archivos de requisitos primero para aprovechar la caché de Docker
 COPY requirements.txt .
 
@@ -38,5 +41,8 @@ EXPOSE 8000
 # Crear directorios necesarios
 RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 
+# Verificar que Gunicorn esté instalado
+RUN which gunicorn || echo "Gunicorn no está en el PATH"
+
 # Comando para ejecutar la aplicación
-CMD gunicorn --bind 0.0.0.0:$PORT app:app 
+CMD gunicorn --bind "0.0.0.0:${PORT:-8000}" "app:create_app()" 
