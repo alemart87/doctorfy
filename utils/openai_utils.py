@@ -1,6 +1,6 @@
 import os
 import base64
-from openai import OpenAI
+import openai  # Importación para versión 0.28.1
 from flask import current_app
 from .anthropic_utils import analyze_medical_study_with_anthropic
 from dotenv import load_dotenv
@@ -8,19 +8,21 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-# Inicializar el cliente de OpenAI
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Configurar la API key para la versión antigua de OpenAI
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 def analyze_medical_study(image_path, study_type):
     """
-    Analiza un estudio médico usando la API de OpenAI con GPT-4o
+    Analiza un estudio médico usando la API de OpenAI (versión 0.28.1)
     """
     try:
         # Abrir la imagen
         with open(image_path, "rb") as image_file:
-            # Usar la API de OpenAI para analizar la imagen con GPT-4o
-            response = client.chat.completions.create(
-                model="gpt-4o",  # Usar el modelo GPT-4o
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            # Usar la API de OpenAI para analizar la imagen (sintaxis para v0.28.1)
+            response = openai.ChatCompletion.create(
+                model="gpt-4-vision-preview",
                 messages=[
                     {
                         "role": "system",
@@ -33,7 +35,7 @@ def analyze_medical_study(image_path, study_type):
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
                                 }
                             }
                         ]
@@ -42,8 +44,8 @@ def analyze_medical_study(image_path, study_type):
                 max_tokens=1000
             )
             
-            # Extraer la interpretación de la respuesta
-            interpretation = response.choices[0].message.content
+            # Extraer la interpretación de la respuesta (sintaxis para v0.28.1)
+            interpretation = response.choices[0].message['content']
             return interpretation
             
     except Exception as e:
@@ -62,8 +64,9 @@ def analyze_food_image(file_path):
         with open(file_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
             
-            response = client.chat.completions.create(
-                model="gpt-4o",
+            # Sintaxis para v0.28.1
+            response = openai.ChatCompletion.create(
+                model="gpt-4-vision-preview",
                 messages=[
                     {
                         "role": "system",
@@ -85,7 +88,8 @@ def analyze_food_image(file_path):
                 max_tokens=1000
             )
             
-            return response.choices[0].message.content
+            # Sintaxis para v0.28.1
+            return response.choices[0].message['content']
             
     except Exception as e:
         print(f"Error al analizar la imagen de comida: {str(e)}")
