@@ -15,9 +15,14 @@ WORKDIR /app
 # Copiar los archivos de requerimientos primero
 COPY requirements.txt .
 
-# Instalar dependencias de Python (incluyendo la versión específica de OpenAI)
-RUN pip install --no-cache-dir openai==1.61.1 gunicorn
+# Instalar dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Asegurarse de que se instale la versión correcta de OpenAI
+RUN pip uninstall -y openai && pip install --no-cache-dir openai==0.28.1
+
+# Instalar Gunicorn
+RUN pip install --no-cache-dir gunicorn
 
 # Copiar el resto del código
 COPY . .
@@ -40,12 +45,13 @@ RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 # Exponer el puerto para Flask
 EXPOSE $PORT
 
-# Crear archivo de configuración de Gunicorn
+# Crear archivo de configuración de Gunicorn (corregido)
 RUN echo 'import os\n\
 workers = int(os.environ.get("GUNICORN_WORKERS", "2"))\n\
 threads = int(os.environ.get("GUNICORN_THREADS", "4"))\n\
 timeout = 120\n\
-bind = f"0.0.0.0:{os.environ.get(\"PORT\", \"8000\")}"\n\
+port = os.environ.get("PORT", "8000")\n\
+bind = "0.0.0.0:" + port\n\
 accesslog = "-"\n\
 errorlog = "-"\n\
 loglevel = "info"\n\
@@ -58,7 +64,7 @@ RUN echo '#!/bin/bash\n\
 echo "Verificando versión de OpenAI..."\n\
 pip show openai\n\
 echo "Iniciando aplicación Flask..."\n\
-cd /app && gunicorn app:create_app --config gunicorn_config.py --bind 0.0.0.0:$PORT\n\
+cd /app && gunicorn app:create_app --bind 0.0.0.0:$PORT\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # Comando para ejecutar el script de inicio
