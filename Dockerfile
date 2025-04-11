@@ -64,7 +64,7 @@ RUN echo '#!/bin/bash\n\
 echo "Verificando versión de OpenAI..."\n\
 pip show openai\n\
 echo "Iniciando aplicación Flask..."\n\
-cd /app && gunicorn app:create_app --bind 0.0.0.0:$PORT\n\
+cd /app && gunicorn app:app --bind 0.0.0.0:$PORT\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # Comando para ejecutar el script de inicio
