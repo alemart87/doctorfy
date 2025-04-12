@@ -235,15 +235,31 @@ def extract_nutrition_data(analysis_text):
     # Fallback tabla/lista (se mantiene)
     table_patterns = [r'proteínas\s*\|\s*(\d+(?:\.\d+)?)', r'carbohidratos\s*\|\s*(\d+(?:\.\d+)?)', r'grasas\s*\|\s*(\d+(?:\.\d+)?)']
     list_patterns = [r'-\s*proteínas:?\s*(\d+(?:\.\d+)?)', r'-\s*carbohidratos:?\s*(\d+(?:\.\d+)?)', r'-\s*grasas:?\s*(\d+(?:\.\d+)?)']
+
     if data["proteins"] == 0:
         match = re.search(table_patterns[0], analysis_text, re.IGNORECASE) or re.search(list_patterns[0], analysis_text, re.IGNORECASE)
-        if match: try: data["proteins"] = float(match.group(1)); print(f"Proteínas (fallback): {data['proteins']}") except ValueError: pass
+        if match:
+            try:
+                data["proteins"] = float(match.group(1))
+                print(f"Proteínas (fallback): {data['proteins']}")
+            except ValueError:
+                pass # Ignorar si el valor no es un número válido
     if data["carbs"] == 0:
         match = re.search(table_patterns[1], analysis_text, re.IGNORECASE) or re.search(list_patterns[1], analysis_text, re.IGNORECASE)
-        if match: try: data["carbs"] = float(match.group(1)); print(f"Carbohidratos (fallback): {data['carbs']}") except ValueError: pass
+        if match:
+            try:
+                data["carbs"] = float(match.group(1))
+                print(f"Carbohidratos (fallback): {data['carbs']}")
+            except ValueError:
+                pass # Ignorar si el valor no es un número válido
     if data["fats"] == 0:
         match = re.search(table_patterns[2], analysis_text, re.IGNORECASE) or re.search(list_patterns[2], analysis_text, re.IGNORECASE)
-        if match: try: data["fats"] = float(match.group(1)); print(f"Grasas (fallback): {data['fats']}") except ValueError: pass
+        if match:
+            try:
+                data["fats"] = float(match.group(1))
+                print(f"Grasas (fallback): {data['fats']}")
+            except ValueError:
+                pass # Ignorar si el valor no es un número válido
 
     print(f"Datos nutricionales extraídos finales: {data}")
     return data
