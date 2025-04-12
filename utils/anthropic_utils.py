@@ -9,9 +9,22 @@ import fitz  # PyMuPDF
 from PIL import Image
 import io
 import tempfile
+from dotenv import load_dotenv
 
-# Configurar cliente de Anthropic
-client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+# Cargar variables de entorno
+load_dotenv()
+
+# Inicializar el cliente de Anthropic sin el argumento 'proxies'
+try:
+    # Versión compatible con la versión instalada de Anthropic
+    client = anthropic.Anthropic(
+        api_key=os.environ.get('ANTHROPIC_API_KEY')
+        # Eliminar cualquier argumento 'proxies' que pueda estar causando problemas
+    )
+except TypeError as e:
+    print(f"Error al inicializar Anthropic: {e}")
+    # Fallback a una inicialización más simple si la anterior falla
+    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
 def analyze_medical_study_with_anthropic(file_path, study_type):
     """
@@ -22,86 +35,93 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
         study_type (str): Tipo de estudio médico
         
     Returns:
-        str: Resultado del análisis
+        dict: Resultado del análisis
     """
     try:
-        print(f"Iniciando análisis con Anthropic: {file_path}, tipo: {study_type}")
+        # Determinar el tipo de archivo
+        is_pdf = file_path.lower().endswith('.pdf')
         
-        # Convertir cualquier imagen a JPEG para asegurar compatibilidad
-        try:
-            # Abrir la imagen con PIL
-            img = Image.open(file_path)
+        # Extraer texto si es PDF
+        if is_pdf:
+            text_content = extract_text_from_pdf(file_path)
             
-            # Convertir a RGB si es necesario (por ejemplo, si es RGBA)
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-            
-            # Guardar como JPEG en memoria
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG")
-            buffer.seek(0)
-            
-            # Codificar en base64
-            base64_image = base64.b64encode(buffer.read()).decode('utf-8')
-            
-        except Exception as img_error:
-            print(f"Error al procesar imagen: {str(img_error)}")
-            # Si falla la conversión, intentar leer el archivo directamente
-            with open(file_path, "rb") as image_file:
-                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-        
-        # Construir el prompt para Anthropic
-        prompt = f"""
-        Eres un médico especialista que analiza estudios médicos.
-        
-        Tipo de estudio: {study_type}
-        
-        Por favor, analiza el siguiente estudio médico y proporciona:
-        1. Hallazgos principales
-        2. Interpretación de los resultados
-        3. Posibles implicaciones para la salud
-        4. Recomendaciones generales
-        
-        Presenta la información de manera clara y organizada.
-        """
-        
-        # Crear la solicitud a Anthropic
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
+            # Crear el mensaje para Anthropic
+            response = client.messages.create(
+                model="claude-3-opus-20240229",
+                max_tokens=4000,
+                messages=[
                     {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/jpeg",  # Siempre usar JPEG
-                            "data": base64_image
-                        }
+                        "role": "user",
+                        "content": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza el siguiente texto extraído de un estudio médico y proporciona un análisis detallado y recomendaciones:\n\n{text_content}"
                     }
                 ]
-            }
-        ]
+            )
+        else:
+            # Para imágenes, codificar en base64
+            with open(file_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+            
+            # Crear el mensaje para Anthropic con la imagen
+            response = client.messages.create(
+                model="claude-3-opus-20240229",
+                max_tokens=4000,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza la imagen proporcionada y extrae la información relevante. Proporciona un análisis detallado y recomendaciones."
+                            },
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": base64_image
+                                }
+                            }
+                        ]
+                    }
+                ]
+            )
         
-        print("Enviando solicitud a Anthropic...")
-        
-        # Realizar la solicitud a Anthropic
-        response = client.messages.create(
-            model="claude-3-opus-20240229",
-            max_tokens=4000,
-            messages=messages
-        )
-        
-        # Extraer y devolver la respuesta
-        analysis_result = response.content[0].text
-        
-        print(f"Respuesta recibida de Anthropic (primeros 100 caracteres): {analysis_result[:100]}...")
-        
-        return analysis_result
-        
+        # Extraer y devolver el análisis
+        analysis = response.content[0].text
+        return {
+            "success": True,
+            "analysis": analysis,
+            "provider": "anthropic"
+        }
     except Exception as e:
-        print(f"Error en analyze_medical_study_with_anthropic: {str(e)}")
-        return f"Error al analizar el estudio médico: {str(e)}"
+        print(f"Error en Anthropic: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "provider": "anthropic"
+        }
+
+def extract_text_from_pdf(pdf_path):
+    """
+    Extrae texto de un archivo PDF
+    
+    Args:
+        pdf_path (str): Ruta al archivo PDF
+        
+    Returns:
+        str: Texto extraído del PDF
+    """
+    try:
+        text = ""
+        # Abrir el PDF
+        doc = fitz.open(pdf_path)
+        # Extraer texto de cada página
+        for page in doc:
+            text += page.get_text()
+        return text
+    except Exception as e:
+        print(f"Error al extraer texto del PDF: {str(e)}")
+        return "No se pudo extraer texto del PDF."
 
 def extract_from_pdf(file_path):
     """
