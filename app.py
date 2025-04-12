@@ -7,8 +7,10 @@ from models import db, MedicalStudy, User
 from routes.auth import auth_bp
 from routes.medical_studies import medical_studies_bp
 from routes.nutrition import nutrition_bp, init_app as init_nutrition
-from routes.doctors import doctors_bp
+from routes.doctors import doctors_bp, init_app as init_doctors
 from routes.admin import admin_bp
+from routes.profile import profile_bp
+from routes.doctor_profile import doctor_profile_bp
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -31,6 +33,7 @@ def ensure_upload_dirs(app):
         'uploads/medical_studies',
         'uploads/nutrition',
         'uploads/profile_pics',
+        'uploads/doctor_credentials',
         'uploads/temp'
     ]
     
@@ -55,6 +58,10 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-secret-key')
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
     
+    # Configuración para subida de archivos
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
+    
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
@@ -72,6 +79,7 @@ def create_app():
         from routes.medical_studies import init_app as init_medical_studies
         init_medical_studies(app)
         init_nutrition(app)
+        init_doctors(app)
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -79,23 +87,13 @@ def create_app():
     app.register_blueprint(nutrition_bp, url_prefix='/api/nutrition')
     app.register_blueprint(doctors_bp, url_prefix='/api/doctors')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(profile_bp, url_prefix='/api/profile')
+    app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
 
     # Ruta para servir archivos estáticos desde cualquier subdirectorio de uploads
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
-        # Determinar el subdirectorio basado en el prefijo del filename
-        if filename.startswith('medical_studies/'):
-            subdir = 'medical_studies'
-        elif filename.startswith('nutrition/'):
-            subdir = 'nutrition'
-        elif filename.startswith('profile_pics/'):
-            subdir = 'profile_pics'
-        else:
-            subdir = ''
-        
-        # Construir la ruta completa
-        upload_folder = os.path.join(app.root_path, 'uploads')
-        return send_from_directory(upload_folder, filename)
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')

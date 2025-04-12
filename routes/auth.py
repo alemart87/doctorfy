@@ -1,8 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from models import db, User, UserRole, Doctor
+from models import db, User, UserRole, Doctor, PasswordReset
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
+import secrets
+from flask import current_app, url_for
+from utils.email_utils import send_password_reset_email
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -69,35 +72,22 @@ def register():
 def login():
     try:
         data = request.get_json()
-        print("Datos recibidos en login (original):", data)
         
-        # Corregir el formato de los datos si es necesario
-        if 'email' in data and isinstance(data['email'], dict):
-            # Si email es un objeto que contiene email y password
-            if 'email' in data['email'] and 'password' in data['email']:
-                email = data['email']['email']
-                password = data['email']['password']
-            else:
-                return jsonify({'error': 'Formato de datos incorrecto'}), 400
-        elif 'email' in data and 'password' in data:
-            # Formato correcto
-            email = data['email']
-            password = data['password']
-        else:
-            return jsonify({'error': 'Se requiere email y contraseña'}), 400
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({'error': 'Se requieren email y contraseña'}), 400
         
-        print(f"Email extraído: {email}, Password: {'*' * len(password) if password else None}")
+        user = User.query.filter_by(email=data['email']).first()
         
-        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(data['password']):
+            return jsonify({'error': 'Credenciales inválidas'}), 401
         
-        if not user or not user.check_password(password):
-            return jsonify({'error': 'Email o contraseña incorrectos'}), 401
+        # Generar token con expiración de 1 día
+        access_token = create_access_token(
+            identity=str(user.id),
+            expires_delta=timedelta(days=1)
+        )
         
-        # Crear token de acceso con identidad del usuario
-        access_token = create_access_token(identity=str(user.id))
-        
-        # Imprimir la respuesta para depuración
-        response_data = {
+        return jsonify({
             'token': access_token,
             'user': {
                 'id': user.id,
@@ -105,10 +95,7 @@ def login():
                 'is_doctor': user.is_doctor,
                 'role': user.role
             }
-        }
-        print("Respuesta del login:", response_data)
-        
-        return jsonify(response_data), 200
+        }), 200
     except Exception as e:
         print(f"Error en login: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -162,4 +149,107 @@ def test():
     return jsonify({
         'message': 'API funcionando correctamente',
         'timestamp': datetime.now().isoformat()
-    }), 200 
+    }), 200
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({'error': 'Se requiere un email'}), 400
+        
+        # Buscar el usuario por email
+        user = User.query.filter_by(email=email).first()
+        
+        # Aunque el usuario no exista, no revelamos esa información por seguridad
+        if not user:
+            return jsonify({'message': 'Si el email existe, recibirás instrucciones para restablecer tu contraseña'}), 200
+        
+        # Generar un token único
+        token = secrets.token_urlsafe(32)
+        
+        # Establecer la expiración (24 horas)
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+        
+        # Guardar el token en la base de datos
+        reset_request = PasswordReset(
+            email=email,
+            token=token,
+            expires_at=expires_at
+        )
+        
+        # Invalidar tokens anteriores para este email
+        PasswordReset.query.filter_by(email=email, used=False).update({'used': True})
+        
+        db.session.add(reset_request)
+        db.session.commit()
+        
+        # Construir la URL de restablecimiento
+        reset_url = f"{request.host_url.rstrip('/')}/reset-password/{token}"
+        
+        # Enviar el correo electrónico
+        send_password_reset_email(email, reset_url)
+        
+        return jsonify({
+            'message': 'Se han enviado instrucciones para restablecer tu contraseña'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error en forgot_password: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/reset-password/<token>/verify', methods=['GET'])
+def verify_reset_token(token):
+    try:
+        # Buscar el token en la base de datos
+        reset_request = PasswordReset.query.filter_by(token=token, used=False).first()
+        
+        if not reset_request or not reset_request.is_valid():
+            return jsonify({'error': 'Token inválido o expirado'}), 400
+        
+        return jsonify({'valid': True}), 200
+        
+    except Exception as e:
+        print(f"Error en verify_reset_token: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/reset-password/<token>', methods=['POST'])
+def reset_password(token):
+    try:
+        data = request.get_json()
+        password = data.get('password')
+        
+        if not password:
+            return jsonify({'error': 'Se requiere una nueva contraseña'}), 400
+        
+        # Buscar el token en la base de datos
+        reset_request = PasswordReset.query.filter_by(token=token, used=False).first()
+        
+        if not reset_request or not reset_request.is_valid():
+            return jsonify({'error': 'Token inválido o expirado'}), 400
+        
+        # Buscar el usuario por email
+        user = User.query.filter_by(email=reset_request.email).first()
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Actualizar la contraseña
+        user.set_password(password)
+        
+        # Marcar el token como usado
+        reset_request.used = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Contraseña restablecida con éxito'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error en reset_password: {str(e)}")
+        return jsonify({'error': str(e)}), 500 

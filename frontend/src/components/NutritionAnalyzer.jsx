@@ -1,127 +1,74 @@
-import React, { useState, useRef } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Paper, 
-  Button, 
-  CircularProgress, 
+import React, { useState } from 'react';
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Button,
   Grid,
+  CircularProgress,
+  Alert,
   Card,
   CardContent,
-  Alert,
-  Dialog,
-  DialogContent,
-  DialogActions,
-  IconButton
+  Divider
 } from '@mui/material';
-import { PhotoCamera, Close } from '@mui/icons-material';
-import { nutritionService } from '../services/api';
+import { CloudUpload as UploadIcon } from '@mui/icons-material';
+import api from '../api/axios';
 
 const NutritionAnalyzer = () => {
-  const [file, setFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [analysis, setAnalysis] = useState(null);
-  const [nutritionalData, setNutritionalData] = useState({
-    calories: 0,
-    proteins: 0,
-    carbs: 0,
-    fats: 0
-  });
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const [nutritionalData, setNutritionalData] = useState(null);
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
-      setAnalysis(null);
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Verificar que sea una imagen
+      if (!file.type.startsWith('image/')) {
+        setError('Por favor, selecciona un archivo de imagen (JPG, PNG)');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
       setError(null);
     }
   };
 
-  const handleOpenCamera = async () => {
-    try {
-      setCameraOpen(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error('Error al acceder a la cámara:', err);
-      setError('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
-      setCameraOpen(false);
-    }
-  };
-
-  const handleCloseCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setCameraOpen(false);
-  };
-
-  const handleTakePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      
-      // Convertir a blob
-      canvas.toBlob((blob) => {
-        const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
-        setFile(file);
-        setPreview(URL.createObjectURL(blob));
-        setAnalysis(null);
-        setError(null);
-        handleCloseCamera();
-      }, 'image/jpeg', 0.95);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!file) {
-      setError('Por favor, selecciona una imagen primero');
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      setError('Por favor, selecciona una imagen');
       return;
     }
-
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      
+      // Crear FormData para enviar el archivo
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', selectedFile);
       
-      console.log('Enviando imagen para análisis...');
-      const response = await nutritionService.analyzeFood(formData);
-      console.log('Respuesta del análisis:', response.data);
+      console.log('Enviando archivo:', selectedFile.name, selectedFile.type, selectedFile.size);
       
+      // Hacer la petición
+      const response = await api.post('/nutrition/analyze-food', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Respuesta recibida:', response.data);
+      
+      // Actualizar el estado con los resultados
       setAnalysis(response.data.analysis);
-      
-      // Asegurarse de que nutritionalData existe antes de acceder a sus propiedades
-      if (response.data.nutritionalData) {
-        console.log('Datos nutricionales recibidos:', response.data.nutritionalData);
-        setNutritionalData({
-          calories: response.data.nutritionalData.calories || 0,
-          proteins: response.data.nutritionalData.proteins || 0,
-          carbs: response.data.nutritionalData.carbs || 0,
-          fats: response.data.nutritionalData.fats || 0
-        });
-      } else {
-        console.warn('No se recibieron datos nutricionales en la respuesta');
-        // Mantener los valores por defecto
-      }
+      setNutritionalData(response.data.nutritional_data);
     } catch (err) {
-      console.error('Error al analizar imagen:', err);
-      setError('Error al analizar la imagen. Por favor, intenta de nuevo.');
+      console.error('Error al analizar la imagen:', err);
+      setError('Error al analizar la imagen. Por favor, intenta con otra imagen.');
     } finally {
       setLoading(false);
     }
@@ -129,22 +76,15 @@ const NutritionAnalyzer = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Análisis Nutricional
-      </Typography>
-      
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Sube una imagen de tu comida para analizarla
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Analizador Nutricional
+        </Typography>
+        <Typography variant="body1" paragraph>
+          Sube una imagen de alimentos y nuestro sistema de IA analizará su contenido nutricional.
         </Typography>
         
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Box sx={{ mt: 3, mb: 3 }}>
           <input
             accept="image/*"
             style={{ display: 'none' }}
@@ -153,128 +93,115 @@ const NutritionAnalyzer = () => {
             onChange={handleFileChange}
           />
           <label htmlFor="food-image-upload">
-            <Button variant="contained" component="span">
-              Seleccionar Imagen
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={<UploadIcon />}
+            >
+              Subir Imagen
             </Button>
           </label>
-          
-          <Button 
-            variant="contained" 
-            color="secondary" 
-            startIcon={<PhotoCamera />}
-            onClick={handleOpenCamera}
-          >
-            Tomar Foto
-          </Button>
-          
-          {preview && (
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <img 
-                src={preview} 
-                alt="Vista previa" 
-                style={{ maxWidth: '100%', maxHeight: '300px' }} 
-              />
-            </Box>
-          )}
         </Box>
         
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleAnalyze}
-          disabled={!file || loading}
-          sx={{ mb: 3 }}
-        >
-          {loading ? (
-            <>
-              <CircularProgress size={24} sx={{ mr: 1 }} />
-              Analizando...
-            </>
-          ) : 'Analizar'}
-        </Button>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        
+        {preview && (
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Vista previa:
+            </Typography>
+            <Box
+              component="img"
+              src={preview}
+              alt="Vista previa"
+              sx={{
+                maxWidth: '100%',
+                maxHeight: 300,
+                objectFit: 'contain'
+              }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+              sx={{ mt: 2 }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Analizar'}
+            </Button>
+          </Box>
+        )}
         
         {analysis && (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Información Nutricional
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Calorías:</Typography>
-                    <Typography><strong>{nutritionalData.calories} kcal</strong></Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Proteínas:</Typography>
-                    <Typography><strong>{nutritionalData.proteins} g</strong></Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Carbohidratos:</Typography>
-                    <Typography><strong>{nutritionalData.carbs} g</strong></Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Grasas:</Typography>
-                    <Typography><strong>{nutritionalData.fats} g</strong></Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h5" gutterBottom>
+              Resultados del Análisis
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
             
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Análisis Detallado
-                  </Typography>
-                  <Typography variant="body2" component="div">
-                    {analysis.split('\n').map((line, index) => (
-                      <p key={index}>{line}</p>
-                    ))}
-                  </Typography>
-                </CardContent>
-              </Card>
+            <Grid container spacing={3}>
+              {/* Columna Izquierda: Preview y Datos Extraídos */}
+              <Grid item xs={12} md={5}>
+                 {/* Mostrar preview de nuevo si se quiere */}
+                 {preview && (
+                   <Card sx={{ mb: 2 }}>
+                     <CardContent>
+                       <Typography variant="subtitle1" gutterBottom>Imagen Analizada</Typography>
+                       <Box
+                         component="img"
+                         src={preview}
+                         alt="Vista previa"
+                         sx={{ maxWidth: '100%', maxHeight: 250, objectFit: 'contain', display: 'block', margin: 'auto' }}
+                       />
+                     </CardContent>
+                   </Card>
+                 )}
+                 {/* Datos Nutricionales Extraídos */}
+                 <Card>
+                   <CardContent>
+                     <Typography variant="h6" gutterBottom>
+                       Información Nutricional Estimada
+                     </Typography>
+                     <Box sx={{ mt: 2 }}>
+                       <Typography variant="body1">
+                         <strong>Calorías:</strong> {nutritionalData?.calories ?? 'N/A'} kcal
+                       </Typography>
+                       <Typography variant="body1">
+                         <strong>Proteínas:</strong> {nutritionalData?.proteins?.toFixed(1) ?? 'N/A'} g
+                       </Typography>
+                       <Typography variant="body1">
+                         <strong>Carbohidratos:</strong> {nutritionalData?.carbs?.toFixed(1) ?? 'N/A'} g
+                       </Typography>
+                       <Typography variant="body1">
+                         <strong>Grasas:</strong> {nutritionalData?.fats?.toFixed(1) ?? 'N/A'} g
+                       </Typography>
+                     </Box>
+                   </CardContent>
+                 </Card>
+              </Grid>
+              
+              {/* Columna Derecha: Análisis Detallado */}
+              <Grid item xs={12} md={7}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Análisis Detallado (IA)
+                    </Typography>
+                    {/* Usar pre-wrap para texto plano o ReactMarkdown */}
+                    <Box sx={{ mt: 2, whiteSpace: 'pre-wrap', maxHeight: '500px', overflowY: 'auto' }}>
+                       {analysis}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
-          </Grid>
+          </Box>
         )}
       </Paper>
-      
-      {/* Diálogo para la cámara */}
-      <Dialog 
-        open={cameraOpen} 
-        onClose={handleCloseCamera}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogContent sx={{ p: 0, position: 'relative' }}>
-          <IconButton 
-            onClick={handleCloseCamera}
-            sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1, bgcolor: 'rgba(0,0,0,0.5)', color: 'white' }}
-          >
-            <Close />
-          </IconButton>
-          <video 
-            ref={videoRef}
-            autoPlay
-            playsInline
-            style={{ width: '100%', height: 'auto', maxHeight: '70vh' }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', p: 2 }}>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleTakePhoto}
-            startIcon={<PhotoCamera />}
-          >
-            Capturar
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };

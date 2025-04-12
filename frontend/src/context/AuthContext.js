@@ -11,12 +11,27 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      loadUser();
-    } else {
-      setLoading(false);
-    }
+    const checkToken = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await api.get('/api/auth/me');
+          console.log('User data:', response.data); // Para depuración
+          setUser(response.data);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error al verificar token:', error);
+          localStorage.removeItem('token');
+          setUser(null);
+          setLoading(false);
+        }
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    };
+    
+    checkToken();
   }, []);
 
   const loadUser = async () => {

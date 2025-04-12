@@ -13,17 +13,28 @@ import {
   ListItemButton,
   Divider,
   useMediaQuery,
-  useTheme
+  useTheme,
+  MenuItem,
+  ListItemIcon,
+  Menu
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PersonIcon from '@mui/icons-material/Person';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = React.useState(null);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -35,6 +46,25 @@ const Navbar = () => {
   const handleLogout = () => {
     setDrawerOpen(false);
     logout();
+    handleClose();
+    navigate('/login');
+  };
+
+  const handleProfile = () => {
+    handleClose();
+    if (user?.is_doctor) {
+      navigate('/doctor/profile');
+    } else {
+      navigate('/profile');
+    }
+  };
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   const navItems = [
@@ -42,6 +72,7 @@ const Navbar = () => {
     ...(user?.is_doctor ? [{ text: 'Panel de Doctor', path: '/doctor/dashboard' }] : []),
     { text: 'Estudios Médicos', path: '/medical-studies' },
     { text: 'Nutrición', path: '/nutrition' },
+    { text: 'Dashboard Nutrición', path: '/nutrition-dashboard' },
     { text: 'Directorio de Médicos', path: '/doctors' },
   ];
 
@@ -82,6 +113,22 @@ const Navbar = () => {
             </ListItemButton>
           </ListItem>
         ))}
+        {user && (
+          <MenuItem onClick={handleProfile}>
+            <ListItemIcon>
+              <PersonIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Mi Perfil" />
+          </MenuItem>
+        )}
+        {user && user.is_doctor && (
+          <MenuItem onClick={() => { handleLogout(); navigate('/doctor/profile'); }}>
+            <ListItemIcon>
+              <LocalHospitalIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Mi Perfil Médico" />
+          </MenuItem>
+        )}
       </List>
     </Box>
   );
@@ -152,6 +199,25 @@ const Navbar = () => {
       >
         {drawer}
       </Drawer>
+
+      <Menu
+        id="menu-appbar"
+        anchorEl={anchorEl}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        keepMounted
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        open={Boolean(anchorEl)}
+        onClose={handleClose}
+      >
+        <MenuItem onClick={handleProfile}>Perfil</MenuItem>
+        <MenuItem onClick={handleLogout}>Cerrar Sesión</MenuItem>
+      </Menu>
     </>
   );
 };

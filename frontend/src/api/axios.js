@@ -16,10 +16,14 @@ const api = axios.create({
 // Interceptor para agregar el token a todas las solicitudes
 api.interceptors.request.use(
     (config) => {
+        // No sobrescribir Content-Type si ya está establecido (para multipart/form-data)
+        if (config.headers['Content-Type'] === 'multipart/form-data') {
+            delete config.headers['Content-Type'];
+        }
+        
         const token = localStorage.getItem('token');
         if (token) {
-            // Asegurarse de que el token tenga el formato correcto
-            config.headers['Authorization'] = `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`;
             console.log('Enviando solicitud a:', config.url);
             console.log('Con token configurado en headers');
         } else {

@@ -27,11 +27,13 @@ const Register = () => {
         .required('Confirmar contraseña es requerido'),
       specialty: Yup.string().when('is_doctor', {
         is: true,
-        then: Yup.string().required('Especialidad es requerida para doctores'),
+        then: () => Yup.string().required('Especialidad es requerida para doctores'),
+        otherwise: () => Yup.string()
       }),
       license_number: Yup.string().when('is_doctor', {
         is: true,
-        then: Yup.string().required('Número de licencia es requerido para doctores'),
+        then: () => Yup.string().required('Número de licencia es requerido para doctores'),
+        otherwise: () => Yup.string()
       }),
     }),
     onSubmit: async (values) => {
@@ -47,8 +49,13 @@ const Register = () => {
           userData.license_number = values.license_number;
         }
 
-        await register(userData);
-        navigate('/');
+        const result = await register(userData);
+        
+        if (result.success) {
+          navigate('/');
+        } else {
+          setError(result.error || 'Error al registrarse');
+        }
       } catch (err) {
         setError(err.response?.data?.error || 'Error al registrarse');
       }

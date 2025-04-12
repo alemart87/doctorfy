@@ -283,6 +283,23 @@ const LandingPage = () => {
                     </Button>
                   )}
                 </Box>
+                <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Button 
+                    variant="contained" 
+                    color="primary" 
+                    onClick={() => navigate('/profile')}
+                  >
+                    Ver Perfil de Usuario
+                  </Button>
+                  
+                  <Button 
+                    variant="contained" 
+                    color="secondary" 
+                    onClick={() => navigate('/doctor/profile')}
+                  >
+                    Ver Perfil de Médico
+                  </Button>
+                </Box>
               </Grid>
             </Grid>
           </Fade>

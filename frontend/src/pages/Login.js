@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, Paper, Alert } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Paper, Alert, Link } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../context/AuthContext';
@@ -21,8 +21,12 @@ const Login = () => {
     }),
     onSubmit: async (values) => {
       try {
-        await login(values);
-        navigate('/');
+        const result = await login(values);
+        if (result.success) {
+          navigate('/');
+        } else {
+          setError(result.error || 'Error al iniciar sesión');
+        }
       } catch (err) {
         setError(err.response?.data?.error || 'Error al iniciar sesión');
       }
@@ -63,12 +67,24 @@ const Login = () => {
               helperText={formik.touched.password && formik.errors.password}
               margin="normal"
             />
+            
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, mb: 2 }}>
+              <Link 
+                component={RouterLink} 
+                to="/forgot-password" 
+                variant="body2"
+                underline="hover"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </Box>
+            
             <Button
               color="primary"
               variant="contained"
               fullWidth
               type="submit"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ mt: 1, mb: 2 }}
               disabled={formik.isSubmitting}
             >
               {formik.isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
