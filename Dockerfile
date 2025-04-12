@@ -1,16 +1,17 @@
 # Usar una imagen base de Python
-FROM python:3.9-slim
+FROM python:3.10-slim
+
+# Establecer el directorio de trabajo
+WORKDIR /app
+
+# Copiar el resto del código
+COPY . .
 
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libpq-dev \
-    gcc \
-    && apt-get clean \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Establecer el directorio de trabajo
-WORKDIR /app
 
 # Copiar los archivos de requerimientos primero
 COPY requirements.txt .
@@ -19,13 +20,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Asegurarse de que se instale la versión correcta de OpenAI
-RUN pip uninstall -y openai && pip install --no-cache-dir openai==0.28.1
+RUN pip install --no-cache-dir openai==1.3.0
 
 # Instalar Gunicorn
 RUN pip install --no-cache-dir gunicorn
-
-# Copiar el resto del código
-COPY . .
 
 # Construir la aplicación React
 RUN apt-get update && apt-get install -y \
@@ -42,8 +40,8 @@ RUN apt-get update && apt-get install -y \
 # Crear directorios necesarios
 RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 
-# Exponer el puerto para Flask
-EXPOSE $PORT
+# Exponer el puerto que usará la aplicación
+EXPOSE 5000
 
 # Crear archivo de configuración de Gunicorn (corregido)
 RUN echo 'import os\n\
@@ -67,5 +65,5 @@ echo "Iniciando aplicación Flask..."\n\
 cd /app && gunicorn app:app --bind 0.0.0.0:$PORT\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
-# Comando para ejecutar el script de inicio
-CMD ["/app/start.sh"] 
+# Comando para ejecutar la aplicación
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"] 
