@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Typography,
-  Button,
-  Box,
-  Grid,
-  Card,
+import { 
+  Container, 
+  Typography, 
+  Button, 
+  Box, 
+  Grid, 
+  Card, 
   CardContent,
   useTheme,
   Avatar,
@@ -444,10 +444,10 @@ const LandingPage = () => {
               }}>
                 <Box>
                   <animated.div ref={heroRef} style={heroTextAnimation}>
-                    <Typography
-                      variant="h1"
-                      component="h1"
-                      sx={{
+                <Typography
+                  variant="h1"
+                  component="h1"
+                  sx={{
                         fontWeight: 800,
                         fontSize: { xs: '2.5rem', sm: '3.5rem', md: '5rem', lg: '6rem' },
                         lineHeight: 1.1,
@@ -475,7 +475,7 @@ const LandingPage = () => {
                       />
                       <br />
                       Con{' '}
-                    </Typography>
+                </Typography>
 
                     <Box sx={{ 
                       mb: { xs: 2, md: 4 },
@@ -511,9 +511,9 @@ const LandingPage = () => {
                       />
                     </Box>
 
-                    <Typography
-                      variant="h5"
-                      sx={{
+                <Typography
+                  variant="h5"
+                  sx={{
                         color: 'rgba(255, 255, 255, 0.8)',
                         mb: { xs: 3, md: 5 },
                         maxWidth: '600px',
@@ -522,7 +522,7 @@ const LandingPage = () => {
                       }}
                     >
                       Análisis médicos y nutricionales instantáneos. La primera IA médica Paraguaya, ahora a tu alcance.
-                    </Typography>
+                </Typography>
                   </animated.div>
                 </Box>
                 
@@ -540,13 +540,13 @@ const LandingPage = () => {
                       alignItems: 'center',
                       marginBottom: { xs: 4, md: 0 }, // Margen inferior en móviles
                     }}>
-                      <Button
-                        variant="contained"
+                  <Button
+                    variant="contained"
                         size={useMediaQuery(theme.breakpoints.down('sm')) ? "medium" : "large"}
                         color="primary"
                         onClick={() => navigate(user ? '/dashboard' : '/register')}
                         endIcon={<ArrowForwardIcon />}
-                        sx={{ 
+                    sx={{
                           borderRadius: '8px',
                           px: { xs: 2, md: 4 },
                           py: { xs: 1.5, md: 2 },
@@ -568,7 +568,7 @@ const LandingPage = () => {
                             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                             animation: 'shimmer 3s infinite',
                           },
-                          '&:hover': {
+                      '&:hover': {
                             background: 'linear-gradient(45deg, #3f51b5, #2196f3)',
                             transform: 'translateY(-3px)',
                             boxShadow: '0 15px 30px rgba(63, 81, 181, 0.5), 0 0 15px rgba(63, 81, 181, 0.9)',
@@ -576,16 +576,16 @@ const LandingPage = () => {
                           '@keyframes shimmer': {
                             '0%': { left: '-100%' },
                             '100%': { left: '100%' }
-                          }
-                        }}
-                      >
-                        Comenzar Ahora
-                      </Button>
-                      <Button
-                        variant="outlined"
+                      }
+                    }}
+                  >
+                    Comenzar Ahora
+                  </Button>
+                  <Button
+                    variant="outlined"
                         size={useMediaQuery(theme.breakpoints.down('sm')) ? "medium" : "large"}
                         onClick={() => navigate('/about')}
-                        sx={{ 
+                    sx={{
                           borderRadius: '8px', 
                           px: { xs: 2, md: 4 },
                           py: { xs: 1.5, md: 2 },
@@ -595,22 +595,22 @@ const LandingPage = () => {
                           borderColor: '#f50057',
                           color: '#f50057',
                           whiteSpace: 'nowrap',
-                          '&:hover': {
+                      '&:hover': {
                             borderWidth: '2px',
                             borderColor: '#f50057',
                             transform: 'translateY(-3px)',
                             boxShadow: '0 10px 20px rgba(245, 0, 87, 0.2), 0 0 10px rgba(245, 0, 87, 0.4)',
                           }
                         }}
-                      >
-                        Saber Más
-                      </Button>
+                  >
+                    Saber Más
+                  </Button>
                     </Box>
                   </animated.div>
                 </Box>
-              </Box>
-            </Grid>
-          </Grid>
+                </Box>
+              </Grid>
+              </Grid>
         </Container>
       </HeroSection>
 
@@ -623,30 +623,30 @@ const LandingPage = () => {
             {trail.map((style, index) => {
               const feature = mainFeatures[index];
               return (
-                <Grid item xs={12} md={4} key={feature.title}>
+              <Grid item xs={12} md={4} key={feature.title}>
                   <animated.div style={{ ...style, height: '100%' }}>
                     <FeatureCardStyled>
                       <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                         <Icon component={feature.icon} sx={{ fontSize: '3.5rem', color: feature.color, mb: 3 }} />
                         <Typography gutterBottom variant="h5" component="h3" sx={{ fontWeight: 600, color: 'common.white' }}>
-                          {feature.title}
-                        </Typography>
+                        {feature.title}
+                      </Typography>
                         <Typography sx={{ color: 'grey.400', mb: 3 }}>
-                          {feature.description}
-                        </Typography>
-                        <Button
-                          variant="contained"
+                        {feature.description}
+                      </Typography>
+                      <Button
+                        variant="contained"
                           sx={{ mt: 'auto', borderRadius: '20px' }}
-                          onClick={() => navigate(feature.path)}
+                        onClick={() => navigate(feature.path)}
                           color="primary"
                           endIcon={<ArrowForwardIcon />}
-                        >
+                      >
                           Explorar
-                        </Button>
-                      </CardContent>
+                      </Button>
+                    </CardContent>
                     </FeatureCardStyled>
                   </animated.div>
-                </Grid>
+              </Grid>
               );
             })}
           </Grid>
@@ -658,7 +658,7 @@ const LandingPage = () => {
           <animated.div style={benefitsAnimation}>
             <Typography variant="h2" align="center" sx={{ mb: 8, fontWeight: 700, color: 'common.white' }}>
               ¿Por qué elegir <GradientText>Doctorfy</GradientText>?
-            </Typography>
+          </Typography>
             <Grid container spacing={5}>
               {benefits.map((benefit) => (
                 <Grid item xs={12} sm={4} key={benefit.title}>
@@ -671,19 +671,19 @@ const LandingPage = () => {
                       {benefit.description}
                     </Typography>
                   </Box>
-                </Grid>
-              ))}
-            </Grid>
+              </Grid>
+            ))}
+          </Grid>
           </animated.div>
         </Container>
       </StyledSection>
 
       <StyledSection ref={statsRef} background={`linear-gradient(to bottom, ${theme.palette.grey[900]}, ${theme.palette.grey[800]})`}>
         <Container maxWidth="lg">
-          <Typography 
+          <Typography
             variant="h2" 
-            align="center" 
-            sx={{ 
+            align="center"
+              sx={{
               mb: 8, 
               fontWeight: 800, 
               color: 'common.white',
@@ -708,21 +708,21 @@ const LandingPage = () => {
             {numberSprings.map((props, index) => {
               const stat = stats[index];
               return (
-                <Grid item xs={12} sm={6} md={3} key={stat.id}>
+              <Grid item xs={12} sm={6} md={3} key={stat.id}>
                   <animated.div style={{ opacity: props.opacity }}>
                     <StatItem>
                       <Typography 
                         variant="h1" 
                         component="div" 
-                        sx={{ 
+                    sx={{
                           fontWeight: 800, 
                           background: `linear-gradient(135deg, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           mb: 0,
                           fontSize: { xs: '3.5rem', md: '4rem' },
-                          display: 'flex',
-                          justifyContent: 'center',
+                      display: 'flex',
+                      justifyContent: 'center',
                           alignItems: 'baseline',
                           position: 'relative',
                           filter: 'drop-shadow(0 0 10px rgba(66, 133, 244, 0.3))',
@@ -753,10 +753,10 @@ const LandingPage = () => {
                           {stat.label.startsWith('%') || stat.label.startsWith('/') ? stat.label : '+'}
                         </Box>
                       </Typography>
-                      <Typography 
+                    <Typography 
                         variant="h6" 
-                        component="div" 
-                        sx={{ 
+                      component="div" 
+                      sx={{ 
                           color: 'common.white', 
                           mb: 1,
                           fontWeight: 600,
@@ -766,19 +766,19 @@ const LandingPage = () => {
                         }}
                       >
                         {!stat.label.startsWith('%') && !stat.label.startsWith('/') ? stat.label : ''}
-                      </Typography>
-                      <Typography 
+                    </Typography>
+                    <Typography 
                         variant="body1" 
-                        sx={{ 
+                    sx={{
                           color: 'grey.400',
                           fontSize: '0.95rem'
                         }}
                       >
                         {stat.description}
-                      </Typography>
+                    </Typography>
                     </StatItem>
                   </animated.div>
-                </Grid>
+              </Grid>
               );
             })}
           </Grid>
@@ -794,26 +794,26 @@ const LandingPage = () => {
             {testimonialTrail.map((style, index) => {
               const testimonial = testimonials[index];
               return (
-                <Grid item xs={12} md={4} key={testimonial.id}>
+              <Grid item xs={12} md={4} key={testimonial.id}>
                   <animated.div style={{ ...style, height: '100%' }}>
                     <TestimonialCard>
                       <Typography variant="body1" sx={{ fontStyle: 'italic', color: 'grey.300', flexGrow: 1, mb: 3 }}>
                         "{testimonial.text}"
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
-                        <Avatar src={testimonial.image} alt={testimonial.name} />
-                        <Box>
+                      <Avatar src={testimonial.image} alt={testimonial.name} />
+                      <Box>
                           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'common.white' }}>
-                            {testimonial.name}
-                          </Typography>
+                          {testimonial.name}
+                        </Typography>
                           <Typography variant="body2" sx={{ color: 'grey.500' }}>
-                            {testimonial.role}
-                          </Typography>
-                        </Box>
+                          {testimonial.role}
+                        </Typography>
                       </Box>
+                    </Box>
                     </TestimonialCard>
                   </animated.div>
-                </Grid>
+              </Grid>
               );
             })}
           </Grid>
@@ -852,7 +852,7 @@ const LandingPage = () => {
               >
                 {user ? 'Ir al Dashboard' : 'Registrarse Gratis'}
               </Button>
-            </Box>
+      </Box>
           </animated.div>
         </Container>
       </StyledSection>
@@ -861,55 +861,55 @@ const LandingPage = () => {
         <Container maxWidth="lg">
           <animated.div style={footerAnimation}>
             <Grid container spacing={4} sx={{ mb: 4 }}>
-              <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4}>
                 <Typography variant="h6" gutterBottom sx={{ color: 'common.white' }}>
-                  Doctorfy
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  La primera Inteligencia Artificial Médica del Paraguay.
+                Doctorfy
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                La primera Inteligencia Artificial Médica del Paraguay.
                   Revolucionando la salud digital.
-                </Typography>
-              </Grid>
+              </Typography>
+            </Grid>
               <Grid item xs={6} sm={3} md={2}>
                 <Typography variant="overline" gutterBottom sx={{ color: 'grey.500' }}>
-                  Enlaces
-                </Typography>
+                Enlaces
+              </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Link component={RouterLink} to="/" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Inicio</Link>
                   <Link component={RouterLink} to="/about" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Acerca de</Link>
                   <Link component={RouterLink} to="/contact" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Contacto</Link>
                   <Link component={RouterLink} to="/faq" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>FAQ</Link>
-                </Box>
-              </Grid>
+              </Box>
+            </Grid>
               <Grid item xs={6} sm={3} md={2}>
                 <Typography variant="overline" gutterBottom sx={{ color: 'grey.500' }}>
-                  Servicios
-                </Typography>
+                Servicios
+              </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Link component={RouterLink} to="/medical-studies" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Estudios Médicos</Link>
                   <Link component={RouterLink} to="/nutrition" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Análisis Nutricional</Link>
                   <Link component={RouterLink} to="/doctors" color="inherit" sx={{ '&:hover': { color: 'primary.light' } }}>Directorio Médico</Link>
-                </Box>
-              </Grid>
+              </Box>
+            </Grid>
               <Grid item xs={12} sm={6} md={4}>
                  <Typography variant="overline" gutterBottom sx={{ color: 'grey.500' }}>
-                  Contacto
-                </Typography>
+                Contacto
+              </Typography>
                  <Typography variant="body2">Av. Principal 123, Asunción</Typography>
                  <Typography variant="body2">+595 981 123456</Typography>
                  <Typography variant="body2">info@doctorfy.com</Typography>
-              </Grid>
             </Grid>
+          </Grid>
             <Divider sx={{ bgcolor: 'grey.700', mb: 3 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                &copy; {new Date().getFullYear()} Doctorfy. Todos los derechos reservados.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 3 }}>
+            <Typography variant="body2" sx={{ opacity: 0.7 }}>
+              &copy; {new Date().getFullYear()} Doctorfy. Todos los derechos reservados.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 3 }}>
                 <Link component={RouterLink} to="/privacy" color="inherit" sx={{ fontSize: '0.8rem', '&:hover': { color: 'primary.light' } }}>Privacidad</Link>
                 <Link component={RouterLink} to="/terms" color="inherit" sx={{ fontSize: '0.8rem', '&:hover': { color: 'primary.light' } }}>Términos</Link>
-              </Box>
             </Box>
+          </Box>
           </animated.div>
         </Container>
       </Footer>

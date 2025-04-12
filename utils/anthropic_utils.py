@@ -1,127 +1,153 @@
 import os
 import base64
-import requests
 import json
+import requests  # Usar requests para llamadas HTTP
 import imghdr
 from flask import current_app
-import anthropic
-import fitz  # PyMuPDF
 from PIL import Image
 import io
 import tempfile
 from dotenv import load_dotenv
+import fitz  # PyMuPDF
+import mimetypes # Para detectar el tipo de imagen
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Inicializar el cliente de Anthropic sin el argumento 'proxies'
-try:
-    # Versión compatible con la versión instalada de Anthropic
-    client = anthropic.Anthropic(
-        api_key=os.environ.get('ANTHROPIC_API_KEY')
-        # Eliminar cualquier argumento 'proxies' que pueda estar causando problemas
-    )
-except TypeError as e:
-    print(f"Error al inicializar Anthropic: {e}")
-    # Fallback a una inicialización más simple si la anterior falla
-    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
-
-def analyze_medical_study_with_anthropic(file_path, study_type):
-    """
-    Analiza un estudio médico usando Anthropic Claude
-    
-    Args:
-        file_path (str): Ruta al archivo del estudio
-        study_type (str): Tipo de estudio médico
-        
-    Returns:
-        dict: Resultado del análisis
-    """
-    try:
-        # Determinar el tipo de archivo
-        is_pdf = file_path.lower().endswith('.pdf')
-        
-        # Extraer texto si es PDF
-        if is_pdf:
-            text_content = extract_text_from_pdf(file_path)
-            
-            # Crear el mensaje para Anthropic
-            response = client.messages.create(
-                model="claude-3-opus-20240229",
-                max_tokens=4000,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza el siguiente texto extraído de un estudio médico y proporciona un análisis detallado y recomendaciones:\n\n{text_content}"
-                    }
-                ]
-            )
-        else:
-            # Para imágenes, codificar en base64
-            with open(file_path, "rb") as image_file:
-                base64_image = base64.b64encode(image_file.read()).decode("utf-8")
-            
-            # Crear el mensaje para Anthropic con la imagen
-            response = client.messages.create(
-                model="claude-3-opus-20240229",
-                max_tokens=4000,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza la imagen proporcionada y extrae la información relevante. Proporciona un análisis detallado y recomendaciones."
-                            },
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": base64_image
-                                }
-                            }
-                        ]
-                    }
-                ]
-            )
-        
-        # Extraer y devolver el análisis
-        analysis = response.content[0].text
-        return {
-            "success": True,
-            "analysis": analysis,
-            "provider": "anthropic"
-        }
-    except Exception as e:
-        print(f"Error en Anthropic: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "provider": "anthropic"
-        }
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_VERSION = "2023-06-01" # Versión de la API de Anthropic
 
 def extract_text_from_pdf(pdf_path):
     """
     Extrae texto de un archivo PDF
-    
-    Args:
-        pdf_path (str): Ruta al archivo PDF
-        
-    Returns:
-        str: Texto extraído del PDF
     """
     try:
         text = ""
-        # Abrir el PDF
         doc = fitz.open(pdf_path)
-        # Extraer texto de cada página
         for page in doc:
             text += page.get_text()
         return text
     except Exception as e:
         print(f"Error al extraer texto del PDF: {str(e)}")
-        return "No se pudo extraer texto del PDF."
+        return None # Devolver None para indicar error
+
+def analyze_medical_study_with_anthropic(file_path, study_type):
+    """
+    Analiza un estudio médico usando la API de Anthropic Claude directamente.
+    """
+    if not ANTHROPIC_API_KEY:
+        print("Error: ANTHROPIC_API_KEY no está configurada.")
+        return {
+            "success": False,
+            "error": "API Key de Anthropic no configurada.",
+            "provider": "anthropic"
+        }
+
+    headers = {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json"
+    }
+
+    try:
+        is_pdf = file_path.lower().endswith('.pdf')
+        messages = []
+
+        if is_pdf:
+            text_content = extract_text_from_pdf(file_path)
+            if text_content is None:
+                 raise ValueError("No se pudo extraer texto del PDF.")
+
+            messages.append({
+                "role": "user",
+                "content": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza el siguiente texto extraído de un estudio médico y proporciona un análisis detallado y recomendaciones:\n\n{text_content}"
+            })
+        else:
+            # Manejar imágenes
+            try:
+                with open(file_path, "rb") as image_file:
+                    image_data = image_file.read()
+                base64_image = base64.b64encode(image_data).decode("utf-8")
+
+                # Detectar media type
+                mime_type, _ = mimetypes.guess_type(file_path)
+                if not mime_type or not mime_type.startswith('image/'):
+                    mime_type = 'image/jpeg' # Usar jpeg como default si no se detecta
+                    print(f"Advertencia: No se pudo detectar el tipo MIME, usando {mime_type}")
+
+                messages.append({
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza la imagen proporcionada y extrae la información relevante. Proporciona un análisis detallado y recomendaciones."
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": mime_type,
+                                "data": base64_image
+                            }
+                        }
+                    ]
+                })
+            except FileNotFoundError:
+                 print(f"Error: Archivo de imagen no encontrado en {file_path}")
+                 raise
+            except Exception as img_err:
+                 print(f"Error al procesar la imagen: {img_err}")
+                 raise
+
+        payload = {
+            "model": "claude-3-opus-20240229", # O el modelo que prefieras
+            "max_tokens": 4000,
+            "messages": messages
+        }
+
+        print(f"Enviando solicitud a Anthropic API: {ANTHROPIC_API_URL}")
+        response = requests.post(ANTHROPIC_API_URL, headers=headers, json=payload)
+        response.raise_for_status() # Lanza una excepción para errores HTTP (4xx o 5xx)
+
+        response_data = response.json()
+        print("Respuesta recibida de Anthropic API.")
+
+        # Extraer el contenido del mensaje de respuesta
+        if response_data.get("content") and isinstance(response_data["content"], list) and len(response_data["content"]) > 0:
+            analysis = response_data["content"][0].get("text", "No se encontró texto en la respuesta.")
+        else:
+            analysis = "Respuesta inesperada de la API de Anthropic."
+            print(f"Respuesta inesperada: {response_data}")
+
+        return {
+            "success": True,
+            "analysis": analysis,
+            "provider": "anthropic"
+        }
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error de red al llamar a Anthropic API: {str(e)}")
+        error_details = f"Error de red: {e}"
+        if e.response is not None:
+            try:
+                error_details += f" - Respuesta: {e.response.text}"
+            except Exception:
+                pass # Ignorar si no se puede leer la respuesta
+        return {
+            "success": False,
+            "error": error_details,
+            "provider": "anthropic"
+        }
+    except Exception as e:
+        print(f"Error general en Anthropic (llamada directa API): {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": f"Error inesperado: {str(e)}",
+            "provider": "anthropic"
+        }
 
 def extract_from_pdf(file_path):
     """
