@@ -24,5 +24,5 @@ RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 # Exponer el puerto que usará la aplicación
 EXPOSE $PORT
 
-# Comando para ejecutar la aplicación
-CMD gunicorn --bind 0.0.0.0:$PORT app:app 
+# Comando para ejecutar la aplicación con más información de depuración
+CMD gunicorn --bind 0.0.0.0:$PORT --log-level debug app:app 
