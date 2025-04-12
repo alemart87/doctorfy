@@ -1,7 +1,7 @@
 import os
 import base64
 import json
-import requests  # Usar requests para llamadas HTTP
+import anthropic # Importar el cliente oficial
 import imghdr
 from flask import current_app
 from PIL import Image
@@ -10,11 +10,23 @@ import tempfile
 from dotenv import load_dotenv
 import fitz  # PyMuPDF
 import mimetypes # Para detectar el tipo de imagen
+import traceback
 
 # Cargar variables de entorno
 load_dotenv()
 
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+# Inicializar el cliente de Anthropic
+try:
+    # La inicialización es más simple con la biblioteca cliente
+    # Asegúrate de que la versión de anthropic instalada sea compatible con httpx
+    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+    print("Cliente Anthropic inicializado.")
+except Exception as client_init_error:
+    print(f"Error CRÍTICO al inicializar cliente Anthropic: {client_init_error}")
+    # Manejar el error como en OpenAI
+    client = None
+    traceback.print_exc()
+
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01" # Versión de la API de Anthropic
 
@@ -34,25 +46,15 @@ def extract_text_from_pdf(pdf_path):
 
 def analyze_medical_study_with_anthropic(file_path, study_type):
     """
-    Analiza un estudio médico usando la API de Anthropic Claude directamente.
+    Analiza un estudio médico usando el cliente Anthropic Claude.
     """
-    if not ANTHROPIC_API_KEY:
-        print("Error: ANTHROPIC_API_KEY no está configurada.")
-        return {
-            "success": False,
-            "error": "API Key de Anthropic no configurada.",
-            "provider": "anthropic"
-        }
-
-    headers = {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "content-type": "application/json"
-    }
+    if not client:
+        return {"success": False, "error": "Cliente Anthropic no inicializado.", "provider": "anthropic"}
 
     try:
         is_pdf = file_path.lower().endswith('.pdf')
         messages = []
+        model = "claude-3-opus-20240229" # O el modelo que prefieras
 
         if is_pdf:
             text_content = extract_text_from_pdf(file_path)
@@ -70,11 +72,9 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
                     image_data = image_file.read()
                 base64_image = base64.b64encode(image_data).decode("utf-8")
 
-                # Detectar media type
                 mime_type, _ = mimetypes.guess_type(file_path)
                 if not mime_type or not mime_type.startswith('image/'):
-                    mime_type = 'image/jpeg' # Usar jpeg como default si no se detecta
-                    print(f"Advertencia: No se pudo detectar el tipo MIME, usando {mime_type}")
+                    mime_type = 'image/jpeg'
 
                 messages.append({
                     "role": "user",
@@ -100,25 +100,22 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
                  print(f"Error al procesar la imagen: {img_err}")
                  raise
 
-        payload = {
-            "model": "claude-3-opus-20240229", # O el modelo que prefieras
-            "max_tokens": 4000,
-            "messages": messages
-        }
-
-        print(f"Enviando solicitud a Anthropic API: {ANTHROPIC_API_URL}")
-        response = requests.post(ANTHROPIC_API_URL, headers=headers, json=payload)
-        response.raise_for_status() # Lanza una excepción para errores HTTP (4xx o 5xx)
-
-        response_data = response.json()
-        print("Respuesta recibida de Anthropic API.")
+        print(f"Llamando a Anthropic API con modelo {model}...")
+        response = client.messages.create(
+            model=model,
+            max_tokens=4000, # Ajustar según necesidad
+            messages=messages
+        )
+        print("Respuesta recibida de Anthropic.")
 
         # Extraer el contenido del mensaje de respuesta
-        if response_data.get("content") and isinstance(response_data["content"], list) and len(response_data["content"]) > 0:
-            analysis = response_data["content"][0].get("text", "No se encontró texto en la respuesta.")
+        if response.content and isinstance(response.content, list) and len(response.content) > 0:
+             # Acceder al atributo 'text' del primer bloque de contenido
+            analysis = response.content[0].text
         else:
             analysis = "Respuesta inesperada de la API de Anthropic."
-            print(f"Respuesta inesperada: {response_data}")
+            print(f"Respuesta inesperada: {response}")
+
 
         return {
             "success": True,
@@ -126,26 +123,12 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
             "provider": "anthropic"
         }
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error de red al llamar a Anthropic API: {str(e)}")
-        error_details = f"Error de red: {e}"
-        if e.response is not None:
-            try:
-                error_details += f" - Respuesta: {e.response.text}"
-            except Exception:
-                pass # Ignorar si no se puede leer la respuesta
-        return {
-            "success": False,
-            "error": error_details,
-            "provider": "anthropic"
-        }
     except Exception as e:
-        print(f"Error general en Anthropic (llamada directa API): {str(e)}")
-        import traceback
+        print(f"Error en analyze_medical_study_with_anthropic (Anthropic Client): {str(e)}")
         traceback.print_exc()
         return {
             "success": False,
-            "error": f"Error inesperado: {str(e)}",
+            "error": str(e),
             "provider": "anthropic"
         }
 
