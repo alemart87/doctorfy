@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './context/AuthContext';
@@ -28,73 +28,87 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import PatientNutritionView from './pages/PatientNutritionView';
 import DoctorProfileView from './pages/DoctorProfileView';
 
+// Componente para decidir si mostrar el navbar general
+const NavbarWrapper = ({ children }) => {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+  
+  return (
+    <>
+      {!isLandingPage && <Navbar />}
+      {children}
+    </>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <Navbar />
-          <Routes>
-            {/* Ruta principal para la landing page */}
-            <Route path="/" element={<LandingPage />} />
-            
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            
-            <Route path="/medical-studies" element={
-              <PrivateRoute>
-                <MedicalStudies />
-              </PrivateRoute>
-            } />
-            <Route path="/medical-studies/:studyId" element={
-              <PrivateRoute>
-                <StudyDetails />
-              </PrivateRoute>
-            } />
-            <Route path="/nutrition" element={
-              <PrivateRoute>
-                <NutritionAnalyzer />
-              </PrivateRoute>
-            } />
-            <Route path="/doctors" element={<DoctorDirectory />} />
-            <Route path="/admin" element={
-              <PrivateRoute adminOnly>
-                <AdminPanel />
-              </PrivateRoute>
-            } />
-            <Route path="/profile" element={
-              <PrivateRoute>
-                <UserProfile />
-              </PrivateRoute>
-            } />
-            <Route path="/doctor/profile" element={
-              <PrivateRoute>
-                <DoctorProfile />
-              </PrivateRoute>
-            } />
-            <Route path="/nutrition-dashboard" element={<NutritionDashboard />} />
-            
-            {/* Rutas para médicos */}
-            <Route path="/doctor/dashboard" element={
-              <PrivateRoute>
-                <DoctorDashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/doctor/patient/:patientId/nutrition" element={
-              <PrivateRoute>
-                <PatientNutritionView />
-              </PrivateRoute>
-            } />
-            
-            {/* Ruta para ver el perfil detallado de un médico */}
-            <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
-            
-            {/* Ruta para manejar URLs no encontradas */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <NavbarWrapper>
+            <Routes>
+              {/* Ruta principal para la landing page */}
+              <Route path="/" element={<LandingPage />} />
+              
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              
+              <Route path="/medical-studies" element={
+                <PrivateRoute>
+                  <MedicalStudies />
+                </PrivateRoute>
+              } />
+              <Route path="/medical-studies/:studyId" element={
+                <PrivateRoute>
+                  <StudyDetails />
+                </PrivateRoute>
+              } />
+              <Route path="/nutrition" element={
+                <PrivateRoute>
+                  <NutritionAnalyzer />
+                </PrivateRoute>
+              } />
+              <Route path="/doctors" element={<DoctorDirectory />} />
+              <Route path="/admin" element={
+                <PrivateRoute adminOnly>
+                  <AdminPanel />
+                </PrivateRoute>
+              } />
+              <Route path="/profile" element={
+                <PrivateRoute>
+                  <UserProfile />
+                </PrivateRoute>
+              } />
+              <Route path="/doctor/profile" element={
+                <PrivateRoute>
+                  <DoctorProfile />
+                </PrivateRoute>
+              } />
+              <Route path="/nutrition-dashboard" element={<NutritionDashboard />} />
+              
+              {/* Rutas para médicos */}
+              <Route path="/doctor/dashboard" element={
+                <PrivateRoute>
+                  <DoctorDashboard />
+                </PrivateRoute>
+              } />
+              <Route path="/doctor/patient/:patientId/nutrition" element={
+                <PrivateRoute>
+                  <PatientNutritionView />
+                </PrivateRoute>
+              } />
+              
+              {/* Ruta para ver el perfil detallado de un médico */}
+              <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
+              
+              {/* Ruta para manejar URLs no encontradas */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </NavbarWrapper>
         </Router>
       </AuthProvider>
     </ThemeProvider>
