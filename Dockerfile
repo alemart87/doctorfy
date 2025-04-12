@@ -4,66 +4,25 @@ FROM python:3.10-slim
 # Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar el resto del código
-COPY . .
-
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copiar los archivos de requerimientos primero
 COPY requirements.txt .
 
-# Instalar dependencias de Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Asegurarse de que se instale la versión correcta de OpenAI
-RUN pip install --no-cache-dir openai==1.3.0
-
-# Instalar Gunicorn
-RUN pip install --no-cache-dir gunicorn
-
-# Construir la aplicación React
+# Instalar dependencias del sistema y Python
 RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -sL https://deb.nodesource.com/setup_16.x | bash - \
-    && apt-get install -y nodejs \
-    && cd frontend \
-    && npm install \
-    && npm run build \
-    && cd .. \
-    && apt-get purge -y --auto-remove curl nodejs \
+    build-essential \
+    libffi-dev \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn \
     && rm -rf /var/lib/apt/lists/*
+
+# Copiar el resto del código
+COPY . .
 
 # Crear directorios necesarios
 RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 
 # Exponer el puerto que usará la aplicación
-EXPOSE 5000
-
-# Crear archivo de configuración de Gunicorn (corregido)
-RUN echo 'import os\n\
-workers = int(os.environ.get("GUNICORN_WORKERS", "2"))\n\
-threads = int(os.environ.get("GUNICORN_THREADS", "4"))\n\
-timeout = 120\n\
-port = os.environ.get("PORT", "8000")\n\
-bind = "0.0.0.0:" + port\n\
-accesslog = "-"\n\
-errorlog = "-"\n\
-loglevel = "info"\n\
-worker_class = "sync"\n\
-worker_connections = 1000\n\
-' > /app/gunicorn_config.py
-
-# Crear script de inicio principal
-RUN echo '#!/bin/bash\n\
-echo "Verificando versión de OpenAI..."\n\
-pip show openai\n\
-echo "Iniciando aplicación Flask..."\n\
-cd /app && gunicorn app:app --bind 0.0.0.0:$PORT\n\
-' > /app/start.sh && chmod +x /app/start.sh
+EXPOSE $PORT
 
 # Comando para ejecutar la aplicación
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"] 
+CMD gunicorn --bind 0.0.0.0:$PORT app:app 
