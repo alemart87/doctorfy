@@ -1,10 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { FaStethoscope, FaFileMedical, FaApple, FaUserMd, FaLock } from 'react-icons/fa';
-import { RiMentalHealthFill } from 'react-icons/ri';
-import { GiMedicines } from 'react-icons/gi';
-import '../styles/LandingPage.css';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -13,14 +8,13 @@ import {
   Grid, 
   Card, 
   CardContent,
-  CardMedia,
   useTheme,
   Paper,
   Avatar,
-  Divider,
   Fade,
-  Zoom,
-  Chip
+  Slide,
+  Link,
+  Divider
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -34,33 +28,91 @@ import {
   Devices as DevicesIcon,
   AccessTime as AccessTimeIcon,
   MonetizationOn as MonetizationOnIcon,
-  Language as LanguageIcon,
-  Bolt as BoltIcon
+  Restaurant,
+  Description
 } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import { useInView } from 'react-intersection-observer';
+import { Link as RouterLink } from 'react-router-dom';
+import { TypeAnimation } from 'react-type-animation';
 
-// Importar imágenes desde un CDN público
-const IMAGES = {
-  hero: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200",
-  medical1: "https://images.unsplash.com/photo-1583912267550-82c95c9b6e4c?auto=format&fit=crop&w=500",
-  medical2: "https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=500",
-  doctors: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=500",
-  tech: "https://images.unsplash.com/photo-1576670159805-381a0aa2d599?auto=format&fit=crop&w=500",
-  ai: "https://images.unsplash.com/photo-1677442135136-760c813a743d?auto=format&fit=crop&w=800",
-};
+// Componentes estilizados
+const HeroSection = styled(Box)(({ theme }) => ({
+  minHeight: '100vh',
+  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+  display: 'flex',
+  alignItems: 'center',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'url(/path/to/pattern.svg)',
+    opacity: 0.1,
+    animation: 'float 20s linear infinite',
+  }
+}));
+
+const FeatureCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'all 0.3s ease-in-out',
+  background: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+  '&:hover': {
+    transform: 'translateY(-10px)',
+    boxShadow: theme.shadows[10],
+  }
+}));
+
+const AnimatedIcon = styled(Box)(({ theme }) => ({
+  fontSize: '3rem',
+  color: theme.palette.primary.main,
+  transition: 'all 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'scale(1.2) rotate(10deg)',
+  }
+}));
+
+// Estilo para el contenedor de la animación de texto
+const TypingContainer = styled(Box)(({ theme }) => ({
+  background: 'rgba(0, 0, 0, 0.3)',
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  fontFamily: '"Courier New", Courier, monospace',
+  color: '#a5d6a7', // Verde claro tipo terminal
+  minHeight: '200px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+  width: '100%', // Asegurar que ocupe el espacio
+  maxWidth: '600px', // Limitar el ancho si es necesario
+  margin: 'auto', // Centrar si es más pequeño que el grid item
+}));
 
 const LandingPage = () => {
-  const { scrollYProgress } = useScroll();
-  const heroRef = useRef(null);
-  const featuresRef = useRef(null);
-  const testimonialsRef = useRef(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
   const theme = useTheme();
+  const { user } = useAuth();
 
-  // Efectos de parallax
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -50]);
-  
+  // Refs para animaciones de scroll
+  const [heroRef, heroInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
+  const [featuresRef, featuresInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
   // Testimonios
   const testimonials = [
     {
@@ -109,12 +161,12 @@ const LandingPage = () => {
       description: 'Interfaz intuitiva y respuesta inmediata a tus necesidades.'
     },
     {
-      icon: <BoltIcon fontSize="large" sx={{ color: '#9c27b0' }} />,
+      icon: <SpeedIcon fontSize="large" sx={{ color: '#ff9800' }} />,
       title: 'Diagnóstico Instantáneo',
       description: 'Resultados en segundos vs. horas o días con médicos tradicionales.'
     },
     {
-      icon: <LanguageIcon fontSize="large" sx={{ color: '#3f51b5' }} />,
+      icon: <SpeedIcon fontSize="large" sx={{ color: '#ff9800' }} />,
       title: 'Primera IA Médica Paraguaya',
       description: 'Tecnología de vanguardia desarrollada en Paraguay para el mundo.'
     },
@@ -161,148 +213,273 @@ const LandingPage = () => {
     }
   ];
 
-  useEffect(() => {
-    // Inicializar cualquier biblioteca de animación adicional si es necesario
-  }, []);
+  const mainFeatures = [
+    {
+      title: 'Análisis de Estudios Médicos',
+      description: 'Interpreta tus estudios médicos con IA avanzada para obtener resultados rápidos y precisos.',
+      icon: <Description fontSize="large" />,
+      path: '/medical-studies',
+      color: theme.palette.primary.main
+    },
+    {
+      title: 'Análisis Nutricional',
+      description: 'Analiza el contenido nutricional de tus alimentos con solo una foto y recibe recomendaciones personalizadas.',
+      icon: <Restaurant fontSize="large" />,
+      path: '/analyze-nutrition',
+      color: theme.palette.secondary.main
+    },
+    {
+      title: 'Directorio Médico',
+      description: 'Conecta con profesionales de la salud calificados y gestiona tus consultas de manera eficiente.',
+      icon: <HospitalIcon fontSize="large" />,
+      path: '/doctors',
+      color: theme.palette.success.main
+    }
+  ];
+
+  const benefits = [
+    {
+      icon: <SpeedIcon />,
+      title: 'Resultados Instantáneos',
+      description: 'Obtén análisis detallados en segundos gracias a nuestra IA avanzada.'
+    },
+    {
+      icon: <SecurityIcon />,
+      title: 'Seguridad Garantizada',
+      description: 'Tus datos médicos están protegidos con los más altos estándares de seguridad.'
+    },
+    {
+      icon: <PsychologyIcon />,
+      title: 'IA Inteligente',
+      description: 'Tecnología de punta que aprende y mejora constantemente para brindarte los mejores resultados.'
+    }
+  ];
 
   return (
     <Box>
-      {/* Hero Section con imagen de fondo */}
-      <Box
-        sx={{
-          position: 'relative',
-          height: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          color: 'white',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url(${IMAGES.hero})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            zIndex: -1
-          }
-        }}
-      >
+      {/* Hero Section */}
+      <HeroSection ref={heroRef}>
         <Container maxWidth="lg">
-          <Fade in timeout={1000}>
+          <Fade in={heroInView} timeout={1000}>
             <Grid container spacing={4} alignItems="center">
-              <Grid item xs={12} md={7}>
-                <Chip 
-                  label="PRIMERA IA MÉDICA DE PARAGUAY" 
-                  color="secondary" 
-                  sx={{ 
-                    mb: 2, 
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                    py: 1
-                  }} 
-                />
-                <Typography 
-                  variant="h1" 
-                  component="h1" 
-                  gutterBottom
-                  sx={{ 
+              <Grid item xs={12} md={6}>
+                <Typography
+                  variant="h1"
+                  component="h1"
+                  sx={{
                     fontWeight: 700,
-                    fontSize: { xs: '3rem', md: '4rem' }
+                    color: 'white',
+                    mb: 2,
+                    fontSize: { xs: '2.5rem', md: '3.5rem' }
                   }}
                 >
-                  Doctorfy
+                  Tu Salud, Potenciada por IA
                 </Typography>
-                <Typography 
-                  variant="h4" 
-                  sx={{ mb: 2, opacity: 0.9 }}
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    mb: 4
+                  }}
                 >
-                  Dando acceso a la salud a todos
+                  Análisis médicos y nutricionales instantáneos con inteligencia artificial de última generación.
                 </Typography>
-                <Typography 
-                  variant="h6" 
-                  sx={{ mb: 4, opacity: 0.8, fontWeight: 'normal' }}
-                >
-                  Consulta tus análisis con nuestra IA y obtén resultados en 30 segundos, 
-                  no en 3 días como con médicos tradicionales.
-                </Typography>
-                <Box sx={{ mt: 4 }}>
-                  {!user ? (
-                    <>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        onClick={() => navigate('/register')}
-                        sx={{ 
-                          mr: 2,
-                          px: 4,
-                          py: 2,
-                          fontSize: '1.2rem',
-                          backgroundColor: theme.palette.secondary.main,
-                          '&:hover': {
-                            backgroundColor: theme.palette.secondary.dark,
-                            transform: 'scale(1.05)',
-                            transition: 'all 0.3s'
-                          }
-                        }}
-                      >
-                        Comenzar Ahora
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="large"
-                        onClick={() => navigate('/login')}
-                        sx={{ 
-                          px: 4,
-                          py: 2,
-                          fontSize: '1.2rem',
-                          color: 'white',
-                          borderColor: 'white',
-                          '&:hover': {
-                            borderColor: 'white',
-                            backgroundColor: 'rgba(255,255,255,0.1)'
-                          }
-                        }}
-                      >
-                        Iniciar Sesión
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={() => navigate('/medical-studies')}
-                      sx={{ 
-                        px: 4,
-                        py: 2,
-                        fontSize: '1.2rem'
-                      }}
-                    >
-                      Ir a Mis Estudios
-                    </Button>
-                  )}
-                </Box>
-                <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
-                    onClick={() => navigate('/profile')}
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    color="secondary"
+                    onClick={() => navigate('/register')}
+                    sx={{
+                      borderRadius: '30px',
+                      px: 4,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      boxShadow: theme.shadows[10],
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                      }
+                    }}
                   >
-                    Ver Perfil de Usuario
+                    Comenzar Ahora
                   </Button>
-                  
-                  <Button 
-                    variant="contained" 
-                    color="secondary" 
-                    onClick={() => navigate('/doctor/profile')}
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    sx={{
+                      borderRadius: '30px',
+                      px: 4,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      color: 'white',
+                      borderColor: 'white',
+                      '&:hover': {
+                        borderColor: 'white',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      }
+                    }}
+                    onClick={() => navigate('/about')}
                   >
-                    Ver Perfil de Médico
+                    Saber Más
                   </Button>
                 </Box>
               </Grid>
+              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TypingContainer>
+                  <TypeAnimation
+                    sequence={[
+                      'Analizando radiografía de tórax...\n> Hallazgos: Sin consolidaciones agudas.\n> Impresión: Normal.',
+                      2000,
+                      'Interpretando resultados de laboratorio...\n> Glucosa: 95 mg/dL (Normal)\n> Colesterol LDL: 110 mg/dL (Límite)',
+                      2000,
+                      'Generando informe nutricional...\n> Calorías recomendadas: 2200 kcal\n> Macronutrientes: 40% Carbs, 30% Prot, 30% Grasas',
+                      2000,
+                      'Evaluando electrocardiograma (ECG)...\n> Ritmo: Sinusal normal.\n> Frecuencia: 75 lpm.',
+                      2000,
+                    ]}
+                    wrapper="pre"
+                    cursor={true}
+                    repeat={Infinity}
+                    style={{ fontSize: '1.1em', whiteSpace: 'pre-wrap', width: '100%' }}
+                    speed={60}
+                    deletionSpeed={80}
+                  />
+                </TypingContainer>
+              </Grid>
             </Grid>
           </Fade>
+        </Container>
+      </HeroSection>
+
+      {/* Features Section */}
+      <Box sx={{ py: 10, background: '#f5f5f5' }} ref={featuresRef}>
+        <Container maxWidth="lg">
+          <Typography
+            variant="h2"
+            align="center"
+            sx={{ mb: 8, fontWeight: 700 }}
+          >
+            Características Principales
+          </Typography>
+          <Grid container spacing={4}>
+            {mainFeatures.map((feature, index) => (
+              <Grid item xs={12} md={4} key={feature.title}>
+                <Slide
+                  direction="up"
+                  in={featuresInView}
+                  timeout={500 + index * 200}
+                >
+                  <FeatureCard>
+                    <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                      <AnimatedIcon sx={{ color: feature.color, mb: 2 }}>
+                        {feature.icon}
+                      </AnimatedIcon>
+                      <Typography
+                        gutterBottom
+                        variant="h5"
+                        component="h2"
+                        sx={{ fontWeight: 600 }}
+                      >
+                        {feature.title}
+                      </Typography>
+                      <Typography color="text.secondary">
+                        {feature.description}
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        sx={{ mt: 3 }}
+                        onClick={() => navigate(feature.path)}
+                      >
+                        Probar Ahora
+                      </Button>
+                    </CardContent>
+                  </FeatureCard>
+                </Slide>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Benefits Section */}
+      <Box sx={{ py: 10 }}>
+        <Container maxWidth="lg">
+          <Typography
+            variant="h2"
+            align="center"
+            sx={{ mb: 8, fontWeight: 700 }}
+          >
+            ¿Por qué Doctorfy?
+          </Typography>
+          <Grid container spacing={4}>
+            {benefits.map((benefit, index) => (
+              <Grid item xs={12} md={4} key={benefit.title}>
+                <Fade in={true} timeout={1000 + index * 200}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <AnimatedIcon sx={{ mb: 2 }}>
+                      {benefit.icon}
+                    </AnimatedIcon>
+                    <Typography
+                      variant="h5"
+                      component="h3"
+                      sx={{ mb: 2, fontWeight: 600 }}
+                    >
+                      {benefit.title}
+                    </Typography>
+                    <Typography color="text.secondary">
+                      {benefit.description}
+                    </Typography>
+                  </Box>
+                </Fade>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* CTA Section */}
+      <Box
+        sx={{
+          py: 10,
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          color: 'white',
+        }}
+      >
+        <Container maxWidth="md">
+          <Typography
+            variant="h3"
+            align="center"
+            sx={{ mb: 4, fontWeight: 700 }}
+          >
+            Comienza tu Viaje hacia una Mejor Salud
+          </Typography>
+          <Typography
+            variant="h6"
+            align="center"
+            sx={{ mb: 4, opacity: 0.9 }}
+          >
+            Únete a miles de usuarios que ya están aprovechando el poder de la IA para mejorar su salud.
+          </Typography>
+          <Box sx={{ textAlign: 'center' }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              size="large"
+              onClick={() => navigate('/register')}
+              sx={{
+                borderRadius: '30px',
+                px: 6,
+                py: 2,
+                fontSize: '1.2rem',
+                boxShadow: theme.shadows[10],
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                }
+              }}
+            >
+              Registrarse Gratis
+            </Button>
+          </Box>
         </Container>
       </Box>
 
@@ -326,7 +503,7 @@ const LandingPage = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <BoltIcon color="secondary" />
+                    <SpeedIcon color="secondary" />
                     <Typography>Resultados en 30 segundos</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -373,60 +550,6 @@ const LandingPage = () => {
           </Grid>
         </Container>
       </Box>
-
-      {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography
-          variant="h2"
-          align="center"
-          gutterBottom
-          sx={{ mb: 6, fontWeight: 700 }}
-        >
-          Características
-        </Typography>
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Zoom in timeout={500 + index * 100}>
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    p: 3,
-                    transition: 'all 0.3s',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: 6
-                    }
-                  }}
-                >
-                  <Avatar
-                    sx={{ 
-                      width: 80, 
-                      height: 80, 
-                      mb: 2,
-                      backgroundColor: 'transparent'
-                    }}
-                  >
-                    {feature.icon}
-                  </Avatar>
-                  <CardContent>
-                    <Typography variant="h5" component="h3" gutterBottom>
-                      {feature.title}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                      {feature.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Zoom>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
 
       {/* Stats Section */}
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 8 }}>
@@ -581,38 +704,6 @@ const LandingPage = () => {
         </Container>
       </Box>
 
-      {/* CTA Section */}
-      <Box
-        sx={{
-          bgcolor: theme.palette.primary.main,
-          color: 'white',
-          py: 8,
-          textAlign: 'center'
-        }}
-      >
-        <Container maxWidth="md">
-          <Typography variant="h3" gutterBottom>
-            Comienza a gestionar tus estudios médicos hoy
-          </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
-            Únete a miles de usuarios que ya confían en Doctorfy
-          </Typography>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="large"
-            onClick={() => navigate('/register')}
-            sx={{
-              px: 6,
-              py: 2,
-              fontSize: '1.2rem'
-            }}
-          >
-            Crear Cuenta Gratis
-          </Button>
-        </Container>
-      </Box>
-
       {/* Footer */}
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 6 }}>
         <Container maxWidth="lg">
@@ -632,9 +723,15 @@ const LandingPage = () => {
                 Enlaces
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Inicio</Link>
-                <Link to="/about" style={{ color: 'white', textDecoration: 'none' }}>Acerca de</Link>
-                <Link to="/contact" style={{ color: 'white', textDecoration: 'none' }}>Contacto</Link>
+                <Link component={RouterLink} to="/" color="inherit">
+                  Inicio
+                </Link>
+                <Link component={RouterLink} to="/about" color="inherit">
+                  Acerca de
+                </Link>
+                <Link component={RouterLink} to="/contact" color="inherit">
+                  Contacto
+                </Link>
               </Box>
             </Grid>
             
@@ -643,9 +740,15 @@ const LandingPage = () => {
                 Servicios
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Link to="/medical-studies" style={{ color: 'white', textDecoration: 'none' }}>Estudios Médicos</Link>
-                <Link to="/nutrition" style={{ color: 'white', textDecoration: 'none' }}>Análisis Nutricional</Link>
-                <Link to="/doctors" style={{ color: 'white', textDecoration: 'none' }}>Directorio Médico</Link>
+                <Link component={RouterLink} to="/medical-studies" color="inherit">
+                  Estudios Médicos
+                </Link>
+                <Link component={RouterLink} to="/nutrition" color="inherit">
+                  Análisis Nutricional
+                </Link>
+                <Link component={RouterLink} to="/doctors" color="inherit">
+                  Directorio Médico
+                </Link>
               </Box>
             </Grid>
             
@@ -672,10 +775,10 @@ const LandingPage = () => {
               &copy; {new Date().getFullYear()} Doctorfy. Todos los derechos reservados.
             </Typography>
             <Box sx={{ display: 'flex', gap: 3 }}>
-              <Link to="/privacy" style={{ color: 'white', opacity: 0.7, textDecoration: 'none' }}>
+              <Link component={RouterLink} to="/privacy" color="inherit">
                 Privacidad
               </Link>
-              <Link to="/terms" style={{ color: 'white', opacity: 0.7, textDecoration: 'none' }}>
+              <Link component={RouterLink} to="/terms" color="inherit">
                 Términos
               </Link>
             </Box>
