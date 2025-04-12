@@ -11,6 +11,8 @@ COPY requirements.txt .
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir SQLAlchemy==1.4.46 \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir gunicorn \
     && rm -rf /var/lib/apt/lists/*
