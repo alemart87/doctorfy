@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, User, NutritionAnalysis, NutritionLog
-from utils.openai_utils import analyze_food_image, extract_nutritional_data
+from utils.openai_utils import analyze_food_image, extract_nutrition_data
 import os
 import uuid
 import base64
@@ -112,7 +112,7 @@ def analyze_food():
         # Extraer datos nutricionales
         print("Extrayendo datos nutricionales del análisis...")
         try:
-            nutritional_data = extract_nutritional_data(analysis)
+            nutritional_data = extract_nutrition_data(analysis)
             print(f"Datos nutricionales extraídos: {nutritional_data}")
         except Exception as extract_error:
             print(f"Error al extraer datos nutricionales: {str(extract_error)}")
