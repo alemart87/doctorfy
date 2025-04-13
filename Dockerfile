@@ -28,7 +28,8 @@ EXPOSE $PORT
 
 # Configurar Flask para servir solo la API
 ENV FLASK_ENV=production
-ENV SERVE_FRONTEND=false  # Variable personalizada que puedes usar en app.py
+# Variable personalizada que puedes usar en app.py
+ENV SERVE_FRONTEND=false
 
-# Comando para ejecutar la aplicación con más información de depuración
+# Comando para ejecutar la aplicación
 CMD gunicorn --bind 0.0.0.0:$PORT app:app 
