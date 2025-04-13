@@ -27,6 +27,9 @@ load_dotenv()
 # Verificar si debemos servir el frontend
 serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 
+# Obtener orígenes permitidos de las variables de entorno
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+
 def ensure_upload_dirs(app):
     """
     Asegura que existan todos los directorios necesarios para uploads
@@ -70,10 +73,7 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     CORS(app, 
-         resources={r"/api/*": {"origins": [
-             "https://doctorfy-frontend.onrender.com",  # Tu frontend en producción
-             "http://localhost:3000"  # Tu frontend en desarrollo
-         ]}}, 
+         resources={r"/api/*": {"origins": allowed_origins}}, 
          supports_credentials=True, 
          expose_headers=['Authorization'],
          allow_headers=["Content-Type", "Authorization", "Accept"],
