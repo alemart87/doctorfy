@@ -26,5 +26,9 @@ RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 # Exponer el puerto que usará la aplicación
 EXPOSE $PORT
 
+# Configurar Flask para servir solo la API
+ENV FLASK_ENV=production
+ENV SERVE_FRONTEND=false  # Variable personalizada que puedes usar en app.py
+
 # Comando para ejecutar la aplicación con más información de depuración
-CMD gunicorn --bind 0.0.0.0:$PORT --log-level debug app:app 
+CMD gunicorn --bind 0.0.0.0:$PORT app:app 

@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, request
+from flask import Flask, send_from_directory, jsonify, request, render_template
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from config import Config
@@ -23,6 +23,9 @@ jwt = JWTManager()
 
 # Cargar variables de entorno
 load_dotenv()
+
+# Verificar si debemos servir el frontend
+serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 
 def ensure_upload_dirs(app):
     """
@@ -67,7 +70,10 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     CORS(app, 
-         resources={r"/api/*": {"origins": "*"}}, 
+         resources={r"/api/*": {"origins": [
+             "https://doctorfy-frontend.onrender.com",  # Tu frontend en producción
+             "http://localhost:3000"  # Tu frontend en desarrollo
+         ]}}, 
          supports_credentials=True, 
          expose_headers=['Authorization'],
          allow_headers=["Content-Type", "Authorization", "Accept"],
@@ -95,12 +101,13 @@ def create_app():
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve(path):
-        if path != "" and os.path.exists(app.static_folder + '/' + path):
-            return app.send_static_file(path)
-        return app.send_static_file('index.html')
+    # Solo registrar las rutas del frontend si serve_frontend es True
+    if serve_frontend:
+        @app.route('/')
+        def index():
+            return render_template('index.html')
+        
+        # ... otras rutas del frontend antiguo
 
     # Ruta directa para subir estudios médicos
     @app.route('/api/medical-studies/upload', methods=['POST'])
