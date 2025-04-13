@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, request, render_template
+from flask import Flask, send_from_directory, jsonify, request, render_template, redirect
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from config import Config
@@ -106,8 +106,23 @@ def create_app():
         @app.route('/')
         def index():
             return render_template('index.html')
-        
-        # ... otras rutas del frontend antiguo
+    else:
+        @app.route('/')
+        def api_info():
+            return jsonify({
+                "name": "Doctorfy API",
+                "version": "1.0.0",
+                "status": "running",
+                "message": "El frontend se encuentra en https://doctorfy-frontend.onrender.com",
+                "documentation": "https://github.com/alemart87/doctorfy",
+                "endpoints": [
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/medical-studies/upload",
+                    "/api/nutrition/analyze-food",
+                    "/api/doctors/directory"
+                ]
+            })
 
     # Ruta directa para subir estudios médicos
     @app.route('/api/medical-studies/upload', methods=['POST'])
