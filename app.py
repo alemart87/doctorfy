@@ -11,7 +11,6 @@ from routes.doctors import doctors_bp, init_app as init_doctors
 from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
-from routes.webhooks import webhooks_bp
 from routes.health import health_bp
 import os
 from datetime import timedelta
@@ -75,11 +74,16 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     CORS(app, 
-         resources={r"/api/*": {"origins": allowed_origins}}, 
-         supports_credentials=True, 
-         expose_headers=['Authorization'],
-         allow_headers=["Content-Type", "Authorization", "Accept"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         resources={
+             r"/api/*": {
+                 "origins": allowed_origins,
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                 "allow_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "expose_headers": ["Authorization"],
+                 "max_age": 120  # Cache preflight requests
+             }
+         })
 
     # Asegurar que existan los directorios necesarios
     with app.app_context():
@@ -97,8 +101,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
-    app.register_blueprint(webhooks_bp, url_prefix='/api/webhooks')
-    app.register_blueprint(health_bp, url_prefix='/api')
+    app.register_blueprint(health_bp, url_prefix='/api/health')
 
     # Ruta para servir archivos estáticos desde cualquier subdirectorio de uploads
     @app.route('/uploads/<path:filename>')

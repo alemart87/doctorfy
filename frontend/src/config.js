@@ -40,10 +40,7 @@ export const endpoints = {
     users: `${API_URL}/admin/users`,
     stats: `${API_URL}/admin/stats`,
     settings: `${API_URL}/admin/settings`,
-  },
-  webhooks: {
-    callback: `${API_URL}/webhooks/callback`,
-  },
+  }
 };
 
 const config = {

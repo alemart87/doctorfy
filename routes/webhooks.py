@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify, current_app
 from utils.stripe_utils import handle_checkout_session_completed
 import stripe
 import json
-from flask_jwt_extended import jwt_required
 
 webhooks_bp = Blueprint('webhooks', __name__)
 
@@ -27,9 +26,4 @@ def stripe_webhook():
         session = event['data']['object']
         handle_checkout_session_completed(session)
     
-    return jsonify({'status': 'success'}), 200
-
-@webhooks_bp.route('/webhook', methods=['POST'])
-def handle_webhook():
-    # Manejar webhooks aquí
-    pass 
+    return jsonify({'status': 'success'}), 200 
