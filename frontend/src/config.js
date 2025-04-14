@@ -1,5 +1,5 @@
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://doctorfy.onrender.com/'  // URL de tu backend en Render
+  ? 'https://doctorfy.onrender.com/api'  // URL de tu backend en Render (con /api)
   : 'http://localhost:5000/api';         // URL local para desarrollo
 
 export const endpoints = {
