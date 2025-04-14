@@ -1,6 +1,6 @@
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://doctorfy.onrender.com/api'  // URL de tu backend en Render (con /api)
-  : 'http://localhost:5000/api';         // URL local para desarrollo
+  ? 'https://doctorfy.onrender.com/api'
+  : 'http://localhost:5000/api';
 
 export const endpoints = {
   auth: {
@@ -16,10 +16,33 @@ export const endpoints = {
   },
   nutrition: {
     analyzeFood: `${API_URL}/nutrition/analyze-food`,
+    summary: (date) => `${API_URL}/nutrition/summary/${date}`,
+    monthSummary: (year, month) => `${API_URL}/nutrition/summary/month/${year}/${month}`,
+    goal: `${API_URL}/nutrition/goal`,
   },
   doctors: {
     directory: `${API_URL}/doctors/directory`,
     subscribe: `${API_URL}/doctors/subscribe`,
+    search: `${API_URL}/doctors/search`,
+    profile: (doctorId) => `${API_URL}/doctors/${doctorId}`,
+  },
+  profile: {
+    update: `${API_URL}/profile/update`,
+    uploadPhoto: `${API_URL}/profile/upload-photo`,
+    settings: `${API_URL}/profile/settings`,
+  },
+  doctorProfile: {
+    update: `${API_URL}/doctor-profile/update`,
+    credentials: `${API_URL}/doctor-profile/credentials`,
+    schedule: `${API_URL}/doctor-profile/schedule`,
+  },
+  admin: {
+    users: `${API_URL}/admin/users`,
+    stats: `${API_URL}/admin/stats`,
+    settings: `${API_URL}/admin/settings`,
+  },
+  webhooks: {
+    callback: `${API_URL}/webhooks/callback`,
   },
 };
 

@@ -30,6 +30,7 @@ EXPOSE $PORT
 ENV FLASK_ENV=production
 # Variable personalizada que puedes usar en app.py
 ENV SERVE_FRONTEND=false
+ENV PORT=8000
 
 # Comando para ejecutar la aplicación
 CMD gunicorn --bind 0.0.0.0:$PORT app:app 
