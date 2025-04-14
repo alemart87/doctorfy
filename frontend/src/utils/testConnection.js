@@ -1,7 +1,11 @@
 const testBackendConnection = async () => {
+  const API_URL = process.env.REACT_APP_API_URL || process.env.NODE_ENV === 'production'
+    ? 'https://doctorfy.onrender.com/api'
+    : 'http://localhost:5000/api';
+
   try {
     console.log('Intentando conectar con el backend...');
-    const response = await fetch('https://doctorfy.onrender.com/api/health', {
+    const response = await fetch(`${API_URL}/health`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
