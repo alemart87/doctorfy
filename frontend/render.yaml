@@ -7,7 +7,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: REACT_APP_API_URL
-        value: https://doctorfy.onrender.com/api
+        value: https://doctorfy.onrender.com
     routes:
       - type: rewrite
         source: /*
