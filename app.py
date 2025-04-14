@@ -242,6 +242,14 @@ def create_app():
             'message': 'No se proporcionó token de acceso'
         }), 401
 
+    # Agregar esta ruta directamente en app.py para pruebas
+    @app.route('/api/test')
+    def test_endpoint():
+        return jsonify({
+            'status': 'ok',
+            'message': 'API endpoint test successful'
+        })
+
     return app
 
 app = create_app()

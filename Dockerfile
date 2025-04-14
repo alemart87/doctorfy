@@ -32,4 +32,11 @@ ENV FLASK_ENV=production
 ENV SERVE_FRONTEND=false
 
 # Comando para ejecutar la aplicación
-CMD gunicorn --bind 0.0.0.0:$PORT app:app 
+CMD gunicorn --bind 0.0.0.0:$PORT \
+    --workers 2 \
+    --threads 4 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level debug \
+    app:app 
