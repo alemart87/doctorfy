@@ -25,11 +25,10 @@ jwt = JWTManager()
 # Cargar variables de entorno
 load_dotenv()
 
-# Verificar si debemos servir el frontend
-serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
-
-# Obtener orígenes permitidos de las variables de entorno
+# Lee ALLOWED_ORIGINS del entorno
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+# Lee SERVE_FRONTEND del entorno
+serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 
 def ensure_upload_dirs(app):
     """
@@ -53,17 +52,19 @@ def ensure_upload_dirs(app):
 def create_app():
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
     
-    # Configuración de la base de datos
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    
-    # Si la URL comienza con postgres://, cambiarla a postgresql://
-    # (Esto es necesario para versiones más recientes de SQLAlchemy)
-    if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-        app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
-    
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-secret-key')
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
+    # Aplica la configuración desde la clase Config
+    app.config.from_object(Config)
+
+    # Sobrescribe o asegura la DATABASE_URL directamente desde el entorno si es necesario
+    # (Aunque ya se hace en Config, esto es una doble verificación)
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url and db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
+    # Asegura JWT_SECRET_KEY y SECRET_KEY (leídas desde Config -> Entorno)
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', Config.JWT_SECRET_KEY) # Usa el default de Config si no está en env
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', Config.SECRET_KEY)
     
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
@@ -108,12 +109,8 @@ def create_app():
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    # Solo registrar las rutas del frontend si serve_frontend es True
-    if serve_frontend:
-        @app.route('/')
-        def index():
-            return render_template('index.html')
-    else:
+    # Lógica condicional para servir frontend basada en la variable de entorno
+    if not serve_frontend:
         @app.route('/')
         def api_info():
             return jsonify({
@@ -255,4 +252,6 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    # El debug=True aquí solo afecta si ejecutas `python app.py` directamente
+    # Gunicorn en Render usará la configuración de FLASK_ENV y DEBUG del entorno
+    app.run(debug=Config.DEBUG) 

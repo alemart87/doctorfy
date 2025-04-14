@@ -1,7 +1,8 @@
-// URL base SIN /api
+// Lee REACT_APP_API_URL del entorno (inyectado por Render build)
+// o usa un fallback basado en NODE_ENV
 const API_BASE_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production'
-  ? 'https://doctorfy.onrender.com' // URL Producción SIN /api
-  : 'http://localhost:5000');       // URL Local SIN /api
+  ? 'https://doctorfy.onrender.com' // SIN /api
+  : 'http://localhost:5000');       // SIN /api
 
 // Prefijo común para todas las rutas de API
 const API_PREFIX = '/api';

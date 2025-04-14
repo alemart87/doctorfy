@@ -17,7 +17,7 @@ class Config:
     STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
     DOCTOR_SUBSCRIPTION_PRICE = os.getenv('DOCTOR_SUBSCRIPTION_PRICE', '')
     PATIENT_CONSULTATION_PRICE = os.getenv('PATIENT_CONSULTATION_PRICE', '')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'super-secret-key')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'super-secret-key-local')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
     
