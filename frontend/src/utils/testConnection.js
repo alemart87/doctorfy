@@ -1,27 +1,30 @@
+import config from '../config'; // Importa la configuración
+
 const testBackendConnection = async () => {
-  const API_URL = process.env.REACT_APP_API_URL || process.env.NODE_ENV === 'production'
-    ? 'https://doctorfy.onrender.com/api'
-    : 'http://localhost:5000/api';
+  // Usa el endpoint de salud desde la configuración
+  const url = config.endpoints.health;
+  console.log('Intentando conectar con:', url);
 
   try {
-    console.log('Intentando conectar con el backend...');
-    const response = await fetch(`${API_URL}/health`, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }
     });
-    
+
+    console.log('Respuesta recibida:', { /* ... */ });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    console.log('Backend connection test:', data);
+    console.log('Datos recibidos:', data);
     return true;
   } catch (error) {
-    console.error('Backend connection test failed:', error);
+    console.error('Error detallado:', { /* ... */ });
     return false;
   }
 };
