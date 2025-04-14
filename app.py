@@ -46,8 +46,10 @@ def ensure_upload_dirs(app):
     for dir_path in upload_dirs:
         full_path = os.path.join(app.root_path, dir_path)
         if not os.path.exists(full_path):
-            os.makedirs(full_path)
+            os.makedirs(full_path, exist_ok=True)
             print(f"Directorio creado: {full_path}")
+        else:
+            print(f"Directorio ya existe: {full_path}")
 
 def create_app():
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
