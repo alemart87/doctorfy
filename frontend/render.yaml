@@ -1,5 +1,5 @@
 services:
-  - type: static
+  - type: web
     name: doctorfy-frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./build
@@ -7,7 +7,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: REACT_APP_API_URL
-        value: https://doctorfy.onrender.com
+        value: https://doctorfy.onrender.com/api
     routes:
       - type: rewrite
         source: /*
