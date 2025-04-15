@@ -87,18 +87,15 @@ def login():
             expires_delta=timedelta(days=1)
         )
         
-        # Dentro de la ruta de login, antes de retornar
-        response_data = {
+        return jsonify({
             'token': access_token,
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'role': user.role,
-                'is_doctor': user.is_doctor
+                'is_doctor': user.is_doctor,
+                'role': user.role
             }
-        }
-        print(f"DEBUG: Enviando respuesta de login: {response_data}") # <-- Añadir log
-        return jsonify(response_data), 200
+        }), 200
     except Exception as e:
         print(f"Error en login: {str(e)}")
         return jsonify({'error': str(e)}), 500

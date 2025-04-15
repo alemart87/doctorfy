@@ -54,7 +54,7 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
     try:
         is_pdf = file_path.lower().endswith('.pdf')
         messages = []
-        model = "claude-3-opus-20240229" # O el modelo que prefieras
+        model = "claude-3-7-sonnet-20250219"  # Modelo Claude 3.7 Sonnet
 
         if is_pdf:
             text_content = extract_text_from_pdf(file_path)
@@ -101,12 +101,32 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
                  raise
 
         print(f"Llamando a Anthropic API con modelo {model}...")
-        response = client.messages.create(
-            model=model,
-            max_tokens=4000, # Ajustar según necesidad
-            messages=messages
-        )
-        print("Respuesta recibida de Anthropic.")
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=4000,
+                messages=messages
+            )
+            print("Respuesta recibida de Anthropic.")
+        except anthropic.APIError as api_error:
+            # Manejar errores específicos de la API
+            if "model not found" in str(api_error).lower():
+                print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
+                # Intentar con un modelo alternativo
+                try:
+                    model = "claude-3-sonnet-20240229"  # Modelo alternativo
+                    response = client.messages.create(
+                        model=model,
+                        max_tokens=4000,
+                        messages=messages
+                    )
+                    print(f"Respuesta recibida de Anthropic usando modelo alternativo {model}.")
+                except Exception as fallback_error:
+                    print(f"Error con modelo alternativo: {fallback_error}")
+                    raise
+            else:
+                print(f"Error de API de Anthropic: {api_error}")
+                raise
 
         # Extraer el contenido del mensaje de respuesta
         if response.content and isinstance(response.content, list) and len(response.content) > 0:
@@ -346,4 +366,90 @@ def analyze_medical_study_with_openai(image_path, study_type):
         print(f"ERROR en analyze_medical_study_with_openai: {str(e)}")
         import traceback
         traceback.print_exc()
-        return f"No se pudo analizar el estudio médico con OpenAI: {str(e)}" 
+        return f"No se pudo analizar el estudio médico con OpenAI: {str(e)}"
+
+def analyze_food_image_with_anthropic(file_path):
+    """
+    Analiza una imagen de comida usando Anthropic Claude.
+    """
+    if not client:
+        return "Error: Cliente Anthropic no inicializado."
+
+    try:
+        # Definir el modelo a usar
+        model = "claude-3-7-sonnet-20250219"  # Definir el modelo aquí
+        
+        # Cargar la imagen
+        with open(file_path, "rb") as image_file:
+            image_data = image_file.read()
+        base64_image = base64.b64encode(image_data).decode("utf-8")
+
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if not mime_type or not mime_type.startswith('image/'):
+            mime_type = 'image/jpeg'
+
+        # Crear el mensaje para Anthropic
+        messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Eres un nutricionista experto. Analiza esta imagen de comida y proporciona la siguiente información:\n1. Identificación de los alimentos\n2. Calorías aproximadas\n3. Macronutrientes (proteínas, carbohidratos, grasas)\n4. Valoración nutricional\n5. Recomendaciones\n\nFormatea la respuesta de manera clara y estructurada."
+                },
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": base64_image
+                    }
+                }
+            ]
+        }]
+
+        # Llamar a la API de Anthropic
+        print(f"Llamando a Anthropic API con modelo {model}...")
+        try:
+            response = client.messages.create(
+                model=model,  # Usar la variable model definida arriba
+                max_tokens=4000,
+                messages=messages
+            )
+            print("Respuesta recibida de Anthropic.")
+        except anthropic.APIError as api_error:
+            # Manejar errores específicos de la API
+            if "model not found" in str(api_error).lower():
+                print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
+                # Intentar con un modelo alternativo
+                model = "claude-3-sonnet-20240229"  # Modelo alternativo
+                response = client.messages.create(
+                    model=model,
+                    max_tokens=4000,
+                    messages=messages
+                )
+                print(f"Respuesta recibida de Anthropic usando modelo alternativo {model}.")
+            else:
+                raise
+
+        # Extraer el contenido del mensaje de respuesta
+        if response.content and isinstance(response.content, list) and len(response.content) > 0:
+            analysis = response.content[0].text
+        else:
+            analysis = "Respuesta inesperada de la API de Anthropic."
+            print(f"Respuesta inesperada: {response}")
+
+        return analysis
+
+    except Exception as e:
+        print(f"Error en analyze_food_image_with_anthropic: {str(e)}")
+        traceback.print_exc()
+        return """
+        # Análisis Nutricional
+        ## Error
+        No se pudo analizar la imagen debido a un error. Por favor, inténtelo de nuevo más tarde.
+        ## Información Nutricional
+        - Calorías: No disponible
+        - Proteínas: No disponible
+        - Carbohidratos: No disponible
+        - Grasas: No disponible
+        """ 

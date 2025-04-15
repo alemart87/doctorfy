@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, User, NutritionAnalysis, NutritionLog
 from utils.openai_utils import analyze_food_image, extract_nutrition_data
+from utils.anthropic_utils import analyze_food_image_with_anthropic
 import os
 import uuid
 import base64
@@ -89,10 +90,10 @@ def analyze_food():
             print(f"Error al leer el archivo guardado: {str(read_error)}")
             return jsonify({'error': 'Error al procesar el archivo'}), 500
         
-        # Analizar la imagen
-        print("Iniciando análisis de la imagen con OpenAI...")
+        # Analizar la imagen con Anthropic en lugar de OpenAI
+        print("Iniciando análisis de la imagen con Anthropic...")
         try:
-            analysis = analyze_food_image(file_path)
+            analysis = analyze_food_image_with_anthropic(file_path)
             print("Análisis completado")
             print(f"Resultado del análisis (primeros 100 caracteres): {analysis[:100] if analysis else 'None'}")
             

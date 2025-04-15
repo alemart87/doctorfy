@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, MedicalStudy, User
 from utils.openai_utils import analyze_medical_study
+from utils.anthropic_utils import analyze_medical_study_with_anthropic
 from utils.auth import doctor_required
 import os
 import uuid
@@ -254,10 +255,23 @@ def analyze_study(study_id):
             
             return jsonify({'error': 'Archivo de estudio no encontrado'}), 404
         
-        # Analizar el estudio con Anthropic (a través de la función analyze_medical_study)
-        print("Llamando a la función analyze_medical_study (que redirige a Anthropic)")
-        analysis_result = analyze_medical_study(file_path, study.study_type)
-        print(f"Análisis recibido (primeros 100 caracteres): {analysis_result[:100] if analysis_result else 'Vacío'}")
+        # Analizar el estudio con Anthropic directamente
+        print("Llamando a la función analyze_medical_study_with_anthropic")
+        result = analyze_medical_study_with_anthropic(file_path, study.study_type)
+        
+        # Verificar si el resultado es un diccionario (como se espera)
+        if isinstance(result, dict):
+            if result.get('success'):
+                analysis_result = result.get('analysis', '')
+                print(f"Análisis recibido (primeros 100 caracteres): {analysis_result[:100] if analysis_result else 'Vacío'}")
+            else:
+                error_msg = result.get('error', 'Error desconocido en el análisis')
+                print(f"Error en el análisis: {error_msg}")
+                return jsonify({'error': error_msg}), 500
+        else:
+            # Si no es un diccionario, usar el resultado directamente
+            analysis_result = str(result)
+            print(f"Análisis recibido (formato inesperado, primeros 100 caracteres): {analysis_result[:100] if analysis_result else 'Vacío'}")
         
         # Si es un análisis solicitado por el paciente, marcar como "Análisis IA"
         if not user.is_doctor:

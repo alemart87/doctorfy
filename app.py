@@ -11,7 +11,6 @@ from routes.doctors import doctors_bp, init_app as init_doctors
 from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
-from routes.health import health_bp
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -25,10 +24,11 @@ jwt = JWTManager()
 # Cargar variables de entorno
 load_dotenv()
 
-# Lee ALLOWED_ORIGINS del entorno
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
-# Lee SERVE_FRONTEND del entorno
+# Verificar si debemos servir el frontend
 serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
+
+# Obtener orígenes permitidos de las variables de entorno
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://doctorfy-frontend.onrender.com').split(',')
 
 def ensure_upload_dirs(app):
     """
@@ -46,27 +46,23 @@ def ensure_upload_dirs(app):
     for dir_path in upload_dirs:
         full_path = os.path.join(app.root_path, dir_path)
         if not os.path.exists(full_path):
-            os.makedirs(full_path, exist_ok=True)
+            os.makedirs(full_path)
             print(f"Directorio creado: {full_path}")
-        else:
-            print(f"Directorio ya existe: {full_path}")
 
 def create_app():
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
     
-    # Aplica la configuración desde la clase Config
-    app.config.from_object(Config)
-
-    # Sobrescribe o asegura la DATABASE_URL directamente desde el entorno si es necesario
-    # (Aunque ya se hace en Config, esto es una doble verificación)
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url and db_url.startswith('postgres://'):
-        db_url = db_url.replace('postgres://', 'postgresql://', 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-
-    # Asegura JWT_SECRET_KEY y SECRET_KEY (leídas desde Config -> Entorno)
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', Config.JWT_SECRET_KEY) # Usa el default de Config si no está en env
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', Config.SECRET_KEY)
+    # Configuración de la base de datos
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    
+    # Si la URL comienza con postgres://, cambiarla a postgresql://
+    # (Esto es necesario para versiones más recientes de SQLAlchemy)
+    if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+        app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+    
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-secret-key')
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
     
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
@@ -77,16 +73,11 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     CORS(app, 
-         resources={
-             r"/api/*": {
-                 "origins": allowed_origins,
-                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                 "allow_headers": ["Content-Type", "Authorization"],
-                 "supports_credentials": True,
-                 "expose_headers": ["Authorization"],
-                 "max_age": 120  # Cache preflight requests
-             }
-         })
+         resources={r"/api/*": {"origins": allowed_origins}}, 
+         supports_credentials=True, 
+         expose_headers=['Authorization'],
+         allow_headers=["Content-Type", "Authorization", "Accept"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     # Asegurar que existan los directorios necesarios
     with app.app_context():
@@ -104,15 +95,18 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
-    app.register_blueprint(health_bp, url_prefix='/api/health')
 
     # Ruta para servir archivos estáticos desde cualquier subdirectorio de uploads
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    # Lógica condicional para servir frontend basada en la variable de entorno
-    if not serve_frontend:
+    # Solo registrar las rutas del frontend si serve_frontend es True
+    if serve_frontend:
+        @app.route('/')
+        def index():
+            return render_template('index.html')
+    else:
         @app.route('/')
         def api_info():
             return jsonify({
@@ -241,19 +235,9 @@ def create_app():
             'message': 'No se proporcionó token de acceso'
         }), 401
 
-    # Agregar esta ruta directamente en app.py para pruebas
-    @app.route('/api/test')
-    def test_endpoint():
-        return jsonify({
-            'status': 'ok',
-            'message': 'API endpoint test successful'
-        })
-
     return app
 
 app = create_app()
 
 if __name__ == '__main__':
-    # El debug=True aquí solo afecta si ejecutas `python app.py` directamente
-    # Gunicorn en Render usará la configuración de FLASK_ENV y DEBUG del entorno
-    app.run(debug=Config.DEBUG) 
+    app.run(debug=True) 

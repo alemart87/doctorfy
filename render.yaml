@@ -5,11 +5,11 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    healthCheckPath: /api/health
+    healthCheckPath: /
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: doctorfy
+          name: doctorfy-db
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
@@ -17,16 +17,10 @@ services:
         generateValue: true
       - key: PORT
         value: 8000
-      - key: ALLOWED_ORIGINS
-        value: https://doctorfy-frontend.onrender.com
-      - key: FLASK_ENV
-        value: production
-      - key: SERVE_FRONTEND
-        value: "false"
 
   # Base de datos PostgreSQL
 databases:
-  - name: doctorfy
+  - name: doctorfy-db
     plan: free
     databaseName: doctorfy
     user: doctorfy_user 

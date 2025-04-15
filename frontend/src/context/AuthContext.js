@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authService } from '../services/api';
 import api from '../api/axios';
-import config from '../config';
 
 const AuthContext = createContext();
 
@@ -51,30 +50,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (credentials) => {
     setLoading(true);
     try {
-      const response = await api.post('/api/auth/login', { email, password });
-      console.log("DEBUG: Respuesta recibida en login:", response.data);
+      const response = await authService.login(credentials);
+      const { token, user } = response.data;
       
-      const userData = response.data.user;
-      const token = response.data.token;
+      // Guardar el token y el usuario en el localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       
-      if (userData && userData.id && token) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('userId', userData.id);
-        setUser(userData);
-        setIsAuthenticated(true);
-        setLoading(false);
-        return { success: true };
-      } else {
-        console.error("Error: La respuesta del login no tiene la estructura esperada.", response.data);
-        throw new Error("Respuesta inválida del servidor al iniciar sesión.");
-      }
-    } catch (error) {
-      console.error("Error en la función login:", error);
+      // Guardar el ID del usuario en el localStorage
+      localStorage.setItem('userId', user.id);
+      
+      setUser(user);
+      setIsAuthenticated(true);
       setLoading(false);
+      return { success: true };
+    } catch (error) {
+      setLoading(false);
+      console.error('Error en login:', error);
       return { 
         success: false, 
         error: error.response?.data?.error || 'Error al iniciar sesión'

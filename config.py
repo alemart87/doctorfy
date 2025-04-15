@@ -6,9 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///doctorfy.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
     
@@ -17,7 +15,7 @@ class Config:
     STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
     DOCTOR_SUBSCRIPTION_PRICE = os.getenv('DOCTOR_SUBSCRIPTION_PRICE', '')
     PATIENT_CONSULTATION_PRICE = os.getenv('PATIENT_CONSULTATION_PRICE', '')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'super-secret-key-local')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'super-secret-key')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
     

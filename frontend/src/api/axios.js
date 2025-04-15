@@ -1,4 +1,5 @@
 import axios from 'axios';
+import config from '../config';
 
 // Determinar la URL base según el entorno
 const baseURL = process.env.NODE_ENV === 'production' 
@@ -6,12 +7,30 @@ const baseURL = process.env.NODE_ENV === 'production'
   : 'http://localhost:5000/api';
 
 const api = axios.create({
-    baseURL,
+    baseURL: config.API_URL,
     headers: {
         'Content-Type': 'application/json'
     },
     withCredentials: true // Importante para CORS con credenciales
 });
+
+// Interceptor para mostrar las URLs de las solicitudes
+api.interceptors.request.use(request => {
+  console.log('Solicitud a:', request.url);
+  return request;
+});
+
+// Interceptor para mostrar respuestas
+api.interceptors.response.use(
+  response => {
+    console.log('Respuesta exitosa de:', response.config.url);
+    return response;
+  },
+  error => {
+    console.error('Error en solicitud a:', error.config?.url, error);
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor para agregar el token a todas las solicitudes
 api.interceptors.request.use(

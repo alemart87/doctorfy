@@ -111,10 +111,11 @@ def analyze_food_image_from_base64(base64_image):
         return "Error: Cliente OpenAI no inicializado."
 
     try:
+        # Modificar el prompt para ser más específico y evitar rechazos
         messages = [
-            {"role": "system", "content": "Eres un nutricionista experto. Analiza la imagen de comida y proporciona información nutricional detallada."},
+            {"role": "system", "content": "Eres un asistente nutricional que analiza imágenes de alimentos para proporcionar información nutricional aproximada. Tu objetivo es ayudar a los usuarios a entender mejor el contenido nutricional de sus comidas."},
             {"role": "user", "content": [
-                {"type": "text", "text": "Analiza esta imagen de comida y proporciona la siguiente información:\n1. Identificación de los alimentos\n2. Calorías aproximadas\n3. Macronutrientes (proteínas, carbohidratos, grasas)\n4. Valoración nutricional\n5. Recomendaciones\n\nFormatea la respuesta de manera clara y estructurada."},
+                {"type": "text", "text": "Esta es una imagen de mi comida. Por favor, proporciona la siguiente información:\n1. Identificación de los alimentos visibles\n2. Estimación aproximada de calorías (si es posible)\n3. Estimación aproximada de macronutrientes: proteínas, carbohidratos y grasas (en gramos)\n4. Valoración general de la comida desde una perspectiva nutricional\n5. Sugerencias para mejorar el balance nutricional\n\nSi no puedes identificar claramente la comida, simplemente describe lo que ves e indica que no puedes proporcionar un análisis nutricional preciso."},
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
             ]}
         ]
@@ -123,10 +124,50 @@ def analyze_food_image_from_base64(base64_image):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
+            temperature=0.3,  # Reducir la temperatura para respuestas más consistentes
             max_tokens=1000
         )
         print("Respuesta recibida de OpenAI.")
         analysis = response.choices[0].message.content
+        
+        # Verificar si la respuesta contiene un rechazo
+        if "no puedo ayudar con esa solicitud" in analysis.lower() or "no puedo analizar" in analysis.lower():
+            print("OpenAI rechazó la solicitud. Intentando con un prompt alternativo...")
+            
+            # Intentar con un prompt alternativo más simple
+            alt_messages = [
+                {"role": "system", "content": "Eres un asistente que describe imágenes de alimentos."},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "¿Qué alimentos ves en esta imagen? Por favor, describe los ingredientes visibles."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                ]}
+            ]
+            
+            alt_response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=alt_messages,
+                temperature=0.3,
+                max_tokens=1000
+            )
+            
+            food_description = alt_response.choices[0].message.content
+            
+            # Usar la descripción para generar un análisis nutricional
+            nutrition_messages = [
+                {"role": "system", "content": "Eres un nutricionista que proporciona información nutricional aproximada basada en descripciones de alimentos."},
+                {"role": "user", "content": f"Basado en esta descripción de alimentos: '{food_description}', proporciona un análisis nutricional aproximado incluyendo:\n1. Calorías estimadas\n2. Proteínas (g)\n3. Carbohidratos (g)\n4. Grasas (g)\n5. Valoración nutricional general\n6. Sugerencias para mejorar"}
+            ]
+            
+            nutrition_response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=nutrition_messages,
+                temperature=0.3,
+                max_tokens=1000
+            )
+            
+            analysis = f"# Análisis Nutricional\n\n## Alimentos Identificados\n{food_description}\n\n## Información Nutricional\n{nutrition_response.choices[0].message.content}"
+            print("Análisis generado con enfoque alternativo.")
+        
         return analysis
 
     except Exception as e:
