@@ -22,7 +22,7 @@ services:
       - key: FLASK_ENV
         value: production
       - key: SERVE_FRONTEND
-        value: false
+        value: "false"
 
   # Base de datos PostgreSQL
 databases:
