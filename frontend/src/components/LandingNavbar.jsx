@@ -22,6 +22,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../context/AuthContext';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import GooeyNav from './GooeyNav';
 
 // Navbar con efecto glassmorphism cuando se hace scroll
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -145,10 +146,11 @@ const LandingNavbar = () => {
   };
 
   const navItems = [
-    { name: 'Inicio', path: '/' },
-    { name: 'Estudios Médicos', path: '/medical-studies' },
-    { name: 'Nutrición', path: '/nutrition' },
-    { name: 'Doctores', path: '/doctors' },
+    { label: "Inicio", href: "/" },
+    { label: "Estudios Médicos", href: "/medical-studies" },
+    { label: "Nutrición", href: "/nutrition" },
+    { label: "Doctores", href: "/doctors" },
+    { label: "Iniciar Sesión", href: "/login" },
   ];
 
   const drawer = (
@@ -284,15 +286,16 @@ const LandingNavbar = () => {
               {/* Navegación para desktop */}
               {!isMobile && (
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {navItems.map((item) => (
-                    <NavButton
-                      key={item.name}
-                      component={RouterLink}
-                      to={item.path}
-                    >
-                      {item.name}
-                    </NavButton>
-                  ))}
+                  <GooeyNav
+                    items={navItems}
+                    animationTime={600}
+                    particleCount={15}
+                    particleDistances={[90, 10]}
+                    particleR={100}
+                    timeVariance={300}
+                    colors={[1, 2, 3, 1, 2, 3, 1, 4]}
+                    initialActiveIndex={0}
+                  />
                   
                   {user ? (
                     <>

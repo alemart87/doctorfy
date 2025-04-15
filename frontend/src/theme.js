@@ -2,18 +2,24 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
+    mode: 'dark',
     primary: {
-      main: '#2196f3', // Un azul más vibrante
-      light: '#64b5f6',
-      dark: '#1976d2',
+      main: '#00bcd4',
+      light: '#33c9dc',
+      dark: '#008394',
     },
     secondary: {
-      main: '#f50057', // Un rosa/rojo para acentos
-      light: '#ff4081',
-      dark: '#c51162',
+      main: '#7c4dff',
+      light: '#9670ff',
+      dark: '#5635b2',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#000000',
+      paper: '#121212',
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: 'rgba(255, 255, 255, 0.7)',
     },
   },
   typography: {
@@ -64,6 +70,8 @@ const theme = createTheme({
             transform: 'translateY(-5px)',
             boxShadow: '0 12px 20px rgba(0, 0, 0, 0.1)',
           },
+          backgroundColor: 'rgba(18, 18, 18, 0.8)',
+          backdropFilter: 'blur(10px)',
         },
       },
     },
