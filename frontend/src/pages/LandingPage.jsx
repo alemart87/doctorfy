@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Box, 
   Container, 
@@ -30,6 +30,7 @@ import {
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
 import Orb from '../components/Orb';
+import ActionButton from '../components/ActionButton';
 
 const LandingPage = () => {
   const theme = useTheme();
@@ -57,6 +58,9 @@ const LandingPage = () => {
     triggerOnce: false,
     threshold: 0.1,
   });
+
+  const ctaRef = useRef(null);
+  const ctaInView = useInView(ctaRef, { once: false, threshold: 0.3 });
 
   // Variantes para animaciones
   const containerVariants = {
@@ -242,6 +246,10 @@ const LandingPage = () => {
                             pauseBetweenAnimations={2}
                           />
                         </Box>
+                      </motion.div>
+                      
+                      <motion.div variants={itemVariants}>
+                        <ActionButton />
                       </motion.div>
                       
                       <motion.div variants={itemVariants}>
@@ -661,32 +669,25 @@ const LandingPage = () => {
         </Container>
       </Box>
             
-            {/* CTA Section */}
+            {/* Sección CTA con ActionButton */}
             <Box 
+              ref={ctaRef}
               component={motion.div}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 0.5 }}
+              initial="hidden"
+              animate={ctaInView ? "visible" : "hidden"}
+              variants={containerVariants}
               sx={{ 
                 py: { xs: 8, md: 12 },
-                background: `linear-gradient(135deg, ${theme.palette.primary.dark}99 0%, ${theme.palette.secondary.dark}99 100%)`,
                 position: 'relative',
                 zIndex: 2,
+                background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,216,255,0.1) 50%, rgba(0,0,0,0) 100%)',
               }}
             >
               <Container maxWidth="md">
-                <Box 
-                  sx={{ 
-                    textAlign: 'center',
-                    p: { xs: 4, md: 6 },
-                    borderRadius: '20px',
-                    background: `linear-gradient(135deg, ${theme.palette.background.paper}99 0%, ${theme.palette.grey[900]}99 100%)`,
-                    backdropFilter: 'blur(10px)',
-                    border: `1px solid ${theme.palette.grey[800]}`,
-                  }}
-                >
-                  <Typography 
-                    variant="h3" 
+                <motion.div variants={itemVariants}>
+                  <Typography
+                    variant="h2"
+                    align="center"
                     sx={{ 
                       mb: 3,
                       fontWeight: 700,
@@ -695,65 +696,26 @@ const LandingPage = () => {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    Comienza Tu Viaje Hacia una Mejor Salud
+                    ¿Listo para revolucionar tu salud?
                   </Typography>
-                  
+                </motion.div>
+                
+                <motion.div variants={itemVariants}>
                   <Typography 
-                    variant="h6" 
+                    variant="h5" 
+                    align="center" 
                     color="textSecondary" 
-                    sx={{ mb: 4, maxWidth: 700, mx: 'auto' }}
+                    sx={{ mb: 5, maxWidth: 800, mx: 'auto' }}
                   >
-                    Únete a miles de personas que ya están utilizando Doctorfy para tomar el control de su salud con la ayuda de la inteligencia artificial.
+                    Descubre cómo la inteligencia artificial puede transformar tu bienestar con análisis precisos y recomendaciones personalizadas.
                   </Typography>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-                    <Button 
-                      variant="contained" 
-                      color="primary"
-                      size="large"
-                      onClick={() => navigate('/register')}
-                      sx={{ 
-                        py: 1.5, 
-                        px: 4, 
-                        borderRadius: '30px',
-                        fontWeight: 600,
-                        fontSize: '1.1rem',
-                        textTransform: 'none',
-                        boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
-                        '&:hover': {
-                          transform: 'translateY(-3px)',
-                          boxShadow: `0 6px 25px ${theme.palette.primary.main}60`,
-                        },
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      Registrarse Gratis
-                    </Button>
-                    <Button 
-                      variant="outlined" 
-                      color="secondary"
-                      size="large"
-                      onClick={() => navigate('/medical-studies')}
-                      sx={{ 
-                        py: 1.5, 
-                        px: 4, 
-                        borderRadius: '30px',
-                        fontWeight: 600,
-                        fontSize: '1.1rem',
-                        textTransform: 'none',
-                        borderWidth: '2px',
-                        '&:hover': {
-                          borderWidth: '2px',
-                          transform: 'translateY(-3px)',
-                          boxShadow: `0 6px 25px ${theme.palette.secondary.main}40`,
-                        },
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      Ver Demostración
-                    </Button>
+                </motion.div>
+                
+                <motion.div variants={itemVariants}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <ActionButton />
                   </Box>
-                </Box>
+                </motion.div>
               </Container>
             </Box>
 
