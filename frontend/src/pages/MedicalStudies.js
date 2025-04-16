@@ -117,8 +117,10 @@ const MedicalStudies = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      fetchStudies();
+      await fetchStudies();
       showNotification('Estudio analizado correctamente', 'success');
+      
+      navigate(`/medical-studies/${study.id}`);
     } catch (err) {
       console.error('Error al analizar estudio:', err);
       setError('Error al analizar el estudio. El servicio puede estar ocupado, por favor intenta más tarde.');
@@ -200,15 +202,65 @@ const MedicalStudies = () => {
 
   const renderStudyItem = (study, index, isSelected) => {
     const isPending = !study.interpretation || study.interpretation.trim() === '';
+    const date = formatDate(study.created_at);
+    
+    // Determinar el icono según el tipo de estudio
+    const getStudyTypeIcon = () => {
+      switch(study.study_type.toLowerCase()) {
+        case 'xray': return '🔬';
+        case 'mri': return '🧠';
+        case 'ct': return '🔄';
+        case 'ultrasound': return '🔊';
+        case 'bloodwork': return '🩸';
+        default: return '📋';
+      }
+    };
+    
+    // Obtener un color según el tipo de estudio para mejor identificación visual
+    const getStudyTypeColor = () => {
+      switch(study.study_type.toLowerCase()) {
+        case 'xray': return '#3498db';
+        case 'mri': return '#9b59b6';
+        case 'ct': return '#e74c3c';
+        case 'ultrasound': return '#2ecc71';
+        case 'bloodwork': return '#e67e22';
+        default: return '#4a90e2';
+      }
+    };
+    
+    // Traducir el tipo de estudio a español
+    const getStudyTypeName = () => {
+      switch(study.study_type.toLowerCase()) {
+        case 'xray': return 'Radiografía';
+        case 'mri': return 'Resonancia Magnética';
+        case 'ct': return 'Tomografía Computarizada';
+        case 'ultrasound': return 'Ecografía';
+        case 'bloodwork': return 'Análisis de Sangre';
+        default: return 'General';
+      }
+    };
     
     return (
       <div className="study-item">
         <div className="study-info">
-          <div className="study-type">{study.study_type}</div>
-          <div className="study-date">{formatDate(study.created_at)}</div>
+          <div 
+            className="study-type" 
+            style={{color: getStudyTypeColor()}}
+          >
+            <span className="study-type-icon">{getStudyTypeIcon()}</span>
+            {getStudyTypeName()}
+            {study.name && <span className="study-name"> - {study.name}</span>}
+          </div>
+          <div className="study-date">{date}</div>
           <div className={`study-status ${isPending ? 'status-pending' : 'status-completed'}`}>
             {isPending ? 'Pendiente de interpretación' : 'Interpretado'}
           </div>
+          
+          {!isPending && (
+            <div className="study-interpretation-preview">
+              {study.interpretation.substring(0, 100)}...
+            </div>
+          )}
         </div>
         <div className="study-actions">
           <button 
