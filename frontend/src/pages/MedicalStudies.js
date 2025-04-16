@@ -1,11 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AnimatedList from '../components/AnimatedList';
-import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaFilter, FaTimes } from 'react-icons/fa';
 import '../components/AnimatedList.css';
+
+// Añadir esta función fuera del componente para que esté disponible en todo el archivo
+const getStudyTypeName = (type) => {
+  switch(type.toLowerCase()) {
+    case 'xray': return 'Radiografía';
+    case 'mri': return 'Resonancia Magnética';
+    case 'ct': return 'Tomografía Computarizada';
+    case 'ultrasound': return 'Ecografía';
+    case 'bloodwork': return 'Análisis de Sangre';
+    default: return 'General';
+  }
+};
 
 const MedicalStudies = () => {
   const [studies, setStudies] = useState([]);
@@ -16,6 +28,12 @@ const MedicalStudies = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  
   const navigate = useNavigate();
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -228,18 +246,6 @@ const MedicalStudies = () => {
       }
     };
     
-    // Traducir el tipo de estudio a español
-    const getStudyTypeName = () => {
-      switch(study.study_type.toLowerCase()) {
-        case 'xray': return 'Radiografía';
-        case 'mri': return 'Resonancia Magnética';
-        case 'ct': return 'Tomografía Computarizada';
-        case 'ultrasound': return 'Ecografía';
-        case 'bloodwork': return 'Análisis de Sangre';
-        default: return 'General';
-      }
-    };
-    
     return (
       <div className="study-item">
         <div className="study-info">
@@ -248,7 +254,7 @@ const MedicalStudies = () => {
             style={{color: getStudyTypeColor()}}
           >
             <span className="study-type-icon">{getStudyTypeIcon()}</span>
-            {getStudyTypeName()}
+            {getStudyTypeName(study.study_type)}
             {study.name && <span className="study-name"> - {study.name}</span>}
           </div>
           <div className="study-date">{date}</div>
@@ -296,6 +302,121 @@ const MedicalStudies = () => {
       </div>
     );
   };
+
+  const filteredStudies = useMemo(() => {
+    if (!studies.length) return [];
+    
+    return studies.filter(study => {
+      const searchMatch = searchTerm === '' || 
+        (study.name && study.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (study.interpretation && study.interpretation.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const typeMatch = filterType === 'all' || study.study_type === filterType;
+      
+      let dateMatch = true;
+      if (dateRange.from) {
+        const fromDate = new Date(dateRange.from);
+        const studyDate = new Date(study.created_at);
+        dateMatch = dateMatch && studyDate >= fromDate;
+      }
+      if (dateRange.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59);
+        const studyDate = new Date(study.created_at);
+        dateMatch = dateMatch && studyDate <= toDate;
+      }
+      
+      return searchMatch && typeMatch && dateMatch;
+    });
+  }, [studies, searchTerm, filterType, dateRange]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterType('all');
+    setDateRange({ from: '', to: '' });
+  };
+
+  const renderSearchBar = () => (
+    <div className="search-container">
+      <div className="search-input-container">
+        <FaSearch className="search-icon" />
+        <input
+          type="text"
+          placeholder="Buscar estudios..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+        {searchTerm && (
+          <button 
+            className="search-clear-button" 
+            onClick={() => setSearchTerm('')}
+            title="Limpiar búsqueda"
+          >
+            <FaTimes />
+          </button>
+        )}
+      </div>
+      
+      <button 
+        className={`filter-toggle-button ${showFilters ? 'active' : ''}`} 
+        onClick={() => setShowFilters(!showFilters)}
+        title="Mostrar/ocultar filtros"
+      >
+        <FaFilter />
+        {filterType !== 'all' || dateRange.from || dateRange.to ? <span className="filter-badge"></span> : null}
+      </button>
+      
+      {showFilters && (
+        <div className="filters-panel">
+          <div className="filter-group">
+            <label>Tipo de estudio:</label>
+            <select 
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Todos</option>
+              <option value="general">General</option>
+              <option value="xray">Radiografía</option>
+              <option value="mri">Resonancia Magnética</option>
+              <option value="ct">Tomografía Computarizada</option>
+              <option value="ultrasound">Ecografía</option>
+              <option value="bloodwork">Análisis de Sangre</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Rango de fechas:</label>
+            <div className="date-range-inputs">
+              <input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) => setDateRange({...dateRange, from: e.target.value})}
+                className="date-input"
+                placeholder="Desde"
+              />
+              <span>hasta</span>
+              <input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) => setDateRange({...dateRange, to: e.target.value})}
+                className="date-input"
+                placeholder="Hasta"
+              />
+            </div>
+          </div>
+          
+          <button 
+            className="clear-filters-button" 
+            onClick={clearFilters}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="medical-studies-container">
@@ -379,30 +500,54 @@ const MedicalStudies = () => {
         )}
       </div>
 
-      <h2 className="studies-section-title">Mis Estudios</h2>
+      <div className="studies-section-header">
+        <h2 className="studies-section-title">Mis Estudios</h2>
+        {renderSearchBar()}
+      </div>
       
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Cargando estudios...</p>
         </div>
+      ) : filteredStudies.length > 0 ? (
+        <>
+          {(searchTerm || filterType !== 'all' || dateRange.from || dateRange.to) && (
+            <div className="search-results-info">
+              Mostrando {filteredStudies.length} de {studies.length} estudios
+              {searchTerm && <span> que contienen "{searchTerm}"</span>}
+              {filterType !== 'all' && (
+                <span> de tipo "{getStudyTypeName(filterType)}"</span>
+              )}
+              {(dateRange.from || dateRange.to) && (
+                <span> en el rango de fechas seleccionado</span>
+              )}
+            </div>
+          )}
+          
+          <AnimatedList
+            items={filteredStudies}
+            onItemSelect={handleViewStudy}
+            showGradients={true}
+            enableArrowNavigation={true}
+            displayScrollbar={true}
+            renderItem={renderStudyItem}
+            className="studies-list"
+          />
+        </>
       ) : studies.length > 0 ? (
-        <AnimatedList
-          items={studies}
-          onItemSelect={handleViewStudy}
-          showGradients={true}
-          enableArrowNavigation={true}
-          displayScrollbar={true}
-          renderItem={renderStudyItem}
-          className="studies-list"
-        />
+        <div className="no-results-message">
+          <p>No se encontraron estudios que coincidan con los criterios de búsqueda.</p>
+          <button className="clear-search-button" onClick={clearFilters}>
+            Limpiar búsqueda
+          </button>
+        </div>
       ) : (
         <div className="no-studies-message">
           <p>No hay estudios médicos disponibles. Sube tu primer estudio.</p>
         </div>
       )}
       
-      {/* Notificación */}
       {notification.open && (
         <div className={`notification ${notification.type}`}>
           <p>{notification.message}</p>
