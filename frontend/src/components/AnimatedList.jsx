@@ -34,7 +34,7 @@ const AnimatedList = ({
   itemClassName = '',
   displayScrollbar = true,
   initialSelectedIndex = -1,
-  renderItem = null,
+  renderItem,
 }) => {
   const listRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
@@ -120,13 +120,11 @@ const AnimatedList = ({
               }
             }}
           >
-            {renderItem ? (
-              renderItem(item, index, selectedIndex === index)
-            ) : (
-              <div className={`item ${selectedIndex === index ? 'selected' : ''} ${itemClassName}`}>
+            <div className={`item ${selectedIndex === index ? 'selected' : ''} ${itemClassName}`}>
+              {renderItem ? renderItem(item, index, selectedIndex === index) : (
                 <p className="item-text">{item}</p>
-              </div>
-            )}
+              )}
+            </div>
           </AnimatedItem>
         ))}
       </div>
