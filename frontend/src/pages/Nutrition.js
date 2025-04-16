@@ -223,13 +223,13 @@ const Nutrition = () => {
     };
     
     const nutritionalInfo = extractNutritionalInfo(analysis.analysis);
-    
-    return (
+
+  return (
       <div className={`study-item nutrition-item ${isSelected ? 'selected' : ''}`}>
         <div className="study-info">
           <div className="study-type">
             <span className="study-type-icon">🍽️</span>
-            Análisis Nutricional
+          Análisis Nutricional
           </div>
           <div className="study-date">{date}</div>
           
@@ -448,8 +448,8 @@ const Nutrition = () => {
                       <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                       <span className="upload-progress-text">{uploadProgress}%</span>
                     </div>
-                  ) : (
-                    <>
+            ) : (
+              <>
                       <FaUtensils className="button-icon" />
                       <span>Analizar alimentos</span>
                     </>
@@ -458,8 +458,8 @@ const Nutrition = () => {
               </div>
             )}
           </div>
-          
-          {analysisResult && (
+        
+        {analysisResult && (
             <div className="analysis-result-container">
               <h2 className="analysis-result-title">Resultados del Análisis</h2>
               
@@ -472,7 +472,7 @@ const Nutrition = () => {
                 
                 <div className="analysis-details">
                   <ReactMarkdown className="analysis-markdown">
-                    {analysisResult.analysis}
+                      {analysisResult.analysis}
                   </ReactMarkdown>
                 </div>
               </div>

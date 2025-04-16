@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
-import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AnimatedList from '../components/AnimatedList';
@@ -20,34 +18,21 @@ const getStudyTypeName = (type) => {
 };
 
 const MedicalStudies = () => {
-  const navigate = useNavigate();
   const [studies, setStudies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [studyType, setStudyType] = useState('general');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
+  
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
-  const [selectedStudy, setSelectedStudy] = useState(null);
-  const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
-
-  // Simplificar la función onDrop para evitar problemas con getRootProps y getInputProps
-  const onDrop = useCallback(acceptedFiles => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
-      setSelectedFile(acceptedFiles[0]);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps } = useDropzone({ 
-    onDrop,
-    accept: {
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'application/pdf': ['.pdf'],
-      'text/plain': ['.txt']
-    }
-  });
+  
+  const navigate = useNavigate();
 
   const fetchStudies = useCallback(async () => {
     try {
@@ -491,12 +476,12 @@ const MedicalStudies = () => {
                   <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                   <span className="upload-progress-text">{uploadProgress}%</span>
                 </div>
-              ) : (
-                <>
+            ) : (
+              <>
                   <FaUpload className="button-icon" />
                   <span>Subir estudio</span>
-                </>
-              )}
+              </>
+            )}
             </button>
           </div>
         )}
@@ -506,8 +491,8 @@ const MedicalStudies = () => {
         <h2 className="studies-section-title">Mis Estudios</h2>
         {renderSearchBar()}
       </div>
-      
-      {loading ? (
+        
+        {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Cargando estudios...</p>
