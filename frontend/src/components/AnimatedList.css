@@ -836,4 +836,149 @@
   .search-container {
     width: 100%;
   }
+}
+
+/* Estilos específicos para la página de nutrición */
+.nutrition-container {
+  background: linear-gradient(135deg, #1a1a1a, #0a0a0a);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.nutrition-icon {
+  font-size: 48px;
+  color: #2ecc71;
+  margin-bottom: 16px;
+}
+
+.nutrition-item {
+  border-left: 4px solid #2ecc71;
+}
+
+.nutrition-item .study-type {
+  color: #2ecc71;
+}
+
+.nutrition-preview {
+  margin-top: 12px;
+  background-color: rgba(46, 204, 113, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid #2ecc71;
+}
+
+.upload-area {
+  border: 2px dashed #2ecc71;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #27ae60;
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.upload-submit-button {
+  background-color: #2ecc71;
+}
+
+.upload-submit-button:hover {
+  background-color: #27ae60;
+}
+
+.analysis-result-container {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.analysis-image {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.analysis-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), transparent);
+  pointer-events: none;
+}
+
+.analysis-details {
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.nutrition-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.nutrition-data-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nutrition-label {
+  font-weight: bold;
+  color: #ccc;
+}
+
+.nutrition-value {
+  color: white;
+}
+
+.analysis-result-title {
+  color: #2ecc71;
+  margin-bottom: 20px;
+  font-size: 24px;
+  border-bottom: 1px solid rgba(46, 204, 113, 0.3);
+  padding-bottom: 12px;
+}
+
+.analysis-result-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.analysis-image img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.analysis-markdown {
+  color: white;
+  line-height: 1.6;
+}
+
+.analysis-markdown h1,
+.analysis-markdown h2,
+.analysis-markdown h3 {
+  color: #2ecc71;
+  margin-top: 0;
+}
+
+.analysis-markdown ul,
+.analysis-markdown ol {
+  padding-left: 20px;
+}
+
+.analysis-markdown li {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .analysis-result-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .nutrition-data-grid {
+    grid-template-columns: 1fr;
+  }
 } 
