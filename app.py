@@ -30,7 +30,7 @@ serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 # Obtener orígenes permitidos de las variables de entorno
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://doctorfy-frontend.onrender.com').split(',')
 
-# Usar el disco persistente de Render si está disponible
+# Definir las rutas de almacenamiento (solo definir las variables, no configurar app todavía)
 UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
 MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
 NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
@@ -38,11 +38,6 @@ NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
 # Crear directorios si no existen
 os.makedirs(MEDICAL_STUDIES_FOLDER, exist_ok=True)
 os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
-
-# Configurar la aplicación para usar estas rutas
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
-app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
 
 def ensure_upload_dirs(app):
     """
@@ -81,6 +76,11 @@ def create_app():
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
     
+    # MOVER ESTA CONFIGURACIÓN AQUÍ
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
+    app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
+    
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
@@ -108,6 +108,10 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
+    
+    # Registrar el blueprint de media
+    from routes.media_routes import media_bp
+    app.register_blueprint(media_bp, url_prefix='/api/media')
 
     # Ruta para servir archivos estáticos desde cualquier subdirectorio de uploads
     @app.route('/uploads/<path:filename>')
