@@ -124,19 +124,16 @@ export default function Aurora(props) {
   const ctnDom = useRef(null);
 
   useEffect(() => {
-    const ctn = ctnDom.current;
-    if (!ctn) return;
-
-    // Verificar si WebGL2 está disponible
-    const canvas = document.createElement('canvas');
-    const gl2 = canvas.getContext('webgl2');
-    
-    if (!gl2) {
-      console.error('WebGL2 no está disponible en este navegador. Aurora no puede renderizarse.');
-      return;
-    }
-
     try {
+      // Verificar soporte de WebGL
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      
+      if (!gl) {
+        console.error('WebGL no está disponible en este navegador');
+        return; // Salir silenciosamente sin renderizar Aurora
+      }
+
       const renderer = new Renderer({
         alpha: true,
         premultipliedAlpha: true,
@@ -144,24 +141,24 @@ export default function Aurora(props) {
         canvas: canvas
       });
       
-      const gl = renderer.gl;
-      gl.clearColor(0, 0, 0, 0);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.canvas.style.backgroundColor = 'transparent';
-      gl.canvas.style.width = '100%';
-      gl.canvas.style.height = '100%';
-      gl.canvas.style.position = 'absolute';
-      gl.canvas.style.top = '0';
-      gl.canvas.style.left = '0';
-      gl.canvas.style.zIndex = '-1';
+      const gl2 = renderer.gl;
+      gl2.clearColor(0, 0, 0, 0);
+      gl2.enable(gl2.BLEND);
+      gl2.blendFunc(gl2.ONE, gl2.ONE_MINUS_SRC_ALPHA);
+      gl2.canvas.style.backgroundColor = 'transparent';
+      gl2.canvas.style.width = '100%';
+      gl2.canvas.style.height = '100%';
+      gl2.canvas.style.position = 'absolute';
+      gl2.canvas.style.top = '0';
+      gl2.canvas.style.left = '0';
+      gl2.canvas.style.zIndex = '-1';
 
       let program;
 
       function resize() {
-        if (!ctn) return;
-        const width = ctn.offsetWidth;
-        const height = ctn.offsetHeight;
+        if (!ctnDom.current) return;
+        const width = ctnDom.current.offsetWidth;
+        const height = ctnDom.current.offsetHeight;
         renderer.setSize(width, height);
         if (program) {
           program.uniforms.uResolution.value = [width, height];
@@ -186,13 +183,13 @@ export default function Aurora(props) {
           uTime: { value: 0 },
           uAmplitude: { value: amplitude },
           uColorStops: { value: colorStopsArray },
-          uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+          uResolution: { value: [ctnDom.current.offsetWidth, ctnDom.current.offsetHeight] },
           uBlend: { value: blend }
         }
       });
 
       const mesh = new Mesh(gl, { geometry, program });
-      ctn.appendChild(gl.canvas);
+      ctnDom.current.appendChild(gl2.canvas);
 
       let animateId = 0;
       const update = (t) => {
@@ -215,10 +212,10 @@ export default function Aurora(props) {
       return () => {
         cancelAnimationFrame(animateId);
         window.removeEventListener("resize", resize);
-        if (ctn && gl.canvas.parentNode === ctn) {
-          ctn.removeChild(gl.canvas);
+        if (ctnDom.current && gl2.canvas.parentNode === ctnDom.current) {
+          ctnDom.current.removeChild(gl2.canvas);
         }
-        gl.getExtension("WEBGL_lose_context")?.loseContext();
+        gl2.getExtension("WEBGL_lose_context")?.loseContext();
       };
     } catch (error) {
       console.error('Error al inicializar Aurora:', error);

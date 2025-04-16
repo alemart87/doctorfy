@@ -51,18 +51,49 @@ const MedicalStudies = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      
+      // Verificar si el token existe
+      if (!token) {
+        console.error('No hay token de autenticación');
+        setError('No has iniciado sesión o tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
+        return;
+      }
+      
+      console.log('Obteniendo estudios con token:', token.substring(0, 15) + '...');
+      
       const response = await axios.get('/api/medical-studies/studies', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('Respuesta de estudios:', response.data);
       setStudies(response.data.studies);
       setError(null);
     } catch (err) {
       console.error('Error al obtener estudios:', err);
-      setError('No se pudieron cargar los estudios médicos. Por favor, intenta de nuevo más tarde.');
+      
+      // Mostrar información más detallada del error
+      if (err.response) {
+        console.error('Respuesta del servidor:', err.response.status, err.response.data);
+        
+        if (err.response.status === 401) {
+          setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+          navigate('/login');
+        } else if (err.response.status === 404) {
+          setError('No se pudo conectar con el servidor de estudios médicos. La ruta no existe.');
+        } else {
+          setError(`Error del servidor: ${err.response.status}. Por favor, intenta de nuevo más tarde.`);
+        }
+      } else if (err.request) {
+        console.error('No se recibió respuesta del servidor');
+        setError('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+      } else {
+        setError('Error al procesar la solicitud. Por favor, intenta de nuevo más tarde.');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     fetchStudies();
