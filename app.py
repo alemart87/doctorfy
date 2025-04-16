@@ -30,6 +30,20 @@ serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 # Obtener orígenes permitidos de las variables de entorno
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://doctorfy-frontend.onrender.com').split(',')
 
+# Usar el disco persistente de Render si está disponible
+UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
+MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
+NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
+
+# Crear directorios si no existen
+os.makedirs(MEDICAL_STUDIES_FOLDER, exist_ok=True)
+os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
+
+# Configurar la aplicación para usar estas rutas
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
+app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
+
 def ensure_upload_dirs(app):
     """
     Asegura que existan todos los directorios necesarios para uploads
@@ -66,7 +80,6 @@ def create_app():
     
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
-    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
     
     # Inicializar extensiones
     db.init_app(app)

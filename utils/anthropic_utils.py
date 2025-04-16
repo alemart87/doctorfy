@@ -47,164 +47,130 @@ def extract_text_from_pdf(pdf_path):
         print(f"Error al extraer texto del PDF: {str(e)}")
         return None # Devolver None para indicar error
 
-def analyze_medical_study_with_anthropic(file_path, study_type):
-    """
-    Analiza un estudio médico usando el cliente Anthropic Claude.
-    Implementa reintentos con espera exponencial para errores transitorios.
-    """
-    if not client:
-        return {"success": False, "error": "Cliente Anthropic no inicializado.", "provider": "anthropic"}
-
+def compress_image_for_anthropic(image_path, max_size_mb=4.5):
+    """Comprime una imagen para que sea menor que el límite de Anthropic (5MB)"""
     try:
-        is_pdf = file_path.lower().endswith('.pdf')
-        messages = []
-        model = "claude-3-5-sonnet-20240620"  # Modelo Claude 3.5 Sonnet
-
-        if is_pdf:
-            text_content = extract_text_from_pdf(file_path)
-            if text_content is None:
-                 raise ValueError("No se pudo extraer texto del PDF.")
-
-            messages.append({
-                "role": "user",
-                "content": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza el siguiente texto extraído de un estudio médico y proporciona un análisis detallado y recomendaciones:\n\n{text_content}"
-            })
-        else:
-            # Manejar imágenes
-            try:
-                with open(file_path, "rb") as image_file:
-                    image_data = image_file.read()
-                base64_image = base64.b64encode(image_data).decode("utf-8")
-
-                mime_type, _ = mimetypes.guess_type(file_path)
-                if not mime_type or not mime_type.startswith('image/'):
-                    mime_type = 'image/jpeg'
-
-                messages.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"Eres un asistente médico especializado en análisis de estudios {study_type}. Analiza la imagen proporcionada y extrae la información relevante. Proporciona un análisis detallado y recomendaciones."
-                        },
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": mime_type,
-                                "data": base64_image
-                            }
-                        }
-                    ]
-                })
-            except FileNotFoundError:
-                 print(f"Error: Archivo de imagen no encontrado en {file_path}")
-                 raise
-            except Exception as img_err:
-                 print(f"Error al procesar la imagen: {img_err}")
-                 raise
-
-        print(f"Llamando a Anthropic API con modelo {model}...")
-
-        # --- Inicio: Lógica de Reintentos ---
-        current_retry = 0
-        backoff_time = INITIAL_BACKOFF
-        last_exception = None
-
-        while current_retry < MAX_RETRIES:
-            try:
-                response = client.messages.create(
-                    model=model,
-                    max_tokens=7500,
-                    messages=messages
-                )
-                print("Respuesta recibida de Anthropic.")
-                # Si la solicitud tiene éxito, salimos del bucle
-                break
-            except (anthropic.RateLimitError, anthropic.OverloadedError) as transient_error:
-                last_exception = transient_error
-                current_retry += 1
-                if current_retry < MAX_RETRIES:
-                    print(f"Error transitorio de Anthropic ({type(transient_error).__name__}). Reintentando en {backoff_time} segundos... (Intento {current_retry}/{MAX_RETRIES})")
-                    time.sleep(backoff_time)
-                    backoff_time *= 2 # Duplicar el tiempo de espera (espera exponencial)
-                else:
-                    print(f"Error transitorio de Anthropic ({type(transient_error).__name__}) después de {MAX_RETRIES} intentos.")
-                    # Si se superan los reintentos, relanzamos la última excepción
-                    raise last_exception
-            except anthropic.APIError as api_error:
-                last_exception = api_error
-                # Manejar otros errores específicos de la API
-                if "model not found" in str(api_error).lower():
-                    print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
-                    # Intentar con un modelo alternativo
-                    try:
-                        model = "claude-3-5-sonnet-20240620"  # Modelo alternativo
-                        # Volver a intentar la creación del mensaje con el modelo alternativo
-                        # (Podríamos añadir reintentos aquí también si fuera necesario)
-                        response = client.messages.create(
-                            model=model,
-                            max_tokens=4000,
-                            messages=messages
-                        )
-                        print(f"Respuesta recibida de Anthropic usando modelo alternativo {model}.")
-                        # Si tiene éxito con el alternativo, salimos del bucle
-                        break
-                    except Exception as fallback_error:
-                        print(f"Error con modelo alternativo: {fallback_error}")
-                        last_exception = fallback_error # Guardar el error del fallback
-                        # Salir del bucle si el fallback también falla
-                        break
-                else:
-                    print(f"Error de API de Anthropic no manejado específicamente: {api_error}")
-                    # Salir del bucle si es otro error de API
+        # Abrir la imagen
+        img = Image.open(image_path)
+        
+        # Convertir a RGB si es necesario (para imágenes PNG con transparencia)
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            background.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
+            img = background
+        
+        # Iniciar con calidad alta
+        quality = 95
+        max_size_bytes = max_size_mb * 1024 * 1024
+        
+        # Redimensionar si la imagen es muy grande en dimensiones
+        max_dimension = 2000
+        if max(img.size) > max_dimension:
+            ratio = max_dimension / max(img.size)
+            new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        
+        # Comprimir iterativamente hasta que sea menor que el límite
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality)
+        
+        while buffer.tell() > max_size_bytes and quality > 30:
+            buffer = io.BytesIO()
+            quality -= 5
+            img.save(buffer, format="JPEG", quality=quality)
+        
+        # Si aún es demasiado grande, redimensionar
+        if buffer.tell() > max_size_bytes:
+            ratio = 0.9  # Reducir en un 10%
+            while buffer.tell() > max_size_bytes and ratio > 0.3:
+                new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+                resized_img = img.resize(new_size, Image.LANCZOS)
+                
+                buffer = io.BytesIO()
+                resized_img.save(buffer, format="JPEG", quality=quality)
+                
+                if buffer.tell() <= max_size_bytes:
                     break
-            except Exception as e:
-                 # Capturar cualquier otro error inesperado durante la llamada
-                 last_exception = e
-                 print(f"Error inesperado durante la llamada a Anthropic: {e}")
-                 break # Salir del bucle
-
-        # Si salimos del bucle debido a un error después de reintentos o un error no recuperable
-        if last_exception:
-             raise last_exception # Relanzar la última excepción capturada
-
-        # --- Fin: Lógica de Reintentos ---
-
-
-        # Extraer el contenido del mensaje de respuesta
-        if response.content and isinstance(response.content, list) and len(response.content) > 0:
-             # Acceder al atributo 'text' del primer bloque de contenido
-            analysis = response.content[0].text
-        else:
-            analysis = "Respuesta inesperada de la API de Anthropic."
-            print(f"Respuesta inesperada: {response}")
-
-
-        return {
-            "success": True,
-            "analysis": analysis,
-            "provider": "anthropic"
-        }
-
+                    
+                ratio -= 0.1
+        
+        # Guardar la imagen comprimida
+        buffer.seek(0)
+        compressed_path = f"{os.path.splitext(image_path)[0]}_compressed.jpg"
+        with open(compressed_path, 'wb') as f:
+            f.write(buffer.getvalue())
+            
+        print(f"Imagen comprimida: {os.path.getsize(compressed_path) / (1024 * 1024):.2f}MB")
+        return compressed_path
     except Exception as e:
-        print(f"Error en analyze_medical_study_with_anthropic (Anthropic Client): {str(e)}")
-        traceback.print_exc()
-        # Devolver el mensaje de error específico si está disponible
-        error_message = str(e)
-        if isinstance(e, anthropic.APIError):
-             # Intentar obtener un mensaje más detallado si es un error de API
-             try:
-                 error_details = e.body.get('error', {}) if e.body else {}
-                 error_message = error_details.get('message', str(e))
-             except:
-                 pass # Mantener el mensaje original si no se pueden obtener detalles
+        print(f"Error al comprimir imagen: {e}")
+        return image_path  # Devolver la original en caso de error
 
-        return {
-            "success": False,
-            "error": f"Error al contactar al servicio de análisis: {error_message}", # Mensaje más claro para el usuario final
-            "provider": "anthropic"
-        }
+def analyze_medical_study_with_anthropic(image_path, study_type, patient_info=None):
+    """Analiza un estudio médico usando Anthropic Claude"""
+    try:
+        # Comprimir la imagen si es necesario
+        if os.path.getsize(image_path) > 5 * 1024 * 1024:  # 5MB
+            print(f"Imagen demasiado grande ({os.path.getsize(image_path) / (1024*1024):.2f}MB), comprimiendo...")
+            image_path = compress_image_for_anthropic(image_path)
+        
+        # Leer la imagen
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        
+        # Crear el cliente de Anthropic
+        client = anthropic.Anthropic()
+        
+        # Crear el mensaje para el análisis
+        system_prompt = "Eres un asistente médico experto que analiza estudios médicos y proporciona información detallada y precisa."
+        
+        # Construir el mensaje del usuario
+        user_message = [
+            {
+                "type": "text",
+                "text": f"Analiza este estudio médico de tipo {study_type}. Proporciona un análisis detallado, posibles diagnósticos y recomendaciones."
+            },
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": base64_image
+                }
+            }
+        ]
+        
+        # Si hay información del paciente, añadirla
+        if patient_info:
+            user_message[0]["text"] += f"\n\nInformación del paciente: {patient_info}"
+        
+        print(f"Llamando a Anthropic API con modelo claude-3-5-sonnet-20240620...")
+        
+        # Hacer la llamada a la API
+        try:
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                system=system_prompt,
+                max_tokens=4000,
+                temperature=0.2,
+                messages=[
+                    {"role": "user", "content": user_message}
+                ]
+            )
+            return response.content[0].text
+        except anthropic.RateLimitError as rate_error:
+            print(f"Error de límite de tasa en Anthropic: {rate_error}")
+            return "Lo sentimos, el servicio de análisis está experimentando alta demanda. Por favor, intenta de nuevo en unos minutos."
+        except anthropic.APIError as api_error:
+            print(f"Error de API en Anthropic: {api_error}")
+            return "Error en el servicio de análisis. Por favor, intenta de nuevo más tarde."
+        except Exception as e:
+            print(f"Error general en Anthropic: {e}")
+            return f"Error al analizar el estudio médico: {str(e)}"
+            
+    except Exception as e:
+        print(f"Error general en analyze_medical_study_with_anthropic: {e}")
+        return f"Error al procesar la imagen: {str(e)}"
 
 def extract_from_pdf(file_path):
     """
