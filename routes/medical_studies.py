@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, MedicalStudy, User
@@ -8,6 +8,7 @@ from utils.auth import doctor_required
 import os
 import uuid
 from datetime import datetime
+import mimetypes
 
 medical_studies_bp = Blueprint('medical_studies', __name__)
 
@@ -25,57 +26,70 @@ def allowed_file(filename):
 @medical_studies_bp.route('/upload', methods=['POST'])
 @jwt_required()
 def upload_study():
+    """Subir un nuevo estudio médico"""
     try:
+        # Obtener el ID del usuario del token
         user_id = get_jwt_identity()
         
-        # Verificar si se proporcionó un archivo
+        # Verificar si se envió un archivo
         if 'file' not in request.files:
-            return jsonify({'error': 'No se proporcionó ningún archivo'}), 400
+            print("No se envió ningún archivo")
+            return jsonify({'error': 'No se envió ningún archivo'}), 400
         
         file = request.files['file']
+        study_type = request.form.get('study_type', 'general')
+        
+        print(f"Archivo recibido: {file.filename}, tipo: {study_type}")
         
         # Verificar si el archivo tiene un nombre
         if file.filename == '':
+            print("No se seleccionó ningún archivo")
             return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
         
-        # Verificar si el archivo es de un tipo permitido
-        allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png'}
-        if not '.' in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        # Verificar si el archivo tiene una extensión permitida
+        if not allowed_file(file.filename):
+            print(f"Tipo de archivo no permitido: {file.filename}")
             return jsonify({'error': 'Tipo de archivo no permitido'}), 400
         
-        # Obtener el tipo de estudio
-        study_type = request.form.get('study_type', 'general')
-        
-        # Generar un nombre de archivo seguro y único
+        # Crear un nombre de archivo seguro y único
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4()}_{filename}"
         
-        # Crear la carpeta de destino si no existe
-        upload_dir = os.path.join(current_app.root_path, 'uploads', 'medical_studies')
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # Guardar el archivo
-        file_path = os.path.join(upload_dir, unique_filename)
+        # Guardar el archivo en el directorio de estudios médicos
+        file_path = os.path.join(current_app.config['MEDICAL_STUDIES_FOLDER'], unique_filename)
+        print(f"Guardando archivo en: {file_path}")
         file.save(file_path)
         
-        # Guardar la información en la base de datos
+        # La ruta que se guarda en la base de datos es relativa
+        db_file_path = f"{unique_filename}"
+        
+        # Crear el registro en la base de datos
         study = MedicalStudy(
             patient_id=user_id,
             study_type=study_type,
-            file_path=unique_filename,  # Guardar solo el nombre del archivo, no la ruta completa
-            created_at=datetime.utcnow()
+            file_path=db_file_path
         )
         
         db.session.add(study)
         db.session.commit()
         
-        return jsonify({
-            'message': 'Estudio subido con éxito',
-            'study_id': study.id
-        }), 201
+        print(f"Estudio médico guardado con ID: {study.id}")
         
+        return jsonify({
+            'message': 'Estudio médico subido con éxito',
+            'study': {
+                'id': study.id,
+                'patient_id': study.patient_id,
+                'study_type': study.study_type,
+                'file_path': study.file_path,
+                'created_at': study.created_at.isoformat() if study.created_at else None
+            }
+        }), 201
     except Exception as e:
-        print(f"Error al subir estudio: {str(e)}")
+        db.session.rollback()
+        print(f"Error al subir estudio médico: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @medical_studies_bp.route('/studies', methods=['GET'])
@@ -171,10 +185,12 @@ def interpret_study(study_id):
 @medical_studies_bp.route('/studies/<int:study_id>/analyze', methods=['POST'])
 @jwt_required()
 def analyze_study(study_id):
-    user_id = get_jwt_identity()
-    
+    """Analizar un estudio médico existente"""
     try:
         print(f"Iniciando análisis del estudio {study_id}")
+        
+        # Obtener el ID del usuario del token
+        user_id = get_jwt_identity()
         print(f"ID de usuario del token: {user_id}, tipo: {type(user_id)}")
         
         # Convertir user_id a entero si es una cadena
@@ -183,116 +199,70 @@ def analyze_study(study_id):
                 user_id = int(user_id)
                 print(f"ID de usuario convertido a entero: {user_id}")
             except ValueError:
-                print(f"No se pudo convertir el ID de usuario a entero: {user_id}")
+                print(f"No se pudo convertir user_id a entero: {user_id}")
         
-        # Obtener el estudio
+        # Buscar el estudio en la base de datos
         study = MedicalStudy.query.get(study_id)
         
         if not study:
+            print(f"Estudio no encontrado: {study_id}")
             return jsonify({'error': 'Estudio no encontrado'}), 404
-        
+            
         print(f"Estudio encontrado: ID={study.id}, patient_id={study.patient_id}")
         
-        # Verificar que el estudio pertenece al usuario o que el usuario es un médico
+        # Verificar que el usuario tenga acceso a este estudio
         user = User.query.get(user_id)
         if not user:
+            print(f"Usuario no encontrado: {user_id}")
             return jsonify({'error': 'Usuario no encontrado'}), 404
             
-        print(f"Usuario: {user.email}, is_doctor={user.is_doctor}, patient_id={study.patient_id}, user_id={user_id}")
+        print(f"Usuario: {user.email}, is_doctor={user.is_doctor}, patient_id={user.patient_id}, user_id={user.id}")
         
-        # Temporalmente, permitir que cualquier usuario analice cualquier estudio para pruebas
-        # if not user.is_doctor and study.patient_id != user_id:
-        #     print(f"Permiso denegado: user.is_doctor={user.is_doctor}, study.patient_id={study.patient_id}, user_id={user_id}")
-        #     return jsonify({'error': 'No tienes permiso para analizar este estudio'}), 403
+        # Los médicos pueden ver estudios de cualquier paciente, los pacientes solo los suyos
+        if not user.is_doctor and study.patient_id != user.patient_id:
+            print(f"Acceso denegado: user_id={user_id}, patient_id={user.patient_id}, study.patient_id={study.patient_id}")
+            return jsonify({'error': 'No tienes permiso para analizar este estudio'}), 403
         
-        # Obtener el archivo del estudio - CORREGIR LA RUTA
-        # Verificar si study.file_path ya incluye 'medical_studies/'
-        file_path = study.file_path
-        if file_path.startswith('medical_studies/'):
-            # Si ya incluye el prefijo, usar la ruta directamente
-            file_path = os.path.join(current_app.root_path, 'uploads', file_path)
-        else:
-            # Si no incluye el prefijo, añadirlo
-            file_path = os.path.join(current_app.root_path, 'uploads', 'medical_studies', file_path)
-        
+        # Construir la ruta completa al archivo
+        file_path = os.path.join(current_app.config['MEDICAL_STUDIES_FOLDER'], study.file_path)
         print(f"Ruta del archivo (corregida): {file_path}")
         
-        # Intentar diferentes variaciones de la ruta si el archivo no existe
+        # Verificar que el archivo exista
         if not os.path.exists(file_path):
-            print(f"Archivo no encontrado en la ruta principal, intentando alternativas...")
+            print(f"Archivo no encontrado: {file_path}")
+            return jsonify({'error': 'Archivo de estudio no encontrado'}), 404
             
-            # Alternativa 1: Quitar 'medical_studies/' si está duplicado
-            alt_path_1 = file_path.replace('medical_studies/medical_studies/', 'medical_studies/')
-            print(f"Alternativa 1: {alt_path_1}")
-            if os.path.exists(alt_path_1):
-                file_path = alt_path_1
-                print(f"Archivo encontrado en alternativa 1")
-            else:
-                # Alternativa 2: Usar solo el nombre del archivo
-                file_name = os.path.basename(study.file_path)
-                alt_path_2 = os.path.join(current_app.root_path, 'uploads', 'medical_studies', file_name)
-                print(f"Alternativa 2: {alt_path_2}")
-                if os.path.exists(alt_path_2):
-                    file_path = alt_path_2
-                    print(f"Archivo encontrado en alternativa 2")
-                else:
-                    # Alternativa 3: Buscar en la carpeta uploads directamente
-                    alt_path_3 = os.path.join(current_app.root_path, 'uploads', file_name)
-                    print(f"Alternativa 3: {alt_path_3}")
-                    if os.path.exists(alt_path_3):
-                        file_path = alt_path_3
-                        print(f"Archivo encontrado en alternativa 3")
-        
         print(f"¿El archivo existe? {os.path.exists(file_path)}")
         
-        if not os.path.exists(file_path):
-            # Listar archivos en la carpeta uploads para depuración
-            uploads_dir = os.path.join(current_app.root_path, 'uploads')
-            print(f"Contenido de la carpeta uploads: {os.listdir(uploads_dir) if os.path.exists(uploads_dir) else 'No existe'}")
-            
-            medical_studies_dir = os.path.join(uploads_dir, 'medical_studies')
-            print(f"Contenido de la carpeta medical_studies: {os.listdir(medical_studies_dir) if os.path.exists(medical_studies_dir) else 'No existe'}")
-            
-            return jsonify({'error': 'Archivo de estudio no encontrado'}), 404
-        
-        # Analizar el estudio con Anthropic directamente
+        # Analizar el estudio con Anthropic
         print("Llamando a la función analyze_medical_study_with_anthropic")
-        result = analyze_medical_study_with_anthropic(file_path, study.study_type)
+        from utils.anthropic_utils import analyze_medical_study_with_anthropic
         
-        # Verificar si el resultado es un diccionario (como se espera)
-        if isinstance(result, dict):
-            if result.get('success'):
-                analysis_result = result.get('analysis', '')
-                print(f"Análisis recibido (primeros 100 caracteres): {analysis_result[:100] if analysis_result else 'Vacío'}")
-            else:
-                error_msg = result.get('error', 'Error desconocido en el análisis')
-                print(f"Error en el análisis: {error_msg}")
-                return jsonify({'error': error_msg}), 500
-        else:
-            # Si no es un diccionario, usar el resultado directamente
-            analysis_result = str(result)
-            print(f"Análisis recibido (formato inesperado, primeros 100 caracteres): {analysis_result[:100] if analysis_result else 'Vacío'}")
+        analysis = analyze_medical_study_with_anthropic(
+            file_path, 
+            study.study_type,
+            f"Paciente ID: {study.patient_id}"
+        )
         
-        # Si es un análisis solicitado por el paciente, marcar como "Análisis IA"
-        if not user.is_doctor:
-            print("Marcando como análisis de IA (usuario no es doctor)")
-            analysis_result = f"[ANÁLISIS AUTOMÁTICO CON IA]\n\n{analysis_result}\n\n[Este análisis fue generado automáticamente y debe ser confirmado por un profesional médico]"
+        if analysis.startswith("Error:"):
+            print(f"Error en el análisis: {analysis}")
+            return jsonify({'error': f"Error al contactar al servicio de análisis: {analysis[7:]}"}), 500
         
-        # Actualizar el estudio con el resultado del análisis
-        study.interpretation = analysis_result
+        # Actualizar el estudio con el análisis
+        study.analysis = analysis
+        study.analyzed_at = datetime.utcnow()
         db.session.commit()
-        print("Análisis guardado con éxito")
         
         return jsonify({
-            'message': 'Estudio analizado correctamente',
-            'analysis': analysis_result
-        }), 200
+            'message': 'Estudio analizado con éxito',
+            'analysis': analysis
+        })
         
     except Exception as e:
-        print(f"Error al analizar estudio: {str(e)}")
+        print(f"Error en el análisis: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': 'Error interno al procesar la solicitud de análisis'}), 500
+        return jsonify({'error': f"Error al contactar al servicio de análisis: {str(e)}"}), 500
 
 @medical_studies_bp.route('/studies/<int:study_id>', methods=['GET'])
 @jwt_required()
@@ -389,6 +359,60 @@ def rename_study(study_id):
         }), 200
     except Exception as e:
         print(f"Error en rename_study: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@medical_studies_bp.route('/studies/<int:study_id>/download', methods=['GET'])
+@jwt_required()
+def download_study(study_id):
+    """Descargar un estudio médico"""
+    try:
+        # Obtener el ID del usuario del token
+        user_id = get_jwt_identity()
+        
+        # Convertir user_id a entero si es una cadena
+        if isinstance(user_id, str):
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                pass
+        
+        # Buscar el estudio en la base de datos
+        study = MedicalStudy.query.get(study_id)
+        
+        if not study:
+            return jsonify({'error': 'Estudio no encontrado'}), 404
+        
+        # Verificar que el usuario tenga acceso a este estudio
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Los médicos pueden ver estudios de cualquier paciente, los pacientes solo los suyos
+        if not user.is_doctor and study.patient_id != user.patient_id:
+            return jsonify({'error': 'No tienes permiso para descargar este estudio'}), 403
+        
+        # Construir la ruta completa al archivo
+        file_path = os.path.join(current_app.config['MEDICAL_STUDIES_FOLDER'], study.file_path)
+        
+        # Verificar que el archivo exista
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Archivo de estudio no encontrado'}), 404
+        
+        # Obtener el nombre original del archivo
+        original_filename = study.file_path.split('_', 1)[1] if '_' in study.file_path else study.file_path
+        
+        # Enviar el archivo como respuesta
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=original_filename,
+            mimetype=mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+        )
+        
+    except Exception as e:
+        print(f"Error al descargar estudio: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500 
