@@ -1,153 +1,191 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert } from '@mui/material';
-import { useDropzone } from 'react-dropzone';
-import { medicalStudiesService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import AnimatedList from '../components/AnimatedList';
+import './MedicalStudies.css';
 
 const MedicalStudies = () => {
   const [studies, setStudies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
 
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png'],
-      'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
-    },
-    onDrop: acceptedFiles => {
-      handleUpload(acceptedFiles[0]);
-    },
-  });
-
   useEffect(() => {
-    loadStudies();
+    fetchStudies();
   }, []);
 
-  const loadStudies = async () => {
+  const fetchStudies = async () => {
     try {
       setLoading(true);
-      const response = await medicalStudiesService.getStudies();
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/medical-studies/studies`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStudies(response.data.studies);
-      setError(null);
+      setLoading(false);
     } catch (err) {
-      console.error('Error loading studies:', err);
-      setError('Error al cargar los estudios médicos');
-    } finally {
+      console.error('Error al obtener estudios:', err);
+      setError('No se pudieron cargar los estudios médicos');
       setLoading(false);
     }
   };
 
-  const handleUpload = async (file) => {
-    try {
-      setUploadLoading(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('study_type', 'general');
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-      const response = await medicalStudiesService.uploadStudy(formData);
-      setUploadSuccess(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('study_type', 'general');
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
       
-      // Recargar la lista de estudios
-      loadStudies();
-      
-      setTimeout(() => {
-        setUploadSuccess(false);
-      }, 3000);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/medical-studies/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          }
+        }
+      );
+
+      // Actualizar la lista de estudios después de subir uno nuevo
+      fetchStudies();
+      setIsUploading(false);
     } catch (err) {
-      console.error('Error uploading study:', err);
-      setError('Error al subir el estudio médico');
-    } finally {
-      setUploadLoading(false);
+      console.error('Error al subir archivo:', err);
+      setError('Error al subir el archivo');
+      setIsUploading(false);
     }
   };
 
-  const handleViewStudy = (studyId) => {
-    navigate(`/medical-studies/${studyId}`);
+  const handleStudySelect = (study) => {
+    setSelectedStudy(study);
+    navigate(`/medical-studies/${study.id}`);
+  };
+
+  const handleAnalyzeStudy = async (study, e) => {
+    e.stopPropagation(); // Evitar que se active el onClick del item completo
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/medical-studies/studies/${study.id}/analyze`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      // Actualizar la lista de estudios después del análisis
+      fetchStudies();
+    } catch (err) {
+      console.error('Error al analizar estudio:', err);
+      setError('Error al analizar el estudio');
+    }
+  };
+
+  const renderStudyItem = (study, index, isSelected) => {
+    const hasInterpretation = study.interpretation && study.interpretation.trim() !== '';
+    const formattedDate = study.created_at 
+      ? format(new Date(study.created_at), 'dd MMM yyyy', { locale: es })
+      : 'Fecha desconocida';
+    
+    return (
+      <div className={`item medical-study-item ${isSelected ? 'selected' : ''}`}>
+        <div className="medical-study-header">
+          <span className="medical-study-type">{study.study_type}</span>
+          <span className="medical-study-date">{formattedDate}</span>
+        </div>
+        
+        <div className="medical-study-patient">
+          {study.patient_email && <span>Paciente: {study.patient_email}</span>}
+        </div>
+        
+        <span 
+          className={`medical-study-status ${hasInterpretation ? 'status-completed' : 'status-pending'}`}
+        >
+          {hasInterpretation ? 'Interpretado' : 'Pendiente de interpretación'}
+        </span>
+        
+        <div className="medical-study-actions">
+          {!hasInterpretation && (
+            <button 
+              className="action-button primary"
+              onClick={(e) => handleAnalyzeStudy(study, e)}
+            >
+              Analizar con IA
+            </button>
+          )}
+          <button className="action-button">Ver detalles</button>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Estudios Médicos
-        </Typography>
+    <div className="medical-studies-container">
+      <h1>Estudios Médicos</h1>
+      
+      <div className="upload-section">
+        <label htmlFor="file-upload" className="upload-button">
+          Subir Nuevo Estudio
+        </label>
+        <input
+          id="file-upload"
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={handleFileUpload}
+          style={{ display: 'none' }}
+        />
         
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {uploadSuccess && <Alert severity="success" sx={{ mb: 2 }}>Estudio subido exitosamente</Alert>}
-        
-        <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Subir Nuevo Estudio
-          </Typography>
-          
-          <Box {...getRootProps()} sx={{
-            border: '2px dashed #ccc',
-            borderRadius: 2,
-            p: 3,
-            textAlign: 'center',
-            cursor: 'pointer',
-            '&:hover': {
-              borderColor: 'primary.main',
-            },
-          }}>
-            <input {...getInputProps()} />
-            {uploadLoading ? (
-              <CircularProgress />
-            ) : (
-              <>
-                <Typography>
-                  Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Formatos aceptados: JPG, PNG, TXT, PDF
-                </Typography>
-              </>
-            )}
-          </Box>
-        </Paper>
-        
-        <Typography variant="h5" gutterBottom>
-          Mis Estudios
-        </Typography>
-        
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : studies.length === 0 ? (
-          <Alert severity="info">No tienes estudios médicos subidos</Alert>
-        ) : (
-          <Grid container spacing={3}>
-            {studies.map((study) => (
-              <Grid item xs={12} sm={6} md={4} key={study.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" component="div">
-                      {study.study_type}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Fecha: {new Date(study.created_at).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Estado: {study.has_interpretation ? 'Interpretado' : 'Pendiente de interpretación'}
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small" onClick={() => handleViewStudy(study.id)}>
-                      Ver Detalles
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+        {isUploading && (
+          <div className="upload-progress">
+            <div 
+              className="progress-bar" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+            <span>{uploadProgress}%</span>
+          </div>
         )}
-      </Box>
-    </Container>
+      </div>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      {loading ? (
+        <div className="loading">Cargando estudios...</div>
+      ) : studies.length > 0 ? (
+        <AnimatedList
+          items={studies}
+          onItemSelect={handleStudySelect}
+          showGradients={true}
+          enableArrowNavigation={true}
+          displayScrollbar={true}
+          renderItem={renderStudyItem}
+          className="medical-studies-list"
+        />
+      ) : (
+        <div className="no-studies">
+          <p>No tienes estudios médicos. Sube tu primer estudio para comenzar.</p>
+        </div>
+      )}
+    </div>
   );
 };
 

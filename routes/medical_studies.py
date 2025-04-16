@@ -292,7 +292,7 @@ def analyze_study(study_id):
         print(f"Error al analizar estudio: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': 'Error al analizar el estudio'}), 500
+        return jsonify({'error': 'Error interno al procesar la solicitud de análisis'}), 500
 
 @medical_studies_bp.route('/studies/<int:study_id>', methods=['GET'])
 @jwt_required()

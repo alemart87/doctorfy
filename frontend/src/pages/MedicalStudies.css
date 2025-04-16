@@ -1,0 +1,90 @@
+.medical-studies-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: white;
+}
+
+.medical-studies-container h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  background: linear-gradient(45deg, #4dabf7, #748ffc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.upload-section {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-button {
+  background: linear-gradient(45deg, #364fc7, #4c6ef5);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-block;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.upload-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(45deg, #4263eb, #5c7cfa);
+}
+
+.upload-progress {
+  width: 100%;
+  max-width: 400px;
+  height: 8px;
+  background-color: #222;
+  border-radius: 4px;
+  margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4dabf7, #748ffc);
+  transition: width 0.3s ease;
+}
+
+.upload-progress span {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #adb5bd;
+}
+
+.error-message {
+  background-color: rgba(255, 107, 107, 0.2);
+  border: 1px solid #ff6b6b;
+  color: #ff8787;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.loading, .no-studies {
+  text-align: center;
+  padding: 2rem;
+  color: #adb5bd;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.medical-studies-list {
+  margin-top: 1rem;
+} 

@@ -27,6 +27,7 @@ import NutritionDashboard from './pages/NutritionDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import PatientNutritionView from './pages/PatientNutritionView';
 import DoctorProfileView from './pages/DoctorProfileView';
+import DashboardPage from './pages/DashboardPage';
 
 // Componente para decidir si mostrar el navbar general
 const NavbarWrapper = ({ children }) => {
@@ -107,6 +108,8 @@ function App() {
               
               {/* Ruta para manejar URLs no encontradas */}
               <Route path="*" element={<Navigate to="/" replace />} />
+
+              <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             </Routes>
           </NavbarWrapper>
         </Router>

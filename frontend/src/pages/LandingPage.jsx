@@ -6,7 +6,7 @@ import {
   Button, 
   Grid, 
   Card, 
-  CardContent, 
+  CardContent,
   useTheme,
   useMediaQuery,
   Paper,
@@ -19,7 +19,7 @@ import LandingNavbar from '../components/LandingNavbar';
 import { FloatingDisc, AnimatedBackgroundText, RotatingText } from '../components/AnimatedElements';
 import TrueFocus from '../components/TrueFocus';
 import { useInView } from 'react-intersection-observer';
-import { 
+import {
   LocalHospital as LocalHospitalIcon,
   Science as ScienceIcon,
   Restaurant as RestaurantIcon,
@@ -36,13 +36,13 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // Refs para animaciones basadas en scroll
   const [heroRef, heroInView] = useInView({
     triggerOnce: false,
     threshold: 0.1,
   });
-  
+
   const [featuresRef, featuresInView] = useInView({
     triggerOnce: false,
     threshold: 0.1,
@@ -52,7 +52,7 @@ const LandingPage = () => {
     triggerOnce: false,
     threshold: 0.1,
   });
-  
+
   const [testimonialsRef, testimonialsInView] = useInView({
     triggerOnce: false,
     threshold: 0.1,
@@ -184,7 +184,7 @@ const LandingPage = () => {
             {/* Navbar */}
             <LandingNavbar />
             
-            {/* Hero Section */}
+      {/* Hero Section */}
             <Box 
               ref={heroRef}
               component={motion.div}
@@ -198,26 +198,26 @@ const LandingPage = () => {
                 pt: { xs: 8, md: 0 }
               }}
             >
-              <Container maxWidth="lg">
-                <Grid container spacing={4} alignItems="center">
+        <Container maxWidth="lg">
+            <Grid container spacing={4} alignItems="center">
                   <Grid item xs={12} md={7}>
                     <Box sx={{ position: 'relative', zIndex: 2 }}>
                       <motion.div variants={itemVariants}>
-                        <Typography 
-                          variant="h1" 
-                          sx={{ 
+                <Typography
+                  variant="h1"
+                  sx={{
                             fontWeight: 800,
                             fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4.5rem' },
-                            mb: 2,
+                    mb: 2,
                             background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             textShadow: '0 5px 15px rgba(0,0,0,0.2)',
-                          }}
-                        >
+                  }}
+                >
                           Doctorfy
-                        </Typography>
-                        <Typography
+                </Typography>
+                <Typography
                           variant="h2"
                           sx={{
                             fontSize: { xs: '1.5rem', md: '2rem', lg: '2.5rem' },
@@ -247,7 +247,7 @@ const LandingPage = () => {
                       <motion.div variants={itemVariants}>
                         <Typography 
                           variant="h6" 
-                          sx={{ 
+                  sx={{
                             mb: 4, 
                             color: theme.palette.grey[300],
                             maxWidth: '90%',
@@ -256,47 +256,47 @@ const LandingPage = () => {
                         >
                           Consulta tus análisis con nuestra IA y obtén resultados en 30 segundos, 
                           no en 3 días como con médicos tradicionales.
-                        </Typography>
+                </Typography>
                       </motion.div>
                       
                       <motion.div variants={itemVariants}>
                         <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-                          <Button 
-                            variant="contained" 
+                  <Button
+                    variant="contained"
                             color="primary"
-                            size="large"
-                            onClick={() => navigate('/register')}
-                            sx={{ 
+                    size="large"
+                    onClick={() => navigate('/register')}
+                    sx={{
                               py: 1.5, 
                               px: 4, 
-                              borderRadius: '30px',
+                      borderRadius: '30px',
                               fontWeight: 600,
                               fontSize: '1rem',
                               textTransform: 'none',
                               boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
-                              '&:hover': {
+                      '&:hover': {
                                 transform: 'translateY(-3px)',
                                 boxShadow: `0 6px 25px ${theme.palette.primary.main}60`,
                               },
                               transition: 'all 0.3s ease',
-                            }}
-                          >
-                            Comenzar Ahora
-                          </Button>
-                          <Button 
-                            variant="outlined" 
+                    }}
+                  >
+                    Comenzar Ahora
+                  </Button>
+                  <Button
+                    variant="outlined"
                             color="secondary"
-                            size="large"
+                    size="large"
                             onClick={() => navigate('/login')}
-                            sx={{ 
+                    sx={{
                               py: 1.5, 
                               px: 4, 
-                              borderRadius: '30px',
+                      borderRadius: '30px',
                               fontWeight: 600,
                               fontSize: '1rem',
                               textTransform: 'none',
                               borderWidth: '2px',
-                              '&:hover': {
+                      '&:hover': {
                                 borderWidth: '2px',
                                 transform: 'translateY(-3px)',
                                 boxShadow: `0 6px 25px ${theme.palette.secondary.main}40`,
@@ -305,11 +305,11 @@ const LandingPage = () => {
                             }}
                           >
                             Iniciar Sesión
-                          </Button>
+                  </Button>
                         </Box>
                       </motion.div>
-                    </Box>
-                  </Grid>
+                </Box>
+              </Grid>
 
                   <Grid item xs={12} md={5}>
                     <Box sx={{ 
@@ -334,12 +334,12 @@ const LandingPage = () => {
                         />
                       </motion.div>
                     </Box>
-                  </Grid>
-                </Grid>
-              </Container>
+              </Grid>
+            </Grid>
+        </Container>
             </Box>
-            
-            {/* Features Section */}
+
+      {/* Features Section */}
             <Box 
               ref={featuresRef}
               component={motion.div}
@@ -354,11 +354,11 @@ const LandingPage = () => {
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <Container maxWidth="lg">
+        <Container maxWidth="lg">
                 <motion.div variants={itemVariants}>
-                  <Typography 
-                    variant="h2" 
-                    align="center" 
+          <Typography
+            variant="h2"
+            align="center"
                     sx={{ 
                       mb: 2,
                       fontWeight: 700,
@@ -366,9 +366,9 @@ const LandingPage = () => {
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                     }}
-                  >
-                    Características Principales
-                  </Typography>
+          >
+            Características Principales
+          </Typography>
                 </motion.div>
                 
                 <motion.div variants={itemVariants}>
@@ -383,7 +383,7 @@ const LandingPage = () => {
                   </Typography>
                 </motion.div>
                 
-                <Grid container spacing={4}>
+          <Grid container spacing={4}>
                   {features.map((feature, index) => (
                     <Grid item xs={12} sm={6} md={4} key={index}>
                       <motion.div 
@@ -408,29 +408,29 @@ const LandingPage = () => {
                         >
                           <CardContent sx={{ p: 4 }}>
                             <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                              {feature.icon}
+                        {feature.icon}
                             </Box>
-                            <Typography 
+                      <Typography
                               variant="h5" 
                               component="h3" 
                               align="center" 
-                              gutterBottom
-                              sx={{ fontWeight: 600 }}
-                            >
-                              {feature.title}
-                            </Typography>
+                        gutterBottom
+                        sx={{ fontWeight: 600 }}
+                      >
+                        {feature.title}
+                      </Typography>
                             <Typography variant="body1" align="center" color="textSecondary">
-                              {feature.description}
-                            </Typography>
-                          </CardContent>
+                        {feature.description}
+                      </Typography>
+                    </CardContent>
                         </Card>
                       </motion.div>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Container>
-            </Box>
-            
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
             {/* Stats Section */}
             <Box 
               ref={statsRef}
@@ -446,11 +446,11 @@ const LandingPage = () => {
                 zIndex: 2,
               }}
             >
-              <Container maxWidth="lg">
+        <Container maxWidth="lg">
                 <motion.div variants={itemVariants}>
-                  <Typography 
-                    variant="h2" 
-                    align="center" 
+          <Typography
+            variant="h2"
+            align="center"
                     sx={{ 
                       mb: 8,
                       fontWeight: 700,
@@ -460,7 +460,7 @@ const LandingPage = () => {
                     }}
                   >
                     Por Qué Elegir Doctorfy
-                  </Typography>
+          </Typography>
                 </motion.div>
                 
                 <Grid container spacing={4} justifyContent="center">
@@ -471,7 +471,7 @@ const LandingPage = () => {
                     >
                       <Paper 
                         elevation={4}
-                        sx={{ 
+        sx={{
                           p: 4, 
                           textAlign: 'center',
                           borderRadius: '16px',
@@ -479,23 +479,23 @@ const LandingPage = () => {
                           border: `1px solid ${theme.palette.grey[800]}`,
                         }}
                       >
-                        <Typography 
+          <Typography
                           variant="h2" 
-                          sx={{ 
+              sx={{
                             fontWeight: 700, 
                             color: theme.palette.primary.main,
                             mb: 1
                           }}
                         >
                           98%
-                        </Typography>
+          </Typography>
                         <Typography variant="h6" color="textSecondary">
                           Precisión en Análisis
-                        </Typography>
+                </Typography>
                       </Paper>
                     </motion.div>
-                  </Grid>
-                  
+            </Grid>
+            
                   <Grid item xs={12} sm={6} md={4}>
                     <motion.div 
                       variants={itemVariants}
@@ -503,27 +503,27 @@ const LandingPage = () => {
                     >
                       <Paper 
                         elevation={4}
-                        sx={{ 
+                    sx={{
                           p: 4, 
-                          textAlign: 'center',
+                      textAlign: 'center',
                           borderRadius: '16px',
                           background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[900]} 100%)`,
                           border: `1px solid ${theme.palette.grey[800]}`,
-                        }}
-                      >
-                        <Typography 
-                          variant="h2" 
-                          sx={{ 
-                            fontWeight: 700, 
+                    }}
+                  >
+                    <Typography 
+                      variant="h2" 
+                      sx={{ 
+                        fontWeight: 700, 
                             color: theme.palette.secondary.main,
-                            mb: 1
-                          }}
-                        >
+                        mb: 1
+                      }}
+                    >
                           30s
                         </Typography>
                         <Typography variant="h6" color="textSecondary">
                           Tiempo Promedio de Análisis
-                        </Typography>
+                    </Typography>
                       </Paper>
                     </motion.div>
                   </Grid>
@@ -533,37 +533,37 @@ const LandingPage = () => {
                       variants={itemVariants}
                       whileHover={{ scale: 1.05, transition: { duration: 0.3 } }}
                     >
-                      <Paper 
+                  <Paper
                         elevation={4}
-                        sx={{ 
+                    sx={{
                           p: 4, 
-                          textAlign: 'center',
+                      textAlign: 'center',
                           borderRadius: '16px',
                           background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[900]} 100%)`,
                           border: `1px solid ${theme.palette.grey[800]}`,
-                        }}
-                      >
+                    }}
+                  >
                         <Typography 
                           variant="h2" 
-                          sx={{ 
+                      sx={{
                             fontWeight: 700, 
                             color: theme.palette.primary.main,
                             mb: 1
                           }}
                         >
                           10k+
-                        </Typography>
+                    </Typography>
                         <Typography variant="h6" color="textSecondary">
                           Usuarios Satisfechos
-                        </Typography>
-                      </Paper>
+                    </Typography>
+                  </Paper>
                     </motion.div>
-                  </Grid>
-                </Grid>
-              </Container>
-            </Box>
-            
-            {/* Testimonials Section */}
+              </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Testimonials Section */}
             <Box 
               ref={testimonialsRef}
               component={motion.div}
@@ -576,11 +576,11 @@ const LandingPage = () => {
                 zIndex: 2,
               }}
             >
-              <Container maxWidth="lg">
+        <Container maxWidth="lg">
                 <motion.div variants={itemVariants}>
-                  <Typography 
-                    variant="h2" 
-                    align="center" 
+          <Typography
+            variant="h2"
+            align="center"
                     sx={{ 
                       mb: 2,
                       fontWeight: 700,
@@ -588,9 +588,9 @@ const LandingPage = () => {
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                     }}
-                  >
-                    Lo Que Dicen Nuestros Usuarios
-                  </Typography>
+          >
+            Lo Que Dicen Nuestros Usuarios
+          </Typography>
                 </motion.div>
                 
                 <motion.div variants={itemVariants}>
@@ -603,9 +603,9 @@ const LandingPage = () => {
                     Descubre cómo Doctorfy está transformando la forma en que las personas manejan su salud.
                   </Typography>
                 </motion.div>
-                
-                <Grid container spacing={4}>
-                  {testimonials.map((testimonial, index) => (
+          
+          <Grid container spacing={4}>
+            {testimonials.map((testimonial, index) => (
                     <Grid item xs={12} md={4} key={index}>
                       <motion.div 
                         variants={cardVariants}
@@ -615,13 +615,13 @@ const LandingPage = () => {
                         <Card 
                           elevation={4}
                           sx={{ 
-                            height: '100%',
+                    height: '100%',
                             borderRadius: '16px',
                             background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[900]} 100%)`,
                             backdropFilter: 'blur(10px)',
                             border: `1px solid ${theme.palette.grey[800]}`,
                             transition: 'all 0.3s ease',
-                            '&:hover': {
+                    '&:hover': {
                               boxShadow: `0 10px 30px ${theme.palette.primary.main}20`,
                               borderColor: theme.palette.primary.main,
                             }
@@ -641,25 +641,25 @@ const LandingPage = () => {
                               />
                               <Box sx={{ ml: 2 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                  {testimonial.name}
-                                </Typography>
+                          {testimonial.name}
+                        </Typography>
                                 <Typography variant="body2" color="textSecondary">
-                                  {testimonial.role}
-                                </Typography>
-                              </Box>
-                            </Box>
+                          {testimonial.role}
+                        </Typography>
+                      </Box>
+                    </Box>
                             <Divider sx={{ mb: 3 }} />
                             <Typography variant="body1" color="textSecondary" sx={{ fontStyle: 'italic' }}>
                               "{testimonial.content}"
                             </Typography>
                           </CardContent>
-                        </Card>
+                  </Card>
                       </motion.div>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Container>
-            </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
             
             {/* CTA Section */}
             <Box 
@@ -756,8 +756,8 @@ const LandingPage = () => {
                 </Box>
               </Container>
             </Box>
-            
-            {/* Footer */}
+
+      {/* Footer */}
             <Box 
               sx={{ 
                 py: 4,
@@ -767,9 +767,9 @@ const LandingPage = () => {
                 zIndex: 2,
               }}
             >
-              <Container maxWidth="lg">
+        <Container maxWidth="lg">
                 <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography 
                         variant="h6" 
@@ -780,21 +780,21 @@ const LandingPage = () => {
                           WebkitTextFillColor: 'transparent',
                         }}
                       >
-                        Doctorfy
-                      </Typography>
+                Doctorfy
+              </Typography>
                     </Box>
                     <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                       © {new Date().getFullYear()} Doctorfy. Todos los derechos reservados.
-                    </Typography>
-                  </Grid>
-                  
+              </Typography>
+            </Grid>
+            
                   <Grid item xs={12} md={8}>
                     <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 3, flexWrap: 'wrap' }}>
                       <Button color="inherit" onClick={() => navigate('/')}>
-                        Inicio
+                  Inicio
                       </Button>
                       <Button color="inherit" onClick={() => navigate('/medical-studies')}>
-                        Estudios Médicos
+                  Estudios Médicos
                       </Button>
                       <Button color="inherit" onClick={() => navigate('/nutrition')}>
                         Nutrición
@@ -805,16 +805,16 @@ const LandingPage = () => {
                       <Button color="inherit" onClick={() => navigate('/login')}>
                         Iniciar Sesión
                       </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
+              </Box>
+            </Grid>
+            </Grid>
               </Container>
             </Box>
           </Box>
-        </Box>
+      </Box>
       </div>
     </ClickSpark>
   );
 };
 
-export default LandingPage;
+export default LandingPage; 

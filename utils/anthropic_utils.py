@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import fitz  # PyMuPDF
 import mimetypes # Para detectar el tipo de imagen
 import traceback
+import time # Importar time para los reintentos
 
 # Cargar variables de entorno
 load_dotenv()
@@ -29,6 +30,8 @@ except Exception as client_init_error:
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01" # Versión de la API de Anthropic
+MAX_RETRIES = 3 # Número máximo de reintentos
+INITIAL_BACKOFF = 1 # Tiempo inicial de espera en segundos
 
 def extract_text_from_pdf(pdf_path):
     """
@@ -47,6 +50,7 @@ def extract_text_from_pdf(pdf_path):
 def analyze_medical_study_with_anthropic(file_path, study_type):
     """
     Analiza un estudio médico usando el cliente Anthropic Claude.
+    Implementa reintentos con espera exponencial para errores transitorios.
     """
     if not client:
         return {"success": False, "error": "Cliente Anthropic no inicializado.", "provider": "anthropic"}
@@ -101,32 +105,72 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
                  raise
 
         print(f"Llamando a Anthropic API con modelo {model}...")
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=4000,
-                messages=messages
-            )
-            print("Respuesta recibida de Anthropic.")
-        except anthropic.APIError as api_error:
-            # Manejar errores específicos de la API
-            if "model not found" in str(api_error).lower():
-                print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
-                # Intentar con un modelo alternativo
-                try:
-                    model = "claude-3-sonnet-20240229"  # Modelo alternativo
-                    response = client.messages.create(
-                        model=model,
-                        max_tokens=4000,
-                        messages=messages
-                    )
-                    print(f"Respuesta recibida de Anthropic usando modelo alternativo {model}.")
-                except Exception as fallback_error:
-                    print(f"Error con modelo alternativo: {fallback_error}")
-                    raise
-            else:
-                print(f"Error de API de Anthropic: {api_error}")
-                raise
+
+        # --- Inicio: Lógica de Reintentos ---
+        current_retry = 0
+        backoff_time = INITIAL_BACKOFF
+        last_exception = None
+
+        while current_retry < MAX_RETRIES:
+            try:
+                response = client.messages.create(
+                    model=model,
+                    max_tokens=4000,
+                    messages=messages
+                )
+                print("Respuesta recibida de Anthropic.")
+                # Si la solicitud tiene éxito, salimos del bucle
+                break
+            except (anthropic.RateLimitError, anthropic.OverloadedError) as transient_error:
+                last_exception = transient_error
+                current_retry += 1
+                if current_retry < MAX_RETRIES:
+                    print(f"Error transitorio de Anthropic ({type(transient_error).__name__}). Reintentando en {backoff_time} segundos... (Intento {current_retry}/{MAX_RETRIES})")
+                    time.sleep(backoff_time)
+                    backoff_time *= 2 # Duplicar el tiempo de espera (espera exponencial)
+                else:
+                    print(f"Error transitorio de Anthropic ({type(transient_error).__name__}) después de {MAX_RETRIES} intentos.")
+                    # Si se superan los reintentos, relanzamos la última excepción
+                    raise last_exception
+            except anthropic.APIError as api_error:
+                last_exception = api_error
+                # Manejar otros errores específicos de la API
+                if "model not found" in str(api_error).lower():
+                    print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
+                    # Intentar con un modelo alternativo
+                    try:
+                        model = "claude-3-sonnet-20240229"  # Modelo alternativo
+                        # Volver a intentar la creación del mensaje con el modelo alternativo
+                        # (Podríamos añadir reintentos aquí también si fuera necesario)
+                        response = client.messages.create(
+                            model=model,
+                            max_tokens=4000,
+                            messages=messages
+                        )
+                        print(f"Respuesta recibida de Anthropic usando modelo alternativo {model}.")
+                        # Si tiene éxito con el alternativo, salimos del bucle
+                        break
+                    except Exception as fallback_error:
+                        print(f"Error con modelo alternativo: {fallback_error}")
+                        last_exception = fallback_error # Guardar el error del fallback
+                        # Salir del bucle si el fallback también falla
+                        break
+                else:
+                    print(f"Error de API de Anthropic no manejado específicamente: {api_error}")
+                    # Salir del bucle si es otro error de API
+                    break
+            except Exception as e:
+                 # Capturar cualquier otro error inesperado durante la llamada
+                 last_exception = e
+                 print(f"Error inesperado durante la llamada a Anthropic: {e}")
+                 break # Salir del bucle
+
+        # Si salimos del bucle debido a un error después de reintentos o un error no recuperable
+        if last_exception:
+             raise last_exception # Relanzar la última excepción capturada
+
+        # --- Fin: Lógica de Reintentos ---
+
 
         # Extraer el contenido del mensaje de respuesta
         if response.content and isinstance(response.content, list) and len(response.content) > 0:
@@ -146,9 +190,19 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
     except Exception as e:
         print(f"Error en analyze_medical_study_with_anthropic (Anthropic Client): {str(e)}")
         traceback.print_exc()
+        # Devolver el mensaje de error específico si está disponible
+        error_message = str(e)
+        if isinstance(e, anthropic.APIError):
+             # Intentar obtener un mensaje más detallado si es un error de API
+             try:
+                 error_details = e.body.get('error', {}) if e.body else {}
+                 error_message = error_details.get('message', str(e))
+             except:
+                 pass # Mantener el mensaje original si no se pueden obtener detalles
+
         return {
             "success": False,
-            "error": str(e),
+            "error": f"Error al contactar al servicio de análisis: {error_message}", # Mensaje más claro para el usuario final
             "provider": "anthropic"
         }
 
