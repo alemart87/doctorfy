@@ -1,140 +1,417 @@
 .icon-btns {
   display: grid;
-  grid-gap: 5em 2em; /* Aumentar gap vertical */
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); /* Más responsivo */
-  margin: auto;
-  padding: 3em 1em 4em; /* Añadir padding inferior para etiquetas */
-  overflow: visible;
-  max-width: 600px; /* Limitar ancho máximo */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 1.5rem;
+  width: 100%;
 }
 
-.icon-btn {
-  background-color: transparent;
-  border: none; /* Quitar borde por defecto */
-  outline: none;
+/* Contenedor principal del icono */
+.glass-icon {
   position: relative;
-  width: 4.5em;
-  height: 4.5em;
-  perspective: 24em;
+  width: 100%;
+  aspect-ratio: 1/1;
+  perspective: 1000px;
+  cursor: pointer;
   transform-style: preserve-3d;
-  -webkit-tap-highlight-color: transparent;
-  cursor: pointer; /* Añadir cursor pointer */
-  margin: 0 auto; /* Centrar botones en la celda */
-  z-index: 1; /* Añadir z-index por si acaso */
+  transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.icon-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  z-index: 0; /* Bajar z-index si está deshabilitado */
+/* Efecto de hover en el contenedor */
+.glass-icon:hover {
+  transform: translateY(-10px);
 }
 
-.icon-btn__back,
-.icon-btn__front,
-.icon-btn__label {
-  transition: opacity 0.3s cubic-bezier(0.83, 0, 0.17, 1),
-    transform 0.3s cubic-bezier(0.83, 0, 0.17, 1);
+/* Tarjeta interior con efecto de cristal */
+.glass-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 10px 20px rgba(0, 0, 0, 0.19), 
+    0 6px 6px rgba(0, 0, 0, 0.23),
+    inset 0 -5px 10px rgba(255, 255, 255, 0.2),
+    inset 0 5px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  transform-style: preserve-3d;
 }
 
-.icon-btn__back,
-.icon-btn__front {
-  border-radius: 1.25em;
+/* Efecto de hover en la tarjeta */
+.glass-icon:hover .glass-card {
+  box-shadow: 
+    0 15px 30px rgba(0, 0, 0, 0.25), 
+    0 10px 10px rgba(0, 0, 0, 0.22),
+    inset 0 -5px 10px rgba(255, 255, 255, 0.2),
+    inset 0 5px 10px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Efecto de brillo en la esquina */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  transform: rotate(30deg);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.glass-icon:hover .glass-card::before {
+  opacity: 0.8;
+}
+
+/* Contenedor del icono */
+.icon-container {
+  position: relative;
+  width: 100%;
+  height: 60%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  z-index: 1;
+}
+
+/* Tamaños de iconos responsivos usando clamp */
+.icon-size-small {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.icon-size-medium {
+  font-size: clamp(2.2rem, 5vw, 3rem);
+}
+
+.icon-size-large {
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+}
+
+.icon-size-xlarge {
+  font-size: clamp(3rem, 7vw, 4rem);
+}
+
+/* Estilos para el icono */
+.icon-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.glass-icon:hover .icon-wrapper {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.7));
+}
+
+/* Etiqueta del icono */
+.icon-label {
+  position: relative;
+  font-size: clamp(0.9rem, 3vw, 1.2rem);
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  margin-top: auto;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, text-shadow 0.3s ease;
+  z-index: 1;
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.glass-icon:hover .icon-label {
+  transform: translateY(-5px);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* Efecto de partículas en hover */
+.particles {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Asegurar que los elementos internos no capturen el clic */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.icon-btn__back {
-  box-shadow: 0.5em -0.5em 0.75em hsla(223, 10%, 10%, 0.15);
-  display: block;
-  transform: rotate(15deg);
-  transform-origin: 100% 100%;
+.glass-icon:hover .particles {
+  opacity: 1;
 }
 
-.icon-btn__front {
-  background-color: hsla(0, 0%, 100%, 0.15);
-  box-shadow: 0 0 0 0.1em hsla(0, 0%, 100%, 0.3) inset;
-  backdrop-filter: blur(0.75em);
-  -webkit-backdrop-filter: blur(0.75em);
-  display: flex;
-  transform-origin: 80% 50%;
-}
-
-.icon-btn__icon {
-  margin: auto;
-  width: 1.5em;
-  height: 1.5em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white; /* Asegurar que el icono sea visible */
-}
-
-.icon-btn__icon svg { /* Asegurar tamaño del SVG */
-  width: 100%;
-  height: 100%;
-}
-
-.icon-btn__label {
-  font-size: 0.8em;
-  white-space: nowrap;
-  text-align: center;
-  line-height: 1.5;
-  /* opacity: 0; */ /* Comentado o eliminado para que sea siempre visible */
-  opacity: 1; /* Hacer siempre visible */
+.particle {
   position: absolute;
-  top: 110%; /* Ajustar posición para estar debajo */
-  right: 0;
-  left: 0;
-  /* transform: translateY(0); */ /* Comentado o eliminado */
-  transform: translateY(5px); /* Pequeño ajuste inicial */
-  color: white;
-  pointer-events: none; /* Confirmar que la etiqueta no interfiere */
-  transition: opacity 0.3s ease, transform 0.3s ease; /* Mantener transición suave */
+  background: white;
+  border-radius: 50%;
+  width: 3px;
+  height: 3px;
+  animation: float 3s infinite ease-in-out;
 }
 
-.icon-btn:focus-visible .icon-btn__back,
-.icon-btn:hover:not(:disabled) .icon-btn__back {
-  transform: rotate(25deg) translate3d(-0.5em, -0.5em, 0.5em);
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  75% {
+    opacity: 0.2;
+  }
 }
 
-.icon-btn:focus-visible .icon-btn__front,
-.icon-btn:hover:not(:disabled) .icon-btn__front {
-  transform: translateZ(2em);
+/* Colores de fondo para los diferentes tipos de iconos */
+.bg-blue {
+  background: linear-gradient(135deg, #1e90ff, #4169e1);
 }
 
-/* Media Queries para responsividad */
-@media (max-width: 600px) {
+.bg-cyan {
+  background: linear-gradient(135deg, #00bcd4, #00838f);
+}
+
+.bg-green {
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+}
+
+.bg-purple {
+  background: linear-gradient(135deg, #9c27b0, #6a1b9a);
+}
+
+.bg-orange {
+  background: linear-gradient(135deg, #ff9800, #ef6c00);
+}
+
+.bg-indigo {
+  background: linear-gradient(135deg, #3f51b5, #303f9f);
+}
+
+/* Media queries para responsividad */
+@media (min-width: 1200px) {
   .icon-btns {
-    grid-gap: 4em 1.5em; /* Ajustar gap */
-    padding: 2em 1em 3em; /* Ajustar padding */
-  }
-  .icon-btn {
-    width: 4em;
-    height: 4em;
-  }
-  .icon-btn__icon {
-    width: 1.3em;
-    height: 1.3em;
-  }
-  .icon-btn__label {
-    font-size: 0.75em;
-    top: 108%; /* Ajustar posición en móvil */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 1199px) and (min-width: 768px) {
   .icon-btns {
-    grid-gap: 3.5em 1em; /* Ajustar gap */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 900px;
   }
-   .icon-btn {
-    width: 3.8em;
-    height: 3.8em;
+  
+  .glass-card {
+    padding: 1.25rem;
   }
-  .icon-btn__label {
-    font-size: 0.7em;
+}
+
+@media (max-width: 767px) and (min-width: 481px) {
+  .icon-btns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    max-width: 600px;
+  }
+  
+  .glass-card {
+    padding: 1rem;
+  }
+  
+  /* Reducir el efecto de elevación en móviles */
+  .glass-icon:hover {
+    transform: translateY(-5px);
+  }
+}
+
+@media (max-width: 480px) {
+  .icon-btns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+  
+  .glass-card {
+    padding: 0.6rem;
+    border-radius: 12px;
+    box-shadow: 
+      0 5px 10px rgba(0, 0, 0, 0.15), 
+      0 3px 3px rgba(0, 0, 0, 0.1),
+      inset 0 -2px 5px rgba(255, 255, 255, 0.1),
+      inset 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Tamaños más pequeños para móviles */
+  .icon-size-small {
+    font-size: 1.5rem;
+  }
+  
+  .icon-size-medium {
+    font-size: 1.8rem;
+  }
+  
+  .icon-size-large {
+    font-size: 2rem;
+  }
+  
+  .icon-size-xlarge {
+    font-size: 2.2rem;
+  }
+  
+  .icon-label {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* Eliminar efectos de hover en móviles */
+  .glass-icon:hover {
+    transform: none;
+  }
+  
+  .glass-icon:hover .glass-card {
+    box-shadow: 
+      0 5px 10px rgba(0, 0, 0, 0.15), 
+      0 3px 3px rgba(0, 0, 0, 0.1),
+      inset 0 -2px 5px rgba(255, 255, 255, 0.1),
+      inset 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .glass-icon:hover .icon-wrapper {
+    transform: none;
+  }
+  
+  .glass-icon:hover .icon-label {
+    transform: none;
+  }
+  
+  /* Desactivar efectos de partículas en móviles */
+  .particles {
+    display: none;
+  }
+  
+  /* Ajustar el contenedor del icono */
+  .icon-container {
+    height: 50%;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Ajustar el efecto de brillo */
+  .glass-card::before {
+    display: none;
+  }
+}
+
+/* Ajustes para teléfonos muy pequeños */
+@media (max-width: 360px) {
+  .icon-btns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .glass-card {
+    padding: 0.5rem;
+  }
+  
+  .icon-size-small {
+    font-size: 1.3rem;
+  }
+  
+  .icon-size-medium {
+    font-size: 1.5rem;
+  }
+  
+  .icon-size-large {
+    font-size: 1.7rem;
+  }
+  
+  .icon-size-xlarge {
+    font-size: 1.9rem;
+  }
+  
+  .icon-label {
+    font-size: 0.75rem;
+  }
+}
+
+/* Soporte para dispositivos táctiles */
+@media (hover: none) {
+  .glass-icon:hover {
+    transform: none;
+  }
+  
+  .glass-card::before {
+    display: none;
+  }
+  
+  .glass-icon:active {
+    transform: scale(0.98);
+  }
+  
+  .glass-icon:active .glass-card {
+    box-shadow: 
+      0 5px 15px rgba(0, 0, 0, 0.2), 
+      0 3px 3px rgba(0, 0, 0, 0.2),
+      inset 0 -2px 5px rgba(255, 255, 255, 0.2),
+      inset 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Soporte para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(30, 30, 30, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Soporte para preferencias de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .glass-icon,
+  .glass-card,
+  .icon-wrapper,
+  .icon-label,
+  .particles,
+  .particle {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .glass-icon:hover {
+    transform: none;
+  }
+  
+  .glass-icon:hover .icon-wrapper {
+    transform: none;
+  }
+  
+  .glass-icon:hover .icon-label {
+    transform: none;
   }
 } 

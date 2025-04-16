@@ -123,11 +123,14 @@ const Nutrition = () => {
     e.preventDefault();
   };
 
-  // Analizar imagen de alimentos
+  // Función para analizar la imagen
   const handleAnalyzeFood = async () => {
     if (!selectedFile) return;
 
     try {
+      console.log("Iniciando análisis de alimentos");
+      console.log("Archivo seleccionado:", selectedFile.name, selectedFile.type, selectedFile.size);
+      
       setUploading(true);
       setUploadProgress(0);
       setError(null);
@@ -135,8 +138,11 @@ const Nutrition = () => {
       
       const formData = new FormData();
       formData.append('file', selectedFile);
-
+      
       const token = localStorage.getItem('token');
+      console.log("Token obtenido:", token ? "Sí" : "No");
+      
+      console.log("Enviando solicitud a /api/nutrition/analyze");
       const response = await axios.post('/api/nutrition/analyze', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -145,9 +151,11 @@ const Nutrition = () => {
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(percentCompleted);
+          console.log("Progreso de carga:", percentCompleted, "%");
         }
       });
-
+      
+      console.log("Respuesta recibida:", response.data);
       setAnalysisResult(response.data);
       showNotification('Análisis completado con éxito', 'success');
       
@@ -155,6 +163,7 @@ const Nutrition = () => {
       fetchNutritionAnalyses();
     } catch (err) {
       console.error('Error al analizar alimentos:', err);
+      console.error('Detalles del error:', err.response?.data || err.message);
       setError('Error al analizar la imagen. Por favor, intenta con otra imagen o más tarde.');
       showNotification('Error al analizar la imagen', 'error');
     } finally {
@@ -224,13 +233,13 @@ const Nutrition = () => {
     };
     
     const nutritionalInfo = extractNutritionalInfo(analysis.analysis);
-    
-    return (
+
+  return (
       <div className={`study-item nutrition-item ${isSelected ? 'selected' : ''}`}>
         <div className="study-info">
           <div className="study-type">
             <span className="study-type-icon">🍽️</span>
-            Análisis Nutricional
+          Análisis Nutricional
           </div>
           <div className="study-date">{date}</div>
           
@@ -384,9 +393,11 @@ const Nutrition = () => {
           </div>
           
           <div className="analysis-details">
-            <ReactMarkdown className="analysis-markdown">
-              {selectedAnalysis.analysis}
-            </ReactMarkdown>
+            <div className="analysis-markdown">
+              <ReactMarkdown>
+                {selectedAnalysis.analysis}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>
@@ -454,8 +465,8 @@ const Nutrition = () => {
                       <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                       <span className="upload-progress-text">{uploadProgress}%</span>
                     </div>
-                  ) : (
-                    <>
+            ) : (
+              <>
                       <FaUtensils className="button-icon" />
                       <span>Analizar alimentos</span>
                     </>
@@ -464,8 +475,8 @@ const Nutrition = () => {
               </div>
             )}
           </div>
-          
-          {analysisResult && (
+        
+        {analysisResult && (
             <div className="analysis-result-container">
               <h2 className="analysis-result-title">Resultados del Análisis</h2>
               
@@ -477,9 +488,11 @@ const Nutrition = () => {
                 )}
                 
                 <div className="analysis-details">
-                  <ReactMarkdown className="analysis-markdown">
-                    {analysisResult.analysis}
-                  </ReactMarkdown>
+                  <div className="analysis-markdown">
+                    <ReactMarkdown>
+                      {analysisResult.analysis}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             </div>

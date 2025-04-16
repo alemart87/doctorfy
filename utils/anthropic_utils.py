@@ -12,21 +12,25 @@ import fitz  # PyMuPDF
 import mimetypes # Para detectar el tipo de imagen
 import traceback
 import time # Importar time para los reintentos
+from utils.image_utils import compress_image, get_mime_type, get_image_size_mb, resize_image_if_needed
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Inicializar el cliente de Anthropic
-try:
-    # La inicialización es más simple con la biblioteca cliente
-    # Asegúrate de que la versión de anthropic instalada sea compatible con httpx
-    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
-    print("Cliente Anthropic inicializado.")
-except Exception as client_init_error:
-    print(f"Error CRÍTICO al inicializar cliente Anthropic: {client_init_error}")
-    # Manejar el error como en OpenAI
-    client = None
-    traceback.print_exc()
+# Variable global para el cliente de Anthropic (opcional, pero puede ser eficiente)
+client = None
+
+def get_anthropic_client():
+    """Obtiene o inicializa el cliente de Anthropic."""
+    global client
+    if client is None:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            current_app.logger.error("ANTHROPIC_API_KEY no está configurada.")
+            raise ValueError("La clave API de Anthropic no está configurada.")
+        client = anthropic.Anthropic(api_key=api_key)
+        current_app.logger.info("Cliente de Anthropic inicializado.")
+    return client
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01" # Versión de la API de Anthropic
@@ -139,112 +143,194 @@ def compress_image_for_anthropic(image_path, max_size_mb=4.5, min_quality=30):
         traceback.print_exc()
         return image_path  # Devolver la original en caso de error
 
-def analyze_medical_study_with_anthropic(image_path, study_type, patient_info=None):
-    """Analiza un estudio médico usando Anthropic Claude"""
-    if not client:
-        return "Error: Cliente Anthropic no inicializado."
-        
+async def analyze_medical_study_with_anthropic(file_path, study_type="general", user_info=None):
+    """
+    Analiza un estudio médico (imagen) usando la API de Anthropic Claude 3.5 Sonnet.
+
+    Args:
+        file_path (str): Ruta al archivo de imagen del estudio.
+        study_type (str): Tipo de estudio (ej. 'radiografía de tórax', 'resonancia magnética').
+        user_info (dict, optional): Información adicional del usuario/paciente.
+
+    Returns:
+        str: La interpretación generada por la IA, o None si ocurre un error.
+    """
     try:
-        # Verificar el tamaño de la imagen
-        image_size_mb = os.path.getsize(image_path) / (1024 * 1024)
-        print(f"Tamaño de la imagen original: {image_size_mb:.2f}MB")
+        anthropic_client = get_anthropic_client() # Usar la función para obtener el cliente
+
+        if not os.path.exists(file_path):
+            current_app.logger.error(f"El archivo no existe en la ruta: {file_path}")
+            return None # Devolver None si el archivo no existe
+
+        current_app.logger.info(f"Analizando archivo: {file_path}")
+        current_app.logger.info(f"Tamaño original: {get_image_size_mb(file_path):.2f}MB")
+
+        # Redimensionar imagen si es necesario
+        resized_path = resize_image_if_needed(file_path)
+        if resized_path:
+            current_app.logger.info(f"Imagen redimensionada a: {resized_path}")
+            current_app.logger.info(f"Tamaño redimensionado: {get_image_size_mb(resized_path):.2f}MB")
+            analysis_path = resized_path
+        else:
+            analysis_path = file_path # Usar original si no se redimensionó
+
+        # Leer la imagen y codificarla en base64
+        with open(analysis_path, "rb") as image_file:
+            image_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+        # Determinar el media type
+        media_type = mimetypes.guess_type(analysis_path)[0]
+        if not media_type:
+            # Asumir un tipo por defecto si no se puede adivinar
+            media_type = "image/jpeg"
+            current_app.logger.warning(f"No se pudo determinar el media type para {analysis_path}, asumiendo {media_type}")
+
+        # Construir el prompt
+        prompt_parts = [
+            f"Por favor, analiza la siguiente imagen de un estudio médico ({study_type}).",
+            "Actúa como un radiólogo experto o especialista relevante para el tipo de estudio.",
+            "Proporciona una interpretación detallada, incluyendo hallazgos clave, posibles diagnósticos diferenciales y recomendaciones si aplica.",
+            "Formatea la respuesta en Markdown claro y estructurado."
+        ]
         
-        # Comprimir la imagen si es necesaria (siempre comprimir si es mayor a 4.5MB)
-        if image_size_mb > 4.5:
-            print(f"Imagen demasiado grande ({image_size_mb:.2f}MB), comprimiendo...")
-            compressed_path = compress_image_for_anthropic(image_path)
-            
-            # Verificar que la compresión funcionó
-            compressed_size_mb = os.path.getsize(compressed_path) / (1024 * 1024)
-            if compressed_size_mb > 5:
-                print(f"ADVERTENCIA: La imagen comprimida sigue siendo demasiado grande: {compressed_size_mb:.2f}MB")
-                # Intentar una compresión más agresiva
-                compressed_path = compress_image_for_anthropic(image_path, max_size_mb=4.0, min_quality=20)
-                compressed_size_mb = os.path.getsize(compressed_path) / (1024 * 1024)
-                
-                if compressed_size_mb > 5:
-                    return "Error: La imagen es demasiado grande y no se pudo comprimir lo suficiente. Por favor, intenta con una imagen más pequeña o de menor resolución."
-            
-            image_path = compressed_path
-            print(f"Usando imagen comprimida: {image_path} ({compressed_size_mb:.2f}MB)")
+        # Verificar que user_info sea un diccionario antes de usarlo
+        if user_info and isinstance(user_info, dict):
+            prompt_parts.append("\nInformación adicional del paciente:")
+            if user_info.get('age'):
+                prompt_parts.append(f"- Edad: {user_info['age']}")
+            if user_info.get('gender'):
+                prompt_parts.append(f"- Género: {user_info['gender']}")
+            if user_info.get('symptoms'):
+                prompt_parts.append(f"- Síntomas/Motivo del estudio: {user_info['symptoms']}")
+        elif user_info and isinstance(user_info, str):
+            # Si es un string, simplemente añadirlo como información adicional
+            prompt_parts.append(f"\nInformación adicional: {user_info}")
+
+        prompt = "\n".join(prompt_parts)
+
+        current_app.logger.info(f"Llamando a Anthropic API con modelo claude-3-5-sonnet-20240620...")
         
-        # Leer la imagen
-        with open(image_path, "rb") as image_file:
-            image_data = image_file.read()
-        base64_image = base64.b64encode(image_data).decode("utf-8")
-        
-        # Determinar el tipo MIME
-        mime_type, _ = mimetypes.guess_type(image_path)
-        if not mime_type or not mime_type.startswith('image/'):
-            mime_type = 'image/jpeg'
-        
-        # Crear el mensaje para Anthropic
-        messages = [{
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": f"Eres un médico experto analizando este estudio médico de tipo {study_type}. Proporciona un análisis detallado, posibles diagnósticos y recomendaciones."
-                },
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": mime_type,
-                        "data": base64_image
-                    }
-                }
-            ]
-        }]
-        
-        # Si hay información del paciente, añadirla
-        if patient_info:
-            messages[0]["content"][0]["text"] += f"\n\nInformación del paciente: {patient_info}"
-        
-        # Definir el modelo a usar
-        model = "claude-3-5-sonnet-20240620"
-        print(f"Llamando a Anthropic API con modelo {model}...")
-        
-        # Hacer la llamada a la API con manejo de errores mejorado
+        # Imprimir información de depuración
+        current_app.logger.info(f"Tipo MIME: {media_type}")
+        current_app.logger.info(f"Tamaño de la imagen en base64: {len(image_data)} caracteres")
+        current_app.logger.info(f"Prompt: {prompt[:100]}...")
+
         try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=4000,
-                temperature=0.2,
-                messages=messages
+            message = anthropic_client.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=2048,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": image_data,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt
+                            }
+                        ],
+                    }
+                ],
             )
-            print("Respuesta recibida de Anthropic.")
+
+            current_app.logger.info("Respuesta recibida de Anthropic.")
+
+            # Extraer el texto de la respuesta
+            interpretation_text = ""
+            if message.content and isinstance(message.content, list):
+                for block in message.content:
+                    if block.type == 'text':
+                        interpretation_text += block.text
+
+            if not interpretation_text:
+                current_app.logger.warning("La respuesta de Anthropic no contenía texto interpretable.")
+                return None # Devolver None si no hay texto
+
+            # --- Asegúrate de devolver el texto ---
+            current_app.logger.info("Interpretación generada exitosamente.")
+            return interpretation_text.strip()
             
-            # Extraer el contenido del mensaje de respuesta
-            if response.content and isinstance(response.content, list) and len(response.content) > 0:
-                analysis = response.content[0].text
-                return analysis
-            else:
-                print(f"Respuesta inesperada: {response}")
-                return "Error: Formato de respuesta inesperado de Anthropic."
-                
-        except anthropic.RateLimitError as rate_error:
-            print(f"Error de límite de tasa en Anthropic: {rate_error}")
-            return "Lo sentimos, el servicio de análisis está experimentando alta demanda. Por favor, intenta de nuevo en unos minutos."
-        except anthropic.BadRequestError as bad_request:
-            print(f"Error de solicitud incorrecta: {bad_request}")
-            if "image exceeds 5 MB maximum" in str(bad_request):
-                return "Error: La imagen es demasiado grande para ser procesada. Por favor, intenta con una imagen más pequeña."
-            return f"Error en la solicitud: {str(bad_request)}"
-        except anthropic.APIError as api_error:
-            print(f"Error de API en Anthropic: {api_error}")
-            return "Error en el servicio de análisis. Por favor, intenta de nuevo más tarde."
-        except Exception as e:
-            print(f"Error general en Anthropic: {e}")
-            import traceback
-            traceback.print_exc()
-            return f"Error al analizar el estudio médico: {str(e)}"
+        except anthropic.APIStatusError as e:
+            current_app.logger.error(f"Error de estado de Anthropic API: status_code={e.status_code}, response={e.response}")
+            # Intentar obtener más detalles del error
+            error_details = None
+            try:
+                error_details = e.response.json()
+                current_app.logger.error(f"Detalles del error: {error_details}")
+            except:
+                current_app.logger.error("No se pudieron obtener detalles adicionales del error")
             
+            # Intentar con un modelo diferente como fallback
+            if e.status_code == 400:
+                current_app.logger.info("Intentando con modelo alternativo claude-3-haiku-20240307...")
+                try:
+                    message = anthropic_client.messages.create(
+                        model="claude-3-haiku-20240307",  # Modelo más ligero
+                        max_tokens=2048,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "image",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": media_type,
+                                            "data": image_data,
+                                        },
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": prompt
+                                    }
+                                ],
+                            }
+                        ],
+                    )
+                    
+                    current_app.logger.info("Respuesta recibida del modelo alternativo.")
+                    
+                    # Extraer el texto de la respuesta
+                    interpretation_text = ""
+                    if message.content and isinstance(message.content, list):
+                        for block in message.content:
+                            if block.type == 'text':
+                                interpretation_text += block.text
+                    
+                    if interpretation_text:
+                        current_app.logger.info("Interpretación generada exitosamente con modelo alternativo.")
+                        return interpretation_text.strip()
+                except Exception as fallback_error:
+                    current_app.logger.error(f"Error con modelo alternativo: {fallback_error}")
+            
+            return None
+
+    except anthropic.APIConnectionError as e:
+        current_app.logger.error(f"Error de conexión con Anthropic API: {e}")
+        return None
+    except anthropic.RateLimitError as e:
+        current_app.logger.error(f"Error de límite de tasa con Anthropic API: {e}")
+        return None
     except Exception as e:
-        print(f"Error general en analyze_medical_study_with_anthropic: {e}")
+        current_app.logger.error(f"Error inesperado durante el análisis con Anthropic: {str(e)}")
         import traceback
-        traceback.print_exc()
-        return f"Error al procesar la imagen: {str(e)}"
+        current_app.logger.error(traceback.format_exc())
+        return None
+    finally:
+        # Opcional: Eliminar el archivo redimensionado si se creó uno temporal
+        if 'resized_path' in locals() and resized_path and resized_path != file_path and os.path.exists(resized_path):
+             try:
+                 os.remove(resized_path)
+                 current_app.logger.info(f"Archivo redimensionado temporal eliminado: {resized_path}")
+             except OSError as e:
+                 current_app.logger.error(f"Error al eliminar archivo temporal {resized_path}: {e}")
 
 def extract_from_pdf(file_path):
     """
@@ -464,52 +550,30 @@ def analyze_medical_study_with_openai(image_path, study_type):
 
 def analyze_food_image_with_anthropic(file_path):
     """
-    Analiza una imagen de comida usando Anthropic Claude.
+    Analiza una imagen de alimentos usando la API de Anthropic Claude.
+    
+    Args:
+        file_path (str): Ruta al archivo de imagen.
+        
+    Returns:
+        str: Texto del análisis o mensaje de error.
     """
-    if not client:
-        return "Error: Cliente Anthropic no inicializado."
-
     try:
-        # Verificar el tamaño de la imagen
-        image_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-        print(f"Tamaño de la imagen de comida original: {image_size_mb:.2f}MB")
+        # Verificar que el archivo exista
+        if not os.path.exists(file_path):
+            print(f"El archivo no existe: {file_path}")
+            return "Error: El archivo no existe"
         
-        # Comprimir la imagen si es necesaria
-        if image_size_mb > 4.5:
-            print(f"Imagen de comida demasiado grande ({image_size_mb:.2f}MB), comprimiendo...")
-            compressed_path = compress_image_for_anthropic(file_path)
-            
-            # Verificar que la compresión funcionó
-            compressed_size_mb = os.path.getsize(compressed_path) / (1024 * 1024)
-            if compressed_size_mb > 5:
-                print(f"ADVERTENCIA: La imagen comprimida sigue siendo demasiado grande: {compressed_size_mb:.2f}MB")
-                # Intentar una compresión más agresiva
-                compressed_path = compress_image_for_anthropic(file_path, max_size_mb=4.0, min_quality=20)
-                compressed_size_mb = os.path.getsize(compressed_path) / (1024 * 1024)
-                
-                if compressed_size_mb > 5:
-                    return """
-                    # Análisis Nutricional
-                    ## Error
-                    La imagen es demasiado grande y no se pudo comprimir lo suficiente. Por favor, intenta con una imagen más pequeña o de menor resolución.
-                    """
-            
-            file_path = compressed_path
-            print(f"Usando imagen comprimida: {file_path} ({compressed_size_mb:.2f}MB)")
+        # Obtener el cliente de Anthropic
+        client = get_anthropic_client()
         
-        # Cargar la imagen
+        # Leer la imagen y codificarla en base64
         with open(file_path, "rb") as image_file:
-            image_data = image_file.read()
-        base64_image = base64.b64encode(image_data).decode("utf-8")
+            image_data = base64.b64encode(image_file.read()).decode("utf-8")
 
         # Determinar el tipo MIME
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if not mime_type or not mime_type.startswith('image/'):
-            mime_type = 'image/jpeg'
+        mime_type = get_mime_type(file_path)
 
-        # Definir el modelo a usar
-        model = "claude-3-5-sonnet-20240620"
-        
         # Crear el mensaje para Anthropic
         messages = [{
             "role": "user",
@@ -523,34 +587,22 @@ def analyze_food_image_with_anthropic(file_path):
                     "source": {
                         "type": "base64",
                         "media_type": mime_type,
-                        "data": base64_image
+                        "data": image_data
                     }
                 }
             ]
         }]
 
-        # Llamar a la API de Anthropic con manejo de errores mejorado
-        print(f"Llamando a Anthropic API con modelo {model}...")
+        # Llamar a la API de Anthropic
+        print(f"Llamando a Anthropic API con modelo claude-3-5-sonnet-20240620...")
         try:
             response = client.messages.create(
-                model=model,
+                model="claude-3-5-sonnet-20240620",
                 max_tokens=4000,
                 messages=messages
             )
             print("Respuesta recibida de Anthropic.")
-            
-            # Extraer el contenido del mensaje de respuesta
-            if response.content and isinstance(response.content, list) and len(response.content) > 0:
-                analysis = response.content[0].text
-                return analysis
-            else:
-                print(f"Respuesta inesperada: {response}")
-                return """
-                # Análisis Nutricional
-                ## Error
-                Formato de respuesta inesperado de Anthropic.
-                """
-                
+            return response.content[0].text
         except anthropic.RateLimitError as rate_error:
             print(f"Error de límite de tasa en Anthropic: {rate_error}")
             return """
@@ -579,9 +631,7 @@ def analyze_food_image_with_anthropic(file_path):
             Error en el servicio de análisis. Por favor, intenta de nuevo más tarde.
             """
         except Exception as e:
-            print(f"Error general en Anthropic: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Error general en Anthropic: {e}", exc_info=True)
             return f"""
             # Análisis Nutricional
             ## Error
@@ -589,15 +639,9 @@ def analyze_food_image_with_anthropic(file_path):
             """
 
     except Exception as e:
-        print(f"Error en analyze_food_image_with_anthropic: {str(e)}")
-        traceback.print_exc()
+        print(f"Error en analyze_food_image_with_anthropic: {str(e)}", exc_info=True)
         return """
         # Análisis Nutricional
         ## Error
         No se pudo analizar la imagen debido a un error. Por favor, inténtelo de nuevo más tarde.
-        ## Información Nutricional
-        - Calorías: No disponible
-        - Proteínas: No disponible
-        - Carbohidratos: No disponible
-        - Grasas: No disponible
         """ 

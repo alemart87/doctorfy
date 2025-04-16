@@ -1,3 +1,6 @@
+// Este archivo debería ser eliminado o renombrado a Nutrition.jsx.old
+// Ya que parece ser una versión anterior del componente
+
 import React, { useState } from 'react';
 import { 
   Container, 

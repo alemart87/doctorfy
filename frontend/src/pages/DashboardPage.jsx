@@ -20,13 +20,52 @@ const DashboardPage = () => {
   const theme = useTheme();
   const { user } = useAuth();
 
+  // Aumentar el tamaño de los iconos
+  const largeIconStyle = { fontSize: '4rem' }; // Iconos mucho más grandes
+
   const glassItems = [
-    { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon />, color: 'blue' },
-    { label: "Estudios Médicos", href: "/medical-studies", icon: <MedicalServicesIcon />, color: 'cyan' },
-    { label: "Nutrición", href: "/nutrition", icon: <RestaurantIcon />, color: 'green' },
-    { label: "Doctores", href: "/doctors", icon: <GroupIcon />, color: 'purple' },
-    { label: "Mi Perfil", href: "/profile", icon: <AccountCircleIcon />, color: 'orange' },
-    { label: "Configuración", href: "/settings", icon: <SettingsIcon />, color: 'indigo' },
+    { 
+      label: "Dashboard", 
+      href: "/dashboard", 
+      icon: <DashboardIcon sx={largeIconStyle} />, 
+      color: 'blue',
+      labelSize: '1.8rem' // Texto más grande
+    },
+    { 
+      label: "Estudios Médicos", 
+      href: "/medical-studies", 
+      icon: <MedicalServicesIcon sx={largeIconStyle} />, 
+      color: 'cyan',
+      labelSize: '1.8rem'
+    },
+    { 
+      label: "Nutrición", 
+      href: "/nutrition", 
+      icon: <RestaurantIcon sx={largeIconStyle} />, 
+      color: 'green',
+      labelSize: '1.8rem'
+    },
+    { 
+      label: "Doctores", 
+      href: "/doctors", 
+      icon: <GroupIcon sx={largeIconStyle} />, 
+      color: 'purple',
+      labelSize: '1.8rem'
+    },
+    { 
+      label: "Mi Perfil", 
+      href: "/profile", 
+      icon: <AccountCircleIcon sx={largeIconStyle} />, 
+      color: 'orange',
+      labelSize: '1.8rem'
+    },
+    { 
+      label: "Configuración", 
+      href: "/settings", 
+      icon: <SettingsIcon sx={largeIconStyle} />, 
+      color: 'indigo',
+      labelSize: '1.8rem'
+    },
   ];
 
   // Variantes de animación mejoradas
@@ -96,10 +135,11 @@ const DashboardPage = () => {
 
             <motion.div variants={titleVariants}>
               <Typography 
-                variant="h2" 
+                variant="h1" // Cambiar a h1 para hacerlo más grande
                 sx={{ 
                   fontWeight: 700, 
                   mb: 1,
+                  fontSize: '4.5rem', // Texto mucho más grande
                   background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -111,7 +151,14 @@ const DashboardPage = () => {
             </motion.div>
 
             <motion.div variants={subtitleVariants}>
-              <Typography variant="h5" sx={{ mb: 6, opacity: 0.8 }}>
+              <Typography 
+                variant="h4" // Cambiar a h4 para hacerlo más grande
+                sx={{ 
+                  mb: 6, 
+                  opacity: 0.8,
+                  fontSize: '2.2rem' // Texto más grande
+                }}
+              >
                 {user ? user.name : 'Usuario'}, accede rápidamente a las secciones principales:
               </Typography>
             </motion.div>
@@ -122,7 +169,11 @@ const DashboardPage = () => {
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <GlassIcons items={glassItems} />
+              <GlassIcons 
+                items={glassItems} 
+                iconSize="large" // Añadir esta prop si GlassIcons la soporta
+                scale={1.5} // Escala general para hacer todo más grande
+              />
             </motion.div>
           </Container>
         </Box>

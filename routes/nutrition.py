@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, User, NutritionAnalysis, NutritionLog
@@ -21,137 +21,134 @@ def allowed_file(filename):
 
 # Función para crear directorios necesarios
 def init_app(app):
-    # Asegurarse de que el directorio de uploads existe
-    os.makedirs(os.path.join(app.root_path, 'uploads', 'nutrition'), exist_ok=True)
+    """Inicializa la aplicación con las configuraciones necesarias"""
+    app.config['NUTRITION_IMAGES_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'nutrition')
+    os.makedirs(app.config['NUTRITION_IMAGES_FOLDER'], exist_ok=True)
 
-@nutrition_bp.route('/analyze-food', methods=['POST'])
+@nutrition_bp.route('/analyze', methods=['POST'])
 @jwt_required()
 def analyze_food():
+    """Analizar una imagen de alimentos"""
     try:
-        print("=== Iniciando análisis de alimentos ===")
-        
-        # Asegurarse de que el directorio existe
-        upload_dir = os.path.join(current_app.root_path, 'uploads', 'nutrition')
-        os.makedirs(upload_dir, exist_ok=True)
-        print(f"Directorio de uploads asegurado: {upload_dir}")
-        
+        # Obtener el ID del usuario del token
         user_id = get_jwt_identity()
-        print(f"ID de usuario: {user_id}")
+        current_app.logger.info(f"Solicitud de análisis de alimentos recibida del usuario {user_id}")
         
-        user = User.query.get(user_id)
-        print(f"Usuario encontrado: {user.email if user else 'No encontrado'}")
-        
-        if not user:
-            return jsonify({'error': 'Usuario no encontrado'}), 404
-        
-        # Verificar archivo
-        print("Verificando archivo en la solicitud...")
+        # Verificar si se envió un archivo
         if 'file' not in request.files:
-            print("No se encontró archivo en la solicitud")
+            current_app.logger.warning("No se envió ningún archivo")
             return jsonify({'error': 'No se envió ningún archivo'}), 400
-            
-        file = request.files['file']
-        print(f"Archivo recibido: {file.filename}, tipo: {file.content_type}")
         
+        file = request.files['file']
+        current_app.logger.info(f"Archivo recibido: {file.filename}")
+        
+        # Verificar si el archivo tiene un nombre
         if file.filename == '':
-            print("Nombre de archivo vacío")
+            current_app.logger.warning("No se seleccionó ningún archivo")
             return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
-            
+        
+        # Verificar si el archivo tiene una extensión permitida
         if not allowed_file(file.filename):
-            print(f"Tipo de archivo no permitido: {file.filename}")
+            current_app.logger.warning(f"Tipo de archivo no permitido: {file.filename}")
             return jsonify({'error': 'Tipo de archivo no permitido'}), 400
         
-        # Crear nombre de archivo seguro
+        # Crear un nombre de archivo seguro y único
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4()}_{filename}"
-        file_path = os.path.join(upload_dir, unique_filename)
-        print(f"Guardando archivo en: {file_path}")
         
-        # Guardar archivo
-        try:
-            file.save(file_path)
-            print("Archivo guardado exitosamente")
-            print(f"Tamaño del archivo: {os.path.getsize(file_path)} bytes")
-        except Exception as save_error:
-            print(f"Error al guardar archivo: {str(save_error)}")
-            return jsonify({'error': 'Error al guardar el archivo'}), 500
+        # Guardar el archivo en el directorio de imágenes de nutrición
+        file_path = os.path.normpath(os.path.join(current_app.config['NUTRITION_IMAGES_FOLDER'], unique_filename))
+        current_app.logger.info(f"Guardando archivo en: {file_path}")
+        file.save(file_path)
         
-        # Verificar que el archivo existe y es accesible
-        if not os.path.exists(file_path):
-            print("El archivo no existe después de guardarlo")
-            return jsonify({'error': 'Error al guardar el archivo'}), 500
+        # La ruta que se guarda en la base de datos es relativa
+        db_file_path = os.path.join('nutrition', unique_filename)
         
-        print("Intentando leer el archivo guardado...")
-        try:
-            with open(file_path, 'rb') as test_file:
-                test_data = test_file.read()
-                print(f"Archivo leído exitosamente, tamaño: {len(test_data)} bytes")
-        except Exception as read_error:
-            print(f"Error al leer el archivo guardado: {str(read_error)}")
-            return jsonify({'error': 'Error al procesar el archivo'}), 500
+        # Analizar la imagen con Anthropic
+        current_app.logger.info("Llamando a analyze_food_image_with_anthropic")
+        analysis_text = analyze_food_image_with_anthropic(file_path)
         
-        # Analizar la imagen con Anthropic en lugar de OpenAI
-        print("Iniciando análisis de la imagen con Anthropic...")
-        try:
-            analysis = analyze_food_image_with_anthropic(file_path)
-            print("Análisis completado")
-            print(f"Resultado del análisis (primeros 100 caracteres): {analysis[:100] if analysis else 'None'}")
+        if not analysis_text:
+            current_app.logger.error("El análisis devolvió None")
+            return jsonify({'error': 'Error al analizar la imagen'}), 500
             
-            if not analysis:
-                print("El análisis retornó None, usando análisis por defecto")
-                analysis = """
-                # Análisis Nutricional (Error)
-                No se pudo analizar la imagen. Consulte a un profesional.
-                """
-        except Exception as analysis_error:
-            print(f"Error durante el análisis: {str(analysis_error)}")
-            print(f"Tipo de error: {type(analysis_error)}")
-            import traceback
-            traceback.print_exc()
-            analysis = "Error al analizar la imagen"
+        if analysis_text.startswith("Error:"):
+            current_app.logger.error(f"Error en el análisis: {analysis_text}")
+            return jsonify({'error': analysis_text[7:]}), 500
         
-        # Extraer datos nutricionales
-        print("Extrayendo datos nutricionales del análisis...")
-        try:
-            nutritional_data = extract_nutrition_data(analysis)
-            print(f"Datos nutricionales extraídos: {nutritional_data}")
-        except Exception as extract_error:
-            print(f"Error al extraer datos nutricionales: {str(extract_error)}")
-            nutritional_data = {'calories': 0, 'proteins': 0, 'carbs': 0, 'fats': 0}
+        # Crear el registro en la base de datos
+        current_app.logger.info("Guardando análisis en la base de datos")
+        analysis = NutritionAnalysis(
+            user_id=user_id,
+            file_path=db_file_path,
+            analysis=analysis_text
+        )
         
-        # Guardar en NutritionLog
-        try:
-            print("Guardando entrada en NutritionLog...")
-            log_entry = NutritionLog(
-                user_id=user_id,
-                log_date=date.today(),
-                calories=nutritional_data.get('calories', 0),
-                proteins=nutritional_data.get('proteins', 0.0),
-                carbs=nutritional_data.get('carbs', 0.0),
-                fats=nutritional_data.get('fats', 0.0),
-            )
-            db.session.add(log_entry)
-            db.session.commit()
-            print(f"Entrada de log guardada con ID: {log_entry.id}")
-        except Exception as log_error:
-            db.session.rollback()
-            print(f"Error al guardar en NutritionLog: {log_error}")
-            # No fallar toda la solicitud, pero registrar el error
+        db.session.add(analysis)
+        db.session.commit()
+        current_app.logger.info(f"Análisis guardado con ID: {analysis.id}")
         
         return jsonify({
-            'message': 'Análisis completado',
-            'analysis': analysis,
-            'nutritional_data': nutritional_data,
-        }), 200
-        
+            'message': 'Imagen analizada con éxito',
+            'analysis': analysis_text,
+            'image_url': f"/api/nutrition/analyses/{analysis.id}/image"
+        }), 201
     except Exception as e:
-        print("=== ERROR EN ANALYZE_FOOD ===")
-        print(f"Error: {str(e)}")
-        print(f"Tipo de error: {type(e)}")
-        import traceback
-        traceback.print_exc()
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500 
+        current_app.logger.error(f"Error al analizar imagen: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+@nutrition_bp.route('/analyses', methods=['GET'])
+@jwt_required()
+def get_analyses():
+    """Obtener todos los análisis nutricionales del usuario"""
+    try:
+        user_id = get_jwt_identity()
+        
+        analyses = NutritionAnalysis.query.filter_by(user_id=user_id).order_by(NutritionAnalysis.created_at.desc()).all()
+        
+        return jsonify({
+            'analyses': [{
+                'id': analysis.id,
+                'file_path': analysis.file_path,
+                'analysis': analysis.analysis,
+                'created_at': analysis.created_at.isoformat() if analysis.created_at else None
+            } for analysis in analyses]
+        }), 200
+    except Exception as e:
+        current_app.logger.error(f"Error al obtener análisis: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@nutrition_bp.route('/analyses/<int:analysis_id>/image', methods=['GET'])
+@jwt_required()
+def get_analysis_image(analysis_id):
+    """Obtener la imagen de un análisis nutricional"""
+    try:
+        user_id = get_jwt_identity()
+        
+        analysis = NutritionAnalysis.query.get(analysis_id)
+        
+        if not analysis:
+            return jsonify({'error': 'Análisis no encontrado'}), 404
+        
+        # Verificar que el usuario tenga acceso a este análisis
+        if analysis.user_id != user_id:
+            return jsonify({'error': 'No tienes permiso para ver este análisis'}), 403
+        
+        # Construir la ruta completa al archivo
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], analysis.file_path)
+        
+        # Verificar que el archivo exista
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Archivo de imagen no encontrado'}), 404
+        
+        # Enviar el archivo como respuesta
+        return send_file(file_path)
+    except Exception as e:
+        current_app.logger.error(f"Error al obtener imagen: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @nutrition_bp.route('/summary/<string:log_date_str>', methods=['GET'])
 @jwt_required()

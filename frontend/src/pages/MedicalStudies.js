@@ -19,6 +19,16 @@ const getStudyTypeName = (type) => {
   }
 };
 
+// Añadir esta función para obtener la URL correcta de las imágenes
+const getImageUrl = (imagePath) => {
+  // Si estamos en desarrollo local, usamos el proxy
+  if (process.env.NODE_ENV === 'development') {
+    return `/api/media/uploads/${imagePath}`;
+  }
+  // Si estamos en producción, usamos la URL completa
+  return `${process.env.REACT_APP_API_URL}/api/media/uploads/${imagePath}`;
+};
+
 const MedicalStudies = () => {
   const [studies, setStudies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -520,12 +530,12 @@ const MedicalStudies = () => {
                   <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                   <span className="upload-progress-text">{uploadProgress}%</span>
                 </div>
-              ) : (
-                <>
+            ) : (
+              <>
                   <FaUpload className="button-icon" />
                   <span>Subir estudio</span>
-                </>
-              )}
+              </>
+            )}
             </button>
           </div>
         )}
@@ -535,8 +545,8 @@ const MedicalStudies = () => {
         <h2 className="studies-section-title">Mis Estudios</h2>
         {renderSearchBar()}
       </div>
-      
-      {loading ? (
+        
+        {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Cargando estudios...</p>

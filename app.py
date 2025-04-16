@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import uuid
 from werkzeug.security import generate_password_hash
+from utils.logging_config import setup_logging
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -53,13 +54,11 @@ def ensure_upload_dirs(app):
     ]
     
     for dir_path in upload_dirs:
-        full_path = os.path.join(app.root_path, dir_path)
-        if not os.path.exists(full_path):
-            os.makedirs(full_path)
-            print(f"Directorio creado: {full_path}")
+        os.makedirs(os.path.join(app.root_path, dir_path), exist_ok=True)
 
-def create_app():
+def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
+    app.config.from_object(config_class)
     
     # Configuración de la base de datos
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
@@ -253,6 +252,9 @@ def create_app():
         }), 401
 
     return app
+
+# Configurar logging
+logger = setup_logging()
 
 app = create_app()
 

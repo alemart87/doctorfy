@@ -153,6 +153,16 @@ const StudyDetail = () => {
     return ['jpg', 'jpeg', 'png', 'gif'].includes(ext);
   };
 
+  // Añadir esta función para obtener la URL correcta de las imágenes
+  const getImageUrl = (imagePath) => {
+    // Si estamos en desarrollo local, usamos el proxy
+    if (process.env.NODE_ENV === 'development') {
+      return `/api/media/uploads/${imagePath}`;
+    }
+    // Si estamos en producción, usamos la URL completa
+    return `${process.env.REACT_APP_API_URL}/api/media/uploads/${imagePath}`;
+  };
+
   if (loading) {
     return (
       <div className="study-detail-container">
@@ -241,41 +251,41 @@ const StudyDetail = () => {
       </div>
       
       <div className="study-detail-content">
-        {isImage(study.file_path) ? (
+        {isImage(study.file_path) && (
           <div className="study-detail-image">
             <img 
-              src={`/api/medical-studies/studies/${study.id}/image`} 
+              src={getImageUrl(study.file_path)} 
               alt="Estudio médico" 
             />
           </div>
-        ) : (
-          <div className="study-detail-metadata">
-            <div className="study-detail-metadata-item">
-              <div className="study-detail-metadata-label">Tipo:</div>
-              <div className="study-detail-metadata-value">{getStudyTypeName(study.study_type)}</div>
-            </div>
-            <div className="study-detail-metadata-item">
-              <div className="study-detail-metadata-label">Fecha:</div>
-              <div className="study-detail-metadata-value">{formatDate(study.created_at)}</div>
-            </div>
-            <div className="study-detail-metadata-item">
-              <div className="study-detail-metadata-label">Paciente:</div>
-              <div className="study-detail-metadata-value">{study.patient_email || 'No disponible'}</div>
-            </div>
-            <div className="study-detail-metadata-item">
-              <div className="study-detail-metadata-label">Estado:</div>
-              <div className="study-detail-metadata-value">
-                <span className={`study-status ${isPending ? 'status-pending' : 'status-completed'}`}>
-                  {isPending ? 'Pendiente de interpretación' : 'Interpretado'}
-                </span>
-              </div>
-            </div>
-            <div className="study-detail-metadata-item">
-              <div className="study-detail-metadata-label">Archivo:</div>
-              <div className="study-detail-metadata-value">{study.file_path.split('/').pop() || 'No disponible'}</div>
+        )}
+        
+        <div className="study-detail-metadata">
+          <div className="study-detail-metadata-item">
+            <div className="study-detail-metadata-label">Tipo:</div>
+            <div className="study-detail-metadata-value">{getStudyTypeName(study.study_type)}</div>
+          </div>
+          <div className="study-detail-metadata-item">
+            <div className="study-detail-metadata-label">Fecha:</div>
+            <div className="study-detail-metadata-value">{formatDate(study.created_at)}</div>
+          </div>
+          <div className="study-detail-metadata-item">
+            <div className="study-detail-metadata-label">Paciente:</div>
+            <div className="study-detail-metadata-value">{study.patient_email || 'No disponible'}</div>
+          </div>
+          <div className="study-detail-metadata-item">
+            <div className="study-detail-metadata-label">Estado:</div>
+            <div className="study-detail-metadata-value">
+              <span className={`study-status ${isPending ? 'status-pending' : 'status-completed'}`}>
+                {isPending ? 'Pendiente de interpretación' : 'Interpretado'}
+              </span>
             </div>
           </div>
-        )}
+          <div className="study-detail-metadata-item">
+            <div className="study-detail-metadata-label">Archivo:</div>
+            <div className="study-detail-metadata-value">{study.file_path.split('/').pop() || 'No disponible'}</div>
+          </div>
+        </div>
         
         <div className="study-detail-interpretation">
           {isPending ? (

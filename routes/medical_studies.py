@@ -1,7 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app, send_file
+from flask import Blueprint, request, jsonify, current_app, send_file, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
-from models import db, MedicalStudy, User
+from models import db, MedicalStudy, User, StudyStatus
 from utils.openai_utils import analyze_medical_study
 from utils.anthropic_utils import analyze_medical_study_with_anthropic
 from utils.auth import doctor_required
@@ -9,16 +9,18 @@ import os
 import uuid
 from datetime import datetime
 import mimetypes
+import asyncio
 
 medical_studies_bp = Blueprint('medical_studies', __name__)
 
 # Configuración para subida de archivos
 UPLOAD_FOLDER = 'uploads/medical_studies'
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'dcm'}
 
 def init_app(app):
     """Inicializa la aplicación con las configuraciones necesarias"""
-    os.makedirs(os.path.join(app.root_path, UPLOAD_FOLDER), exist_ok=True)
+    app.config['MEDICAL_STUDIES_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'medical_studies')
+    os.makedirs(app.config['MEDICAL_STUDIES_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -38,6 +40,7 @@ def upload_study():
         
         file = request.files['file']
         study_type = request.form.get('study_type', 'general')
+        study_name = request.form.get('name', None)
         
         print(f"Archivo recibido: {file.filename}, tipo: {study_type}")
         
@@ -61,13 +64,15 @@ def upload_study():
         file.save(file_path)
         
         # La ruta que se guarda en la base de datos es relativa
-        db_file_path = f"{unique_filename}"
+        db_file_path = unique_filename  # Solo el nombre del archivo
         
         # Crear el registro en la base de datos
         study = MedicalStudy(
             patient_id=user_id,
             study_type=study_type,
-            file_path=db_file_path
+            file_path=os.path.join('medical_studies', unique_filename),  # Incluir 'medical_studies/' en la ruta
+            name=study_name if study_name else filename.rsplit('.', 1)[0],
+            status='PENDING'  # Usar string en lugar de enum
         )
         
         db.session.add(study)
@@ -82,6 +87,8 @@ def upload_study():
                 'patient_id': study.patient_id,
                 'study_type': study.study_type,
                 'file_path': study.file_path,
+                'name': study.name,
+                'status': study.status,
                 'created_at': study.created_at.isoformat() if study.created_at else None
             }
         }), 201
@@ -216,15 +223,18 @@ def analyze_study(study_id):
             print(f"Usuario no encontrado: {user_id}")
             return jsonify({'error': 'Usuario no encontrado'}), 404
             
-        print(f"Usuario: {user.email}, is_doctor={user.is_doctor}, patient_id={user.patient_id}, user_id={user.id}")
+        print(f"Usuario: {user.email}, is_doctor={user.is_doctor}, user_id={user.id}")
         
         # Los médicos pueden ver estudios de cualquier paciente, los pacientes solo los suyos
-        if not user.is_doctor and study.patient_id != user.patient_id:
-            print(f"Acceso denegado: user_id={user_id}, patient_id={user.patient_id}, study.patient_id={study.patient_id}")
+        if not user.is_doctor and study.patient_id != user_id:
+            print(f"Acceso denegado: user_id={user_id}, study.patient_id={study.patient_id}")
             return jsonify({'error': 'No tienes permiso para analizar este estudio'}), 403
         
         # Construir la ruta completa al archivo
-        file_path = os.path.join(current_app.config['MEDICAL_STUDIES_FOLDER'], study.file_path)
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], study.file_path)
+        # Normalizar la ruta para manejar diferentes separadores
+        file_path = os.path.normpath(file_path)
+        
         print(f"Ruta del archivo (corregida): {file_path}")
         
         # Verificar que el archivo exista
@@ -238,19 +248,23 @@ def analyze_study(study_id):
         print("Llamando a la función analyze_medical_study_with_anthropic")
         from utils.anthropic_utils import analyze_medical_study_with_anthropic
         
-        analysis = analyze_medical_study_with_anthropic(
+        analysis = asyncio.run(analyze_medical_study_with_anthropic(
             file_path, 
             study.study_type,
             f"Paciente ID: {study.patient_id}"
-        )
+        ))
         
-        if analysis.startswith("Error:"):
+        if not analysis:
+            print("El análisis devolvió None")
+            return jsonify({'error': "Error al analizar el estudio. Por favor, inténtelo de nuevo más tarde."}), 500
+        
+        if isinstance(analysis, str) and analysis.startswith("Error:"):
             print(f"Error en el análisis: {analysis}")
             return jsonify({'error': f"Error al contactar al servicio de análisis: {analysis[7:]}"}), 500
         
         # Actualizar el estudio con el análisis
-        study.analysis = analysis
-        study.analyzed_at = datetime.utcnow()
+        study.interpretation = analysis
+        study.status = 'COMPLETED'  # Usar string en lugar de enum
         db.session.commit()
         
         return jsonify({

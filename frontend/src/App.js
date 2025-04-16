@@ -18,7 +18,7 @@ import ResetPassword from './pages/ResetPassword';
 import MedicalStudies from './pages/MedicalStudies';
 import StudyDetails from './pages/StudyDetails';
 import DoctorDirectory from './pages/DoctorDirectory';
-import NutritionAnalyzer from './components/NutritionAnalyzer';
+import Nutrition from './pages/Nutrition';
 import AdminPanel from './pages/AdminPanel';
 import PrivateRoute from './components/PrivateRoute';
 import UserProfile from './pages/UserProfile';
@@ -70,7 +70,7 @@ function App() {
               } />
               <Route path="/nutrition" element={
                 <PrivateRoute>
-                  <NutritionAnalyzer />
+                  <Nutrition />
                 </PrivateRoute>
               } />
               <Route path="/doctors" element={<DoctorDirectory />} />

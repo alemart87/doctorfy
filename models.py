@@ -5,8 +5,16 @@ import enum
 from enum import Enum
 import uuid
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Enum
 
 db = SQLAlchemy()
+
+# Nuevo Enum para los estados del estudio
+class StudyStatus(enum.Enum):
+    PENDING = 'PENDING'
+    PROCESSING = 'PROCESSING'
+    COMPLETED = 'COMPLETED' # Usaremos este para indicar que la interpretación está lista
+    FAILED = 'FAILED'
 
 class UserRole(enum.Enum):
     USER = "user"
@@ -169,18 +177,21 @@ class MedicalStudy(db.Model):
     __tablename__ = 'medical_studies'
     
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    name = db.Column(db.String(255), nullable=True)
-    study_type = db.Column(db.String(50), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
+    study_type = db.Column(db.String(100), nullable=False)
     file_path = db.Column(db.String(255), nullable=False)
     interpretation = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    status = db.Column(db.String(20), default='PENDING', nullable=False)
+    name = db.Column(db.Text, nullable=True)
     
-    # Relación con el usuario (paciente)
     patient = db.relationship('User', backref=db.backref('medical_studies', lazy=True))
+    doctor = db.relationship('Doctor', backref=db.backref('assigned_studies', lazy=True))
     
     def __repr__(self):
-        return f'<MedicalStudy {self.id}>'
+        return f'<MedicalStudy {self.id} - {self.study_type}>'
 
 class Payment(db.Model):
     __tablename__ = 'payments'
