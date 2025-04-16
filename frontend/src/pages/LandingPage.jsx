@@ -249,7 +249,29 @@ const LandingPage = () => {
                       </motion.div>
                       
                       <motion.div variants={itemVariants}>
-                        <ActionButton />
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: 2,
+                            mt: 4 
+                          }}
+                        >
+                          <div className="action-button-container">
+                            <motion.button
+                              className="action-button guide-button"
+                              onClick={() => navigate('/guide')}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <div className="action-button-content">
+                                <span className="action-button-prefix">GUIA DE</span>
+                                <span className="action-button-text">SALUD IA</span>
+                              </div>
+                            </motion.button>
+                          </div>
+                        </Box>
                       </motion.div>
                       
                       <motion.div variants={itemVariants}>

@@ -631,7 +631,7 @@ def analyze_food_image_with_anthropic(file_path):
             Error en el servicio de análisis. Por favor, intenta de nuevo más tarde.
             """
         except Exception as e:
-            print(f"Error general en Anthropic: {e}", exc_info=True)
+            print(f"Error general en Anthropic: {e}")
             return f"""
             # Análisis Nutricional
             ## Error
@@ -639,7 +639,7 @@ def analyze_food_image_with_anthropic(file_path):
             """
 
     except Exception as e:
-        print(f"Error en analyze_food_image_with_anthropic: {str(e)}", exc_info=True)
+        current_app.logger.error(f"Error en analyze_food_image_with_anthropic: {str(e)}", exc_info=True)
         return """
         # Análisis Nutricional
         ## Error

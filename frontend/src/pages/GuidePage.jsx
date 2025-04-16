@@ -37,12 +37,6 @@ const GuidePage = () => {
             <DashboardIcon className="guide-icon" />
             <h2>Paso 1: Ingresa al Dashboard</h2>
             <p>Tu panel principal te da acceso a todas las funcionalidades de Doctorfy. Desde aquí podrás navegar fácilmente a todas las secciones.</p>
-            <img 
-              src="/images/dashboard-preview.jpg" 
-              alt="Dashboard de Doctorfy" 
-              style={{ maxHeight: '200px', objectFit: 'cover' }}
-              onError={(e) => {e.target.src = 'https://via.placeholder.com/600x200?text=Dashboard+de+Doctorfy'}}
-            />
           </div>
         </Step>
         
@@ -56,22 +50,20 @@ const GuidePage = () => {
             <p>Puedes subir imágenes de alimentos para análisis nutricional o tus estudios médicos para interpretación.</p>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1" sx={{ color: '#00d8ff', fontWeight: 'bold' }}>Análisis Nutricional</Typography>
-                <img 
-                  src="/images/nutrition-preview.jpg" 
-                  alt="Análisis Nutricional" 
-                  style={{ height: '120px', width: '100%', objectFit: 'cover', borderRadius: '10px' }}
-                  onError={(e) => {e.target.src = 'https://via.placeholder.com/300x150?text=Análisis+Nutricional'}}
-                />
+                <Typography variant="subtitle1" sx={{ color: '#00d8ff', fontWeight: 'bold' }}>
+                  Análisis Nutricional
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Sube fotos de tus alimentos para obtener información nutricional detallada.
+                </Typography>
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1" sx={{ color: '#00d8ff', fontWeight: 'bold' }}>Estudios Médicos</Typography>
-                <img 
-                  src="/images/medical-preview.jpg" 
-                  alt="Estudios Médicos" 
-                  style={{ height: '120px', width: '100%', objectFit: 'cover', borderRadius: '10px' }}
-                  onError={(e) => {e.target.src = 'https://via.placeholder.com/300x150?text=Estudios+Médicos'}}
-                />
+                <Typography variant="subtitle1" sx={{ color: '#00d8ff', fontWeight: 'bold' }}>
+                  Estudios Médicos
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Obtén interpretaciones profesionales de tus estudios médicos.
+                </Typography>
               </Box>
             </Box>
           </div>
@@ -82,12 +74,6 @@ const GuidePage = () => {
             <AnalyticsIcon className="guide-icon" />
             <h2>Paso 3: Tus análisis serán procesados por nuestra IA</h2>
             <p>Nuestra avanzada inteligencia artificial analizará tus imágenes y te proporcionará resultados detallados en segundos.</p>
-            <img 
-              src="/images/ai-analysis.jpg" 
-              alt="Análisis con IA" 
-              style={{ maxHeight: '200px', objectFit: 'cover' }}
-              onError={(e) => {e.target.src = 'https://via.placeholder.com/600x200?text=Análisis+con+IA'}}
-            />
           </div>
         </Step>
         

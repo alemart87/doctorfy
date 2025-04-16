@@ -1,13 +1,13 @@
 import React from 'react';
 import { IconButton, Tooltip } from '@mui/material';
-import './ActionButton.css';
+import './ShinyButton.css';
 
-const ActionButton = ({ icon, label, onClick, color = 'primary', disabled = false, speed = 3 }) => {
+const ShinyButton = ({ icon, label, onClick, color = 'primary', disabled = false, speed = 3 }) => {
   return (
     <Tooltip title={label} placement="top">
-      <span className="action-button-wrapper">
+      <span className="shiny-button-wrapper">
         <IconButton
-          className={`action-button ${color} ${disabled ? 'disabled' : ''}`}
+          className={`shiny-button ${color} ${disabled ? 'disabled' : ''}`}
           onClick={onClick}
           disabled={disabled}
           aria-label={label}
@@ -20,4 +20,4 @@ const ActionButton = ({ icon, label, onClick, color = 'primary', disabled = fals
   );
 };
 
-export default ActionButton; 
+export default ShinyButton; 

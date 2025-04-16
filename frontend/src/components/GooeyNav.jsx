@@ -154,7 +154,7 @@ const GooeyNav = ({
 
   return (
     <div className="gooey-nav-container" ref={containerRef}>
-      <nav>
+      <nav style={{ background: 'transparent' }}>
         <ul ref={navRef}>
           {items.map((item, index) => (
             <li
@@ -172,7 +172,7 @@ const GooeyNav = ({
           ))}
         </ul>
       </nav>
-      <span className="effect filter" ref={filterRef} />
+      <span className="effect filter" ref={filterRef} style={{ background: 'transparent' }} />
       <span className="effect text" ref={textRef} />
     </div>
   );

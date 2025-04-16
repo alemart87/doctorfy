@@ -13,10 +13,14 @@ import {
 } from '@mui/material';
 import { 
   Add as AddIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  Download as DownloadIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 import StudyCard from '../components/StudyCard';
 import MedicalStudyUploader from '../components/MedicalStudyUploader';
+import ActionButton from '../components/ActionButton';
 import { medicalStudiesService } from '../services/api';
 
 const MedicalStudies = () => {

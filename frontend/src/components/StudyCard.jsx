@@ -17,9 +17,13 @@ import {
   AccessTime as TimeIcon,
   LocalHospital as HospitalIcon,
   CheckCircle as CheckCircleIcon,
-  Pending as PendingIcon
+  Pending as PendingIcon,
+  Visibility as VisibilityIcon,
+  Download as DownloadIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import ActionButton from './ActionButton';
 
 const StudyCard = ({ study, onEdit }) => {
   const navigate = useNavigate();
@@ -48,6 +52,18 @@ const StudyCard = ({ study, onEdit }) => {
         <PendingIcon color="warning" />
       </Tooltip>
     );
+  };
+
+  const handleView = (study) => {
+    // Lógica para ver el estudio
+  };
+
+  const handleDownload = (study) => {
+    // Lógica para descargar
+  };
+
+  const handleAnalyze = (study) => {
+    // Lógica para analizar
   };
 
   return (
@@ -127,6 +143,38 @@ const StudyCard = ({ study, onEdit }) => {
           </IconButton>
         </Tooltip>
       </CardActions>
+
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        p: 2,
+        gap: 1 
+      }}>
+        <ActionButton
+          icon={<VisibilityIcon />}
+          label="Ver estudio"
+          onClick={() => handleView(study)}
+          color="primary"
+          speed={3}
+        />
+        
+        <ActionButton
+          icon={<DownloadIcon />}
+          label="Descargar"
+          onClick={() => handleDownload(study)}
+          color="success"
+          speed={4}
+        />
+        
+        <ActionButton
+          icon={<AnalyticsIcon />}
+          label="Analizar"
+          onClick={() => handleAnalyze(study)}
+          color="warning"
+          speed={5}
+          disabled={study.analysis_status === 'processing'}
+        />
+      </Box>
     </Card>
   );
 };

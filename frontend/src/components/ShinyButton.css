@@ -1,0 +1,74 @@
+.shiny-button-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.shiny-button {
+  position: relative;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  margin: 0 4px !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+
+.shiny-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shine var(--animation-speed) linear infinite;
+}
+
+@keyframes shine {
+  to {
+    left: 200%;
+  }
+}
+
+.shiny-button.primary {
+  color: #4a90e2 !important;
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.2);
+}
+
+.shiny-button.success {
+  color: #2ecc71 !important;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
+}
+
+.shiny-button.warning {
+  color: #f1c40f !important;
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.2);
+}
+
+.shiny-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.shiny-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.shiny-button.disabled::before {
+  animation: none;
+}
+
+@media (max-width: 600px) {
+  .shiny-button {
+    padding: 8px !important;
+  }
+} 
