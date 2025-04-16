@@ -6,7 +6,6 @@ import '../components/AnimatedList.css';
 import '../components/NutritionStyles.css';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
-import Aurora from '../components/Aurora';
 
 const Nutrition = () => {
   const navigate = useNavigate();
@@ -395,12 +394,7 @@ const Nutrition = () => {
 
   return (
     <div className="medical-studies-container nutrition-container">
-      <Aurora
-        colorStops={["#3A29FF", "#FF94B4", "#FF3232"]}
-        blend={0.5}
-        amplitude={1.0}
-        speed={0.5}
-      />
+      <div className="aurora-background"></div>
       
       <div className="medical-studies-header">
         <h1 className="medical-studies-title">Análisis Nutricional</h1>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
+// import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -20,31 +20,33 @@ const getStudyTypeName = (type) => {
 };
 
 const MedicalStudies = () => {
+  const navigate = useNavigate();
   const [studies, setStudies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [studyType, setStudyType] = useState('general');
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
-  
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
-  
-  const navigate = useNavigate();
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
 
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png'],
-      'text/plain': ['.txt'],
-      'application/pdf': ['.pdf'],
-    },
-    onDrop: acceptedFiles => {
+  // Simplificar la función onDrop para evitar problemas con getRootProps y getInputProps
+  const onDrop = useCallback(acceptedFiles => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
       setSelectedFile(acceptedFiles[0]);
-    },
+    }
+  }, []);
+
+  const { getRootProps, getInputProps } = useDropzone({ 
+    onDrop,
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'application/pdf': ['.pdf'],
+      'text/plain': ['.txt']
+    }
   });
 
   const fetchStudies = useCallback(async () => {
