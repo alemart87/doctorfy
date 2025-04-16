@@ -7,18 +7,35 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Doctorfy - Tu plataforma médica inteligente"
+      content="Doctorfy - Plataforma médica para análisis de estudios y nutrición"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Doctorfy</title>
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-    />
+    <!-- Precargar fuentes críticas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Agregar script de detección de errores -->
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Error global capturado:', e.error);
+        // Opcional: enviar a un servicio de monitoreo
+      });
+    </script>
   </head>
   <body>
     <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
     <div id="root"></div>
+    <!-- Script para detectar problemas de carga -->
+    <script>
+      setTimeout(function() {
+        const rootElement = document.getElementById('root');
+        if (rootElement && rootElement.children.length === 0) {
+          console.error('La aplicación no se cargó correctamente después de 10 segundos');
+          // Opcional: mostrar mensaje de error al usuario
+          rootElement.innerHTML = '<div style="text-align: center; padding: 20px;"><h2>Hubo un problema al cargar la aplicación</h2><p>Por favor, intenta recargar la página.</p><button onclick="window.location.reload()">Recargar</button></div>';
+        }
+      }, 10000);
+    </script>
   </body>
 </html> 
