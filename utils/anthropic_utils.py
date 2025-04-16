@@ -58,7 +58,7 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
     try:
         is_pdf = file_path.lower().endswith('.pdf')
         messages = []
-        model = "claude-3-7-sonnet-20250219"  # Modelo Claude 3.7 Sonnet
+        model = "claude-3-5-sonnet-20240620"  # Modelo Claude 3.5 Sonnet
 
         if is_pdf:
             text_content = extract_text_from_pdf(file_path)
@@ -115,7 +115,7 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
             try:
                 response = client.messages.create(
                     model=model,
-                    max_tokens=4000,
+                    max_tokens=7500,
                     messages=messages
                 )
                 print("Respuesta recibida de Anthropic.")
@@ -139,7 +139,7 @@ def analyze_medical_study_with_anthropic(file_path, study_type):
                     print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
                     # Intentar con un modelo alternativo
                     try:
-                        model = "claude-3-sonnet-20240229"  # Modelo alternativo
+                        model = "claude-3-5-sonnet-20240620"  # Modelo alternativo
                         # Volver a intentar la creación del mensaje con el modelo alternativo
                         # (Podríamos añadir reintentos aquí también si fuera necesario)
                         response = client.messages.create(
@@ -407,7 +407,7 @@ def analyze_medical_study_with_openai(image_path, study_type):
                     ]
                 }
             ],
-            max_tokens=1000
+            max_tokens=8000
         )
         
         # Extraer la interpretación
@@ -431,7 +431,7 @@ def analyze_food_image_with_anthropic(file_path):
 
     try:
         # Definir el modelo a usar
-        model = "claude-3-7-sonnet-20250219"  # Definir el modelo aquí
+        model = "claude-3-5-sonnet-20240620"  # Definir el modelo aquí
         
         # Cargar la imagen
         with open(file_path, "rb") as image_file:
@@ -475,7 +475,7 @@ def analyze_food_image_with_anthropic(file_path):
             if "model not found" in str(api_error).lower():
                 print(f"Modelo {model} no encontrado. Intentando con modelo alternativo...")
                 # Intentar con un modelo alternativo
-                model = "claude-3-sonnet-20240229"  # Modelo alternativo
+                model = "claude-3-5-sonnet-20240620"  # Modelo alternativo
                 response = client.messages.create(
                     model=model,
                     max_tokens=4000,

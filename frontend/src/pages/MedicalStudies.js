@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert } from '@mui/material';
+import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
-import { medicalStudiesService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AnimatedList from '../components/AnimatedList';
-import { FaUpload, FaEye, FaRobot, FaDownload } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt } from 'react-icons/fa';
 import '../components/AnimatedList.css';
 
 const MedicalStudies = () => {
@@ -16,6 +15,7 @@ const MedicalStudies = () => {
   const [studyType, setStudyType] = useState('general');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
   const navigate = useNavigate();
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -93,9 +93,11 @@ const MedicalStudies = () => {
       setSelectedFile(null);
       setStudyType('general');
       fetchStudies();
+      showNotification('Estudio subido con éxito', 'success');
     } catch (err) {
       console.error('Error al subir estudio:', err);
       setError('Error al subir el estudio. Por favor, intenta de nuevo.');
+      showNotification('Error al subir el estudio', 'error');
     } finally {
       setUploading(false);
     }
@@ -108,16 +110,67 @@ const MedicalStudies = () => {
   const handleAnalyzeStudy = async (study) => {
     try {
       setLoading(true);
+      showNotification('Analizando estudio con IA...', 'info');
+      
       const token = localStorage.getItem('token');
       await axios.post(`/api/medical-studies/studies/${study.id}/analyze`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       fetchStudies();
+      showNotification('Estudio analizado correctamente', 'success');
     } catch (err) {
       console.error('Error al analizar estudio:', err);
       setError('Error al analizar el estudio. El servicio puede estar ocupado, por favor intenta más tarde.');
+      showNotification('Error al analizar el estudio', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadStudy = async (study, e) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Realizar una solicitud para obtener el archivo
+      const response = await axios.get(`/api/medical-studies/studies/${study.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob' // Importante para recibir datos binarios
+      });
+      
+      // Crear un objeto URL para el blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Crear un elemento <a> temporal
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extraer el nombre del archivo de la ruta
+      const fileName = study.file_path.split('/').pop() || `estudio_${study.id}`;
+      link.setAttribute('download', fileName);
+      
+      // Añadir el enlace al documento
+      document.body.appendChild(link);
+      
+      // Simular clic en el enlace
+      link.click();
+      
+      // Limpiar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      
+      showNotification('Descarga iniciada', 'success');
+    } catch (error) {
+      console.error('Error al descargar el estudio:', error);
+      showNotification('Error al descargar el estudio', 'error');
+      
+      // Intentar método alternativo si falla
+      try {
+        window.open(`/api/medical-studies/studies/${study.id}/download`, '_blank');
+      } catch (fallbackError) {
+        console.error('Error en método alternativo de descarga:', fallbackError);
+      }
     }
   };
 
@@ -131,6 +184,18 @@ const MedicalStudies = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const showNotification = (message, type = 'info') => {
+    setNotification({
+      open: true,
+      message,
+      type
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({...notification, open: false});
   };
 
   const renderStudyItem = (study, index, isSelected) => {
@@ -170,10 +235,7 @@ const MedicalStudies = () => {
           )}
           <button 
             className="action-button" 
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(`/api/medical-studies/download/${study.id}`, '_blank');
-            }}
+            onClick={(e) => handleDownloadStudy(study, e)}
             title="Descargar"
           >
             <FaDownload />
@@ -184,70 +246,118 @@ const MedicalStudies = () => {
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Estudios Médicos
-        </Typography>
+    <div className="medical-studies-container">
+      <div className="medical-studies-header">
+        <h1 className="medical-studies-title">Estudios Médicos</h1>
+        <p className="medical-studies-subtitle">
+          Sube, visualiza y analiza tus estudios médicos
+        </p>
+      </div>
+      
+      {error && (
+        <div className="error-alert">
+          <p>{error}</p>
+        </div>
+      )}
+      
+      <div 
+        className="upload-area"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        <div className="upload-icon">
+          <FaCloudUploadAlt />
+        </div>
+        <h3 className="upload-text">Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo</h3>
+        <p className="upload-formats">Formatos aceptados: JPG, PNG, TXT, PDF</p>
         
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <input 
+          type="file" 
+          id="file-upload" 
+          onChange={handleFileChange} 
+          style={{ display: 'none' }}
+          accept=".jpg,.jpeg,.png,.pdf,.txt"
+        />
         
-        <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Subir Nuevo Estudio
-          </Typography>
-          
-          <Box {...getRootProps()} sx={{
-            border: '2px dashed #ccc',
-            borderRadius: 2,
-            p: 3,
-            textAlign: 'center',
-            cursor: 'pointer',
-            '&:hover': {
-              borderColor: 'primary.main',
-            },
-          }}>
-            <input {...getInputProps()} />
-            {selectedFile ? (
-              <Typography>
-                Archivo seleccionado: {selectedFile.name}
-              </Typography>
-            ) : (
-              <>
-                <Typography>
-                  Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Formatos aceptados: JPG, PNG, TXT, PDF
-                </Typography>
-              </>
-            )}
-          </Box>
-        </Paper>
+        <label htmlFor="file-upload" className="upload-button">
+          Seleccionar archivo
+        </label>
         
-        <Typography variant="h5" gutterBottom>
-          Mis Estudios
-        </Typography>
-        
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : studies.length === 0 ? (
-          <Alert severity="info">No tienes estudios médicos subidos</Alert>
-        ) : (
-          <AnimatedList
-            items={studies}
-            onItemSelect={handleViewStudy}
-            showGradients={true}
-            enableArrowNavigation={true}
-            displayScrollbar={true}
-            renderItem={renderStudyItem}
-            className="studies-list"
-          />
+        {selectedFile && (
+          <div className="selected-file-container">
+            <p className="selected-file-name">Archivo seleccionado: {selectedFile.name}</p>
+            
+            <div className="study-type-selector">
+              <label htmlFor="study-type">
+                Tipo de estudio:
+              </label>
+              <select 
+                id="study-type" 
+                value={studyType} 
+                onChange={(e) => setStudyType(e.target.value)}
+                className="study-type-select"
+              >
+                <option value="general">General</option>
+                <option value="xray">Radiografía</option>
+                <option value="mri">Resonancia Magnética</option>
+                <option value="ct">Tomografía Computarizada</option>
+                <option value="ultrasound">Ecografía</option>
+                <option value="bloodwork">Análisis de Sangre</option>
+              </select>
+            </div>
+            
+            <button 
+              onClick={handleUpload} 
+              className="upload-submit-button"
+              disabled={uploading}
+            >
+              {uploading ? (
+                <div className="upload-progress">
+                  <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+                  <span className="upload-progress-text">{uploadProgress}%</span>
+                </div>
+              ) : (
+                <>
+                  <FaUpload className="button-icon" />
+                  <span>Subir estudio</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
-      </Box>
-    </Container>
+      </div>
+
+      <h2 className="studies-section-title">Mis Estudios</h2>
+      
+      {loading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Cargando estudios...</p>
+        </div>
+      ) : studies.length > 0 ? (
+        <AnimatedList
+          items={studies}
+          onItemSelect={handleViewStudy}
+          showGradients={true}
+          enableArrowNavigation={true}
+          displayScrollbar={true}
+          renderItem={renderStudyItem}
+          className="studies-list"
+        />
+      ) : (
+        <div className="no-studies-message">
+          <p>No hay estudios médicos disponibles. Sube tu primer estudio.</p>
+        </div>
+      )}
+      
+      {/* Notificación */}
+      {notification.open && (
+        <div className={`notification ${notification.type}`}>
+          <p>{notification.message}</p>
+          <button onClick={handleCloseNotification} className="notification-close">×</button>
+        </div>
+      )}
+    </div>
   );
 };
 

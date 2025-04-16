@@ -83,7 +83,7 @@ def analyze_medical_study(file_path, study_type):
         response = client.chat.completions.create(
             model=model,
             messages=messages,
-            max_tokens=1500 # Ajustar según necesidad
+            max_tokens=8000 # Ajustar según necesidad
         )
         print("Respuesta recibida de OpenAI.")
 
@@ -125,7 +125,7 @@ def analyze_food_image_from_base64(base64_image):
             model="gpt-4o",
             messages=messages,
             temperature=0.3,  # Reducir la temperatura para respuestas más consistentes
-            max_tokens=1000
+            max_tokens=8000
         )
         print("Respuesta recibida de OpenAI.")
         analysis = response.choices[0].message.content
@@ -147,7 +147,7 @@ def analyze_food_image_from_base64(base64_image):
                 model="gpt-4o",
                 messages=alt_messages,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=8000
             )
             
             food_description = alt_response.choices[0].message.content
@@ -162,7 +162,7 @@ def analyze_food_image_from_base64(base64_image):
                 model="gpt-4o",
                 messages=nutrition_messages,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=8000
             )
             
             analysis = f"# Análisis Nutricional\n\n## Alimentos Identificados\n{food_description}\n\n## Información Nutricional\n{nutrition_response.choices[0].message.content}"
@@ -331,7 +331,7 @@ def analyze_nutrition(food_description):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
-            max_tokens=1000
+            max_tokens=8000
         )
         print("Respuesta recibida de OpenAI.")
         analysis = response.choices[0].message.content
@@ -381,7 +381,7 @@ def generate_health_recommendations(user_data, health_profile):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=1500
+            max_tokens=8000
         )
         print("Respuesta recibida de OpenAI.")
         recommendations = response.choices[0].message.content

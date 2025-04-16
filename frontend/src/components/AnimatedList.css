@@ -9,8 +9,9 @@
   max-height: 600px;
   overflow-y: auto;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .scroll-list::-webkit-scrollbar {
@@ -19,11 +20,16 @@
 
 .scroll-list::-webkit-scrollbar-track {
   background: #060606;
+  border-radius: 4px;
 }
 
 .scroll-list::-webkit-scrollbar-thumb {
-  background: #222;
+  background: #444;
   border-radius: 4px;
+}
+
+.scroll-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -35,18 +41,20 @@
 }
 
 .item {
-  padding: 16px;
-  background-color: #111;
-  border-radius: 8px;
+  padding: 20px;
+  background-color: rgba(17, 17, 17, 0.8);
+  border-radius: 10px;
   margin-bottom: 1rem;
   transition: all 0.3s ease;
-  border: 1px solid #222;
+  border: 1px solid #333;
+  backdrop-filter: blur(10px);
 }
 
 .item.selected {
-  background-color: #222;
-  border-color: #444;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  background-color: rgba(34, 34, 34, 0.9);
+  border-color: #4a90e2;
+  box-shadow: 0 0 20px rgba(74, 144, 226, 0.2);
+  transform: translateY(-2px);
 }
 
 .item-text {
@@ -59,11 +67,13 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 50px;
+  height: 60px;
   background: linear-gradient(to bottom, #060606, transparent);
   pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 1;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .bottom-gradient {
@@ -76,6 +86,8 @@
   pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 1;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 /* Estilos específicos para estudios médicos */
@@ -96,6 +108,7 @@
   margin-bottom: 8px;
   text-transform: uppercase;
   font-size: 14px;
+  letter-spacing: 1px;
 }
 
 .study-date {
@@ -106,10 +119,12 @@
 
 .study-status {
   display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .status-pending {
@@ -125,6 +140,7 @@
 .study-actions {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .action-button {
@@ -133,22 +149,29 @@
   color: #4a90e2;
   cursor: pointer;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 50%;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
 }
 
 .action-button:hover {
   background-color: rgba(74, 144, 226, 0.2);
+  transform: translateY(-2px);
 }
 
 .upload-area {
   border: 2px dashed #444;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 40px;
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
   background-color: rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .upload-area:hover {
@@ -157,18 +180,142 @@
 }
 
 .upload-icon {
-  font-size: 48px;
+  font-size: 64px;
   color: #4a90e2;
   margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
 .upload-text {
   color: #ccc;
   margin-bottom: 16px;
+  font-size: 18px;
 }
 
 .upload-formats {
   color: #999;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.upload-button {
+  display: inline-block;
+  background-color: #4a90e2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+}
+
+.upload-button:hover {
+  background-color: #3a7bc8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(74, 144, 226, 0.4);
+}
+
+.selected-file-container {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.selected-file-name {
+  font-weight: bold;
+  color: #4a90e2;
+  margin-bottom: 16px;
+}
+
+.study-type-selector {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.study-type-selector label {
+  margin-bottom: 8px;
+  color: #ccc;
+}
+
+.study-type-select {
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #222;
+  color: white;
+  border: 1px solid #444;
+  width: 100%;
+  max-width: 300px;
+}
+
+.upload-submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #2ecc71;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+  margin: 0 auto;
+}
+
+.upload-submit-button:hover:not(:disabled) {
+  background-color: #27ae60;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+}
+
+.upload-submit-button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.button-icon {
+  font-size: 16px;
+}
+
+.upload-progress {
+  width: 100%;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background-color: #2ecc71;
+  transition: width 0.3s ease;
+}
+
+.upload-progress-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
   font-size: 12px;
 }
 
@@ -179,19 +326,127 @@
 }
 
 .medical-studies-header {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
   text-align: center;
 }
 
 .medical-studies-title {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: 36px;
+  margin-bottom: 12px;
   background: linear-gradient(45deg, #4a90e2, #63e2ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 10px rgba(74, 144, 226, 0.2);
 }
 
 .medical-studies-subtitle {
   color: #999;
-  font-size: 16px;
+  font-size: 18px;
+}
+
+.studies-section-title {
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: #fff;
+  text-align: center;
+  position: relative;
+}
+
+.studies-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #4a90e2, #63e2ff);
+  border-radius: 3px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #4a90e2;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.no-studies-message {
+  text-align: center;
+  padding: 40px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  color: #999;
+}
+
+.error-alert {
+  background-color: rgba(231, 76, 60, 0.2);
+  border-left: 4px solid #e74c3c;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 300px;
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.notification.success {
+  background-color: #2ecc71;
+}
+
+.notification.error {
+  background-color: #e74c3c;
+}
+
+.notification.info {
+  background-color: #3498db;
+}
+
+.notification p {
+  margin: 0;
+  flex-grow: 1;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 0 0 16px;
 } 
