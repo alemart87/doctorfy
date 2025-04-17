@@ -635,4 +635,21 @@ class UserSubscription(db.Model):
                 (self.end_date is None or self.end_date > now))
     
     def __repr__(self):
-        return f'<UserSubscription {self.id}: User {self.user_id} - Plan {self.plan_id}>' 
+        return f'<UserSubscription {self.id}: User {self.user_id} - Plan {self.plan_id}>'
+
+# Añadir este modelo para gestionar las suscripciones
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default='inactive')  # active, inactive, canceled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('subscription', uselist=False))
+    
+    def __repr__(self):
+        return f'<Subscription {self.id} - User {self.user_id} - Status {self.status}>' 

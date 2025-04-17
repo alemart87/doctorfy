@@ -12,6 +12,7 @@ import ChatIcon from '@mui/icons-material/Chat';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import SubscriptionBanner from '../components/SubscriptionBanner';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -66,6 +67,7 @@ const Dashboard = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <SubscriptionBanner />
       <WelcomeBanner />
       
       <Box sx={{ textAlign: 'center', mb: 6 }}>

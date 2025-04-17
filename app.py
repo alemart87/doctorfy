@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from config import Config
 from flask_cors import CORS
-from models import db, MedicalStudy, User
+from models import db, MedicalStudy, User, Subscription
 from routes.auth import auth_bp
 from routes.medical_studies import medical_studies_bp
 from routes.nutrition import nutrition_bp, init_app as init_nutrition
@@ -13,12 +13,13 @@ from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import uuid
 from werkzeug.security import generate_password_hash
 from utils.logging_config import setup_logging
+import stripe
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -252,6 +253,146 @@ def create_app(config_class=Config):
             'error': 'Token faltante',
             'message': 'No se proporcionó token de acceso'
         }), 401
+
+    # Configurar Stripe
+    stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', 'tu_clave_secreta_de_stripe')
+    stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
+
+    # Ruta para iniciar el proceso de suscripción
+    @app.route('/api/subscription/create', methods=['POST'])
+    @jwt_required()
+    def create_subscription():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        # Si el usuario es alemart87@gmail.com, darle acceso automáticamente
+        if user.email == 'alemart87@gmail.com':
+            # Verificar si ya tiene una suscripción
+            subscription = Subscription.query.filter_by(user_id=user.id).first()
+            if not subscription:
+                subscription = Subscription(user_id=user.id, status='active')
+                db.session.add(subscription)
+            else:
+                subscription.status = 'active'
+            
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Acceso concedido automáticamente', 'redirect': None})
+        
+        # Para otros usuarios, redirigir a Stripe
+        try:
+            # Verificar si el usuario ya tiene un customer_id en Stripe
+            subscription = Subscription.query.filter_by(user_id=user.id).first()
+            
+            if not subscription:
+                # Crear un nuevo cliente en Stripe
+                customer = stripe.Customer.create(
+                    email=user.email,
+                    name=f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.email
+                )
+                
+                # Crear registro de suscripción
+                subscription = Subscription(
+                    user_id=user.id,
+                    stripe_customer_id=customer.id,
+                    status='inactive'
+                )
+                db.session.add(subscription)
+                db.session.commit()
+            
+            # Redirigir al usuario al link de pago de Stripe
+            return jsonify({
+                'success': True, 
+                'redirect': 'https://buy.stripe.com/8wM14lh1j3Jo7L23cI'
+            })
+            
+        except Exception as e:
+            print(f"Error al crear suscripción: {str(e)}")
+            return jsonify({'success': False, 'message': 'Error al procesar la solicitud'}), 500
+
+    # Ruta para el portal de clientes de Stripe
+    @app.route('/api/subscription/portal', methods=['GET'])
+    @jwt_required()
+    def customer_portal():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        # Redirigir al portal de clientes de Stripe
+        return jsonify({
+            'success': True,
+            'redirect': 'https://billing.stripe.com/p/login/bIYg2u2eNbOl7mgdQQ'
+        })
+
+    # Webhook para recibir eventos de Stripe
+    @app.route('/api/webhook/stripe', methods=['POST'])
+    def stripe_webhook():
+        payload = request.data
+        sig_header = request.headers.get('Stripe-Signature')
+        
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, stripe_webhook_secret
+            )
+        except ValueError as e:
+            # Invalid payload
+            return jsonify({'success': False}), 400
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            return jsonify({'success': False}), 400
+        
+        # Manejar el evento
+        if event['type'] == 'customer.subscription.created' or event['type'] == 'customer.subscription.updated':
+            subscription_object = event['data']['object']
+            customer_id = subscription_object['customer']
+            subscription_id = subscription_object['id']
+            status = subscription_object['status']
+            
+            # Buscar el usuario por customer_id
+            subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+            
+            if subscription:
+                # Actualizar el estado de la suscripción
+                if status == 'active':
+                    subscription.status = 'active'
+                else:
+                    subscription.status = 'inactive'
+                
+                subscription.stripe_subscription_id = subscription_id
+                subscription.updated_at = datetime.utcnow()
+                db.session.commit()
+        
+        elif event['type'] == 'customer.subscription.deleted':
+            subscription_object = event['data']['object']
+            customer_id = subscription_object['customer']
+            
+            # Buscar el usuario por customer_id
+            subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+            
+            if subscription:
+                # Marcar la suscripción como cancelada
+                subscription.status = 'canceled'
+                subscription.updated_at = datetime.utcnow()
+                db.session.commit()
+        
+        return jsonify({'success': True})
+
+    # Ruta para verificar el estado de la suscripción
+    @app.route('/api/subscription/status', methods=['GET'])
+    @jwt_required()
+    def check_subscription_status():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        # Si el usuario es alemart87@gmail.com, siempre devolver activo
+        if user.email == 'alemart87@gmail.com':
+            return jsonify({'active': True})
+        
+        # Verificar si el usuario tiene una suscripción activa
+        subscription = Subscription.query.filter_by(user_id=user.id).first()
+        
+        if subscription and subscription.status == 'active':
+            return jsonify({'active': True})
+        
+        return jsonify({'active': False})
 
     return app
 

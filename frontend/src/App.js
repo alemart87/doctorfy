@@ -33,6 +33,7 @@ import GuidePage from './pages/GuidePage';
 import MedicalChat from './pages/MedicalChat';
 import TixaeChatbot from './pages/TixaeChatbot';
 import FloatingChatButton from './components/FloatingChatButton';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 // Componente para decidir si mostrar el navbar general
 const NavbarWrapper = ({ children }) => {
@@ -137,6 +138,7 @@ function App() {
                   <TixaeChatbot />
                 </PrivateRoute>
               } />
+              <Route path="/subscription" element={<SubscriptionPage />} />
             </Routes>
             <FloatingChatButton />
           </NavbarWrapper>

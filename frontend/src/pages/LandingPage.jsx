@@ -13,7 +13,11 @@ import {
   Avatar,
   Divider,
   Chip,
-  TextField
+  TextField,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +37,8 @@ import {
   Restaurant as NutritionIcon,
   Psychology as PsychologyIcon,
   Science as ClinicalIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
@@ -1579,9 +1584,228 @@ const LandingPage = () => {
             </Box>
           </Box>
       </Box>
-      </div>
-    </ClickSpark>
-  );
+
+      {/* Sección de prueba gratuita */}
+      <Box 
+        sx={{ 
+          py: 8, 
+          background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Elementos decorativos */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: -100, 
+            right: -100, 
+            width: 300, 
+            height: 300, 
+            borderRadius: '50%', 
+            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)'
+          }} 
+        />
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            bottom: -50, 
+            left: -50, 
+            width: 200, 
+            height: 200, 
+            borderRadius: '50%', 
+            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)'
+          }} 
+        />
+        
+        <Container maxWidth="lg">
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography 
+                variant="h3" 
+                component="h2" 
+                sx={{ 
+                  color: 'white',
+                  fontWeight: 'bold',
+                  mb: 2
+                }}
+              >
+                ¡PRUEBA GRATUITA POR 2 DÍAS!
+              </Typography>
+              
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.9)',
+                  mb: 3,
+                  lineHeight: 1.6
+                }}
+              >
+                Accede a todas las funciones premium sin compromiso: consultas médicas ilimitadas, asistencia psicológica 24/7 y mucho más.
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CheckCircleIcon sx={{ color: '#4CAF50', mr: 1 }} />
+                  <Typography variant="body1" sx={{ color: 'white' }}>
+                    Psicología Ilimitada
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CheckCircleIcon sx={{ color: '#4CAF50', mr: 1 }} />
+                  <Typography variant="body1" sx={{ color: 'white' }}>
+                    Consultas Médicas 24/7
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CheckCircleIcon sx={{ color: '#4CAF50', mr: 1 }} />
+                  <Typography variant="body1" sx={{ color: 'white' }}>
+                    Sin Compromiso
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Button 
+                variant="contained" 
+                size="large"
+                component="a"
+                href="/subscription"
+                sx={{
+                  py: 1.5,
+                  px: 4,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  borderRadius: 3,
+                  background: 'linear-gradient(45deg, #4CAF50 30%, #8BC34A 90%)',
+                  boxShadow: '0 8px 16px rgba(76,175,80,0.4)',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #43A047 30%, #7CB342 90%)',
+                    transform: 'translateY(-3px)',
+                    boxShadow: '0 12px 20px rgba(76,175,80,0.6)'
+                  },
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                COMENZAR PRUEBA GRATUITA
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12} md={5}>
+              <Box 
+                sx={{ 
+                  position: 'relative',
+                  p: 2
+                }}
+              >
+                <Box 
+                  sx={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderRadius: 4,
+                    background: 'linear-gradient(135deg, rgba(233, 30, 99, 0.4) 0%, rgba(156, 39, 176, 0.4) 100%)',
+                    transform: 'rotate(-3deg)',
+                    zIndex: 0
+                  }} 
+                />
+                
+                <Paper 
+                  elevation={6}
+                  sx={{ 
+                    p: 4, 
+                    borderRadius: 4,
+                    position: 'relative',
+                    zIndex: 1,
+                    background: 'rgba(255,255,255,0.9)',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      position: 'absolute',
+                      top: -15,
+                      right: -15,
+                      bgcolor: '#E91E63',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: 80,
+                      height: 80,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      boxShadow: '0 4px 8px rgba(233, 30, 99, 0.4)',
+                      zIndex: 2
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ lineHeight: 1 }}>GRATIS</Typography>
+                    <Typography variant="h6" sx={{ lineHeight: 1 }}>2 DÍAS</Typography>
+                  </Box>
+                  
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+                    Plan Premium
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 2 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                      €35
+                    </Typography>
+                    <Typography variant="body1" sx={{ ml: 1, opacity: 0.7 }}>
+                      /mes
+                    </Typography>
+                  </Box>
+                  
+                  <Divider sx={{ my: 2 }} />
+                  
+                  <List dense>
+                    {[
+                      "Consultas psicológicas ilimitadas",
+                      "Asistencia médica 24/7",
+                      "Análisis de estudios médicos",
+                      "Recomendaciones nutricionales",
+                      "Soporte prioritario"
+                    ].map((item, index) => (
+                      <ListItem key={index} sx={{ py: 0.5 }}>
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <CheckCircleIcon color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={item} />
+                      </ListItem>
+                    ))}
+                  </List>
+                  
+                  <Button 
+                    variant="contained" 
+                    fullWidth
+                    component="a"
+                    href="/subscription"
+                    sx={{
+                      mt: 2,
+                      py: 1,
+                      fontWeight: 'bold',
+                      borderRadius: 2
+                    }}
+                  >
+                    Comenzar Ahora
+                  </Button>
+                  
+                  <Typography variant="body2" align="center" sx={{ mt: 1, opacity: 0.7 }}>
+                    Sin compromiso. Cancela cuando quieras.
+                  </Typography>
+                </Paper>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </div>
+  </ClickSpark>
+);
 };
 
 export default LandingPage; 
