@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import theme from './theme';
 import axios from 'axios';
 import ProtectedRoute from './components/ProtectedRoute';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -36,6 +37,11 @@ import TixaeChatbot from './pages/TixaeChatbot';
 import FloatingChatButton from './components/FloatingChatButton';
 import SubscriptionPage from './pages/SubscriptionPage';
 
+// Lazy load de componentes pesados
+const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
+const SubscriptionPageLazy = lazy(() => import('./pages/SubscriptionPage'));
+const MedicalStudiesLazy = lazy(() => import('./pages/MedicalStudies'));
+
 // Componente para decidir si mostrar el navbar general
 const NavbarWrapper = ({ children }) => {
   const location = useLocation();
@@ -61,94 +67,98 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <Router>
-          <NavbarWrapper>
-            <Routes>
-              {/* Ruta principal para la landing page */}
-              <Route path="/" element={<LandingPage />} />
-              
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              
-              <Route path="/medical-studies" element={
-                <ProtectedRoute>
-                  <MedicalStudies />
-                </ProtectedRoute>
-              } />
-              <Route path="/medical-studies/:studyId" element={
-                <ProtectedRoute>
-                  <StudyDetails />
-                </ProtectedRoute>
-              } />
-              <Route path="/nutrition" element={
-                <ProtectedRoute>
-                  <Nutrition />
-                </ProtectedRoute>
-              } />
-              <Route path="/doctors" element={<DoctorDirectory />} />
-              <Route path="/admin" element={
-                <ProtectedRoute adminOnly>
-                  <AdminPanel />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute requireSubscription={false}>
-                  <UserProfile />
-                </ProtectedRoute>
-              } />
-              <Route path="/doctor/profile" element={
-                <ProtectedRoute>
-                  <DoctorProfile />
-                </ProtectedRoute>
-              } />
-              <Route path="/nutrition-dashboard" element={<NutritionDashboard />} />
-              
-              {/* Rutas para médicos */}
-              <Route path="/doctor/dashboard" element={
-                <ProtectedRoute>
-                  <DoctorDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/doctor/patient/:patientId/nutrition" element={
-                <ProtectedRoute>
-                  <PatientNutritionView />
-                </ProtectedRoute>
-              } />
-              
-              {/* Ruta para ver el perfil detallado de un médico */}
-              <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
-              
-              {/* Ruta para manejar URLs no encontradas */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+      <HelmetProvider>
+        <AuthProvider>
+          <Router>
+            <NavbarWrapper>
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  {/* Ruta principal para la landing page */}
+                  <Route path="/" element={<LandingPageLazy />} />
+                  
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:token" element={<ResetPassword />} />
+                  
+                  <Route path="/medical-studies" element={
+                    <ProtectedRoute>
+                      <MedicalStudiesLazy />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/medical-studies/:studyId" element={
+                    <ProtectedRoute>
+                      <StudyDetails />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/nutrition" element={
+                    <ProtectedRoute>
+                      <Nutrition />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/doctors" element={<DoctorDirectory />} />
+                  <Route path="/admin" element={
+                    <ProtectedRoute adminOnly>
+                      <AdminPanel />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute requireSubscription={false}>
+                      <UserProfile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/doctor/profile" element={
+                    <ProtectedRoute>
+                      <DoctorProfile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/nutrition-dashboard" element={<NutritionDashboard />} />
+                  
+                  {/* Rutas para médicos */}
+                  <Route path="/doctor/dashboard" element={
+                    <ProtectedRoute>
+                      <DoctorDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/doctor/patient/:patientId/nutrition" element={
+                    <ProtectedRoute>
+                      <PatientNutritionView />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Ruta para ver el perfil detallado de un médico */}
+                  <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
+                  
+                  {/* Ruta para manejar URLs no encontradas */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
 
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/guide" element={<GuidePage />} />
-              {/* Comentar temporalmente la ruta del Chat Médico IA */}
-              {/*
-              <Route path="/medical-chat" element={
-                <ProtectedRoute>
-                  <MedicalChat />
-                </ProtectedRoute>
-              } />
-              */}
-              <Route path="/tixae-chatbot" element={
-                <ProtectedRoute>
-                  <TixaeChatbot />
-                </ProtectedRoute>
-              } />
-              <Route path="/subscription" element={<SubscriptionPage />} />
-            </Routes>
-            <FloatingChatButton />
-          </NavbarWrapper>
-        </Router>
-      </AuthProvider>
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/guide" element={<GuidePage />} />
+                  {/* Comentar temporalmente la ruta del Chat Médico IA */}
+                  {/*
+                  <Route path="/medical-chat" element={
+                    <ProtectedRoute>
+                      <MedicalChat />
+                    </ProtectedRoute>
+                  } />
+                  */}
+                  <Route path="/tixae-chatbot" element={
+                    <ProtectedRoute>
+                      <TixaeChatbot />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/subscription" element={<SubscriptionPageLazy />} />
+                </Routes>
+              </Suspense>
+              <FloatingChatButton />
+            </NavbarWrapper>
+          </Router>
+        </AuthProvider>
+      </HelmetProvider>
     </ThemeProvider>
   );
 }

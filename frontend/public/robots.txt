@@ -1,3 +1,9 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow: 
+Allow: /
+
+# Sitemap location
+Sitemap: https://doctorfy.onrender.com/sitemap.xml
+
+# Disallow admin areas
+Disallow: /admin/ 

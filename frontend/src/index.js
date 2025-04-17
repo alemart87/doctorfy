@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import axios from 'axios';
+import ReactGA from 'react-ga4';
 
 // Añadir al principio del archivo
 if (process.env.NODE_ENV === 'production') {
@@ -77,6 +78,9 @@ window.addEventListener('error', (event) => {
   console.error('Error global capturado:', event.error);
 });
 
+// Inicializar Google Analytics
+ReactGA.initialize('G-XXXXXXXXXX'); // Reemplaza con tu ID de GA4
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
@@ -84,4 +88,13 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals(); 
+// Enviar métricas web vitales a Google Analytics
+reportWebVitals(({ name, delta, id }) => {
+  ReactGA.event({
+    category: 'Web Vitals',
+    action: name,
+    value: Math.round(name === 'CLS' ? delta * 1000 : delta),
+    label: id,
+    nonInteraction: true,
+  });
+}); 

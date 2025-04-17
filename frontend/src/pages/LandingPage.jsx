@@ -48,6 +48,8 @@ import CountUp from '../components/CountUp';
 import LiquidChrome from '../components/LiquidChrome';
 import { keyframes } from '@mui/system';
 import { alpha } from '@mui/material/styles';
+import DecryptedText from '../components/DecryptedText';
+import { Helmet } from 'react-helmet-async';
 
 // Definir la animación de pulso
 const pulse = keyframes`
@@ -186,61 +188,117 @@ const LandingPage = () => {
   ];
 
   return (
-    <ClickSpark
-      sparkColor='#fff'
-      sparkSize={10}
-      sparkRadius={15}
-      sparkCount={8}
-      duration={400}
-      extraScale={1.3}
-    >
-      <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
-        <Box sx={{ 
-          minHeight: '100vh', 
-          background: '#000000',
-          overflow: 'hidden',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          {/* Fondo de Partículas */}
-          <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-            <Particles
-              particleColors={['#00bcd4', '#7c4dff']}
-              particleCount={200}
-              particleSpread={10}
-              speed={0.1}
-              particleBaseSize={100}
-              moveParticlesOnHover={true}
-              alphaParticles={false}
-              disableRotation={false}
-            />
-          </Box>
-
-          {/* Contenido con fondo semi-transparente */}
+    <React.Fragment>
+      <Helmet>
+        <title>Doctorfy - Plataforma de Salud con IA | Psicología 24/7</title>
+        <meta 
+          name="description" 
+          content="Doctorfy: Consultas médicas y psicológicas ilimitadas con IA. Análisis de estudios médicos en segundos. Psicología 24/7 sin esperas. ¡Prueba gratis 2 días!" 
+        />
+        <link rel="canonical" href="https://doctorfy.onrender.com/" />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "HealthAndBeautyBusiness",
+              "name": "Doctorfy",
+              "description": "Plataforma de salud con IA que ofrece consultas médicas y psicológicas ilimitadas 24/7",
+              "url": "https://doctorfy.onrender.com",
+              "logo": "https://doctorfy.onrender.com/logo192.png",
+              "sameAs": [
+                "https://twitter.com/doctorfy",
+                "https://facebook.com/doctorfy",
+                "https://instagram.com/doctorfy"
+              ],
+              "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "ES"
+              },
+              "offers": {
+                "@type": "Offer",
+                "price": "35.00",
+                "priceCurrency": "EUR",
+                "availability": "https://schema.org/InStock"
+              },
+              "potentialAction": {
+                "@type": "ReserveAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://doctorfy.onrender.com/subscription",
+                  "inLanguage": "es",
+                  "actionPlatform": [
+                    "http://schema.org/DesktopWebPlatform",
+                    "http://schema.org/IOSPlatform",
+                    "http://schema.org/AndroidPlatform"
+                  ]
+                },
+                "result": {
+                  "@type": "Reservation",
+                  "name": "Suscripción Premium"
+                }
+              }
+            }
+          `}
+        </script>
+      </Helmet>
+      
+      <ClickSpark
+        sparkColor='#fff'
+        sparkSize={10}
+        sparkRadius={15}
+        sparkCount={8}
+        duration={400}
+        extraScale={1.3}
+      >
+        <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
           <Box sx={{ 
+            minHeight: '100vh', 
+            background: '#000000',
+            overflow: 'hidden',
             position: 'relative',
-            zIndex: 2,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(10px)',
-            height: '100%'
+            zIndex: 1
           }}>
-            {/* Navbar */}
-            <LandingNavbar />
-            
+            {/* Fondo de Partículas */}
+            <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+              <Particles
+                particleColors={['#00bcd4', '#7c4dff']}
+                particleCount={200}
+                particleSpread={10}
+                speed={0.1}
+                particleBaseSize={100}
+                moveParticlesOnHover={true}
+                alphaParticles={false}
+                disableRotation={false}
+              />
+            </Box>
+
+            {/* Contenido con fondo semi-transparente */}
+            <Box sx={{ 
+              position: 'relative',
+              zIndex: 2,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(10px)',
+              height: '100%'
+            }}>
+              {/* Navbar */}
+              <LandingNavbar />
+              
       {/* Hero Section */}
-            <Box 
-              ref={heroRef}
-              component={motion.div}
-              initial="hidden"
-              animate={heroInView ? "visible" : "hidden"}
-              variants={containerVariants}
-              sx={{ 
-                minHeight: '90vh',
-                display: 'flex',
-                alignItems: 'center',
-                pt: { xs: 8, md: 0 }
-              }}
-            >
+              <Box 
+                ref={heroRef}
+                component={motion.div}
+                initial="hidden"
+                animate={heroInView ? "visible" : "hidden"}
+                variants={containerVariants}
+                sx={{ 
+                  minHeight: '90vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  pt: { xs: 8, md: 0 }
+                }}
+              >
         <Container maxWidth="lg">
             <Grid container spacing={4} alignItems="center">
                   <Grid item xs={12} md={7}>
@@ -623,6 +681,262 @@ const LandingPage = () => {
               </Button>
             </Box>
           </motion.div>
+        </Container>
+      </Box>
+
+      {/* Sección de Psicología IA - AJUSTADA */}
+      <Box 
+        component={motion.div}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2 }} // Transición más lenta
+        sx={{ 
+          py: { xs: 8, md: 12 },
+          position: 'relative',
+          zIndex: 2,
+          background: 'linear-gradient(135deg, #121212 0%, #000000 100%)', // Fondo negro
+          color: 'white',
+          overflow: 'hidden',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        {/* Elementos decorativos */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: -50, 
+            right: -50, 
+            width: 300, 
+            height: 300, 
+            borderRadius: '50%', 
+            background: 'radial-gradient(circle, rgba(124, 77, 255, 0.1) 0%, rgba(124, 77, 255, 0) 70%)'
+          }} 
+        />
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            bottom: -100, 
+            left: -100, 
+            width: 400, 
+            height: 400, 
+            borderRadius: '50%', 
+            background: 'radial-gradient(circle, rgba(0, 188, 212, 0.1) 0%, rgba(0, 188, 212, 0) 70%)'
+          }} 
+        />
+        
+        <Container maxWidth="lg">
+          <motion.div variants={itemVariants}>
+            <Typography
+              variant="h2"
+              align="center"
+              sx={{ 
+                mb: 3,
+                fontWeight: 700,
+                background: `linear-gradient(90deg, #00bcd4, #7c4dff)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              <DecryptedText
+                text="PSICOLOGÍA IA 24/7"
+                speed={80} // Velocidad más lenta (mayor valor = más lento)
+                maxIterations={20} // Más iteraciones para un efecto más prolongado
+                sequential={true}
+                revealDirection="center"
+                animateOn="view"
+                characters="PSICOLOGÍA IA 24/7!@#$%^&*"
+                encryptedClassName="encrypted-text"
+                parentClassName="decrypted-text-container"
+                className="decrypted-text"
+              />
+            </Typography>
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <Typography 
+              variant="h5" 
+              align="center" 
+              sx={{ 
+                mb: 5, 
+                maxWidth: 800, 
+                mx: 'auto',
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 500
+              }}
+            >
+              Acceso ILIMITADO, sin TURNOS, en el MOMENTO. Habla con nuestra psicóloga IA cuando lo necesites.
+            </Typography>
+          </motion.div>
+          
+          <Grid container spacing={4} justifyContent="center">
+            <Grid item xs={12} md={6}>
+              <motion.div 
+                variants={itemVariants}
+                whileHover={{ scale: 1.03, transition: { duration: 0.3 } }}
+              >
+                <Paper 
+                  elevation={8}
+                  sx={{ 
+                    p: 4, 
+                    borderRadius: 4,
+                    background: 'rgba(18, 18, 18, 0.8)', // Fondo más oscuro
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(124, 77, 255, 0.2)', // Borde con color de acento
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2 }}>
+                    <Chip 
+                      label="DISPONIBLE AHORA" 
+                      sx={{ 
+                        bgcolor: '#4CAF50', 
+                        color: 'white',
+                        fontWeight: 'bold',
+                        animation: `${pulse} 2s infinite`
+                      }}
+                    />
+                  </Box>
+                  
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'white', mb: 3 }}>
+                    Conversación con Psicóloga IA
+                  </Typography>
+                  
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 2 }}>
+                    <Typography variant="body1" sx={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+                      "Últimamente me siento muy ansioso y me cuesta dormir..."
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      Usuario - Hace 1 minuto
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(124, 77, 255, 0.15)', borderRadius: 2 }}>
+                    <Typography variant="body1" sx={{ color: 'white', mb: 1 }}>
+                      "Entiendo que estás pasando por un momento difícil. La ansiedad puede afectar significativamente tu sueño. Podemos trabajar juntos en técnicas de relajación y establecer una rutina nocturna que te ayude a descansar mejor..."
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      Psicóloga IA - Ahora
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+                    <Button 
+                      variant="contained" 
+                      fullWidth
+                      onClick={() => navigate('/subscription')}
+                      sx={{
+                        py: 1.5,
+                        fontWeight: 'bold',
+                        borderRadius: 2,
+                        background: 'linear-gradient(45deg, #00bcd4 30%, #7c4dff 90%)', // Gradiente consistente
+                        color: 'white',
+                        '&:hover': {
+                          boxShadow: '0 8px 16px rgba(124, 77, 255, 0.4)',
+                          transform: 'translateY(-3px)',
+                        },
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      Iniciar Sesión Terapéutica
+                    </Button>
+                  </Box>
+                  
+                  <Typography variant="body2" align="center" sx={{ mt: 2, color: 'rgba(255,255,255,0.7)' }}>
+                    Respuestas inmediatas, confidenciales y basadas en evidencia científica
+                  </Typography>
+                </Paper>
+              </motion.div>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <motion.div variants={itemVariants}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography 
+                    variant="h4" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      mb: 3, 
+                      color: 'white', 
+                      background: `linear-gradient(90deg, #00bcd4, #7c4dff)`, 
+                      WebkitBackgroundClip: 'text', 
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    Beneficios de la Psicología IA
+                  </Typography>
+                  
+                  <List>
+                    {[
+                      "Disponible 24 horas al día, 7 días a la semana",
+                      "Sin citas previas ni tiempos de espera",
+                      "Respuestas inmediatas a tus preocupaciones",
+                      "Confidencialidad total garantizada",
+                      "Basado en técnicas terapéuticas probadas",
+                      "Accesible desde cualquier dispositivo"
+                    ].map((benefit, index) => (
+                      <ListItem key={index} sx={{ py: 1 }}>
+                        <ListItemIcon sx={{ minWidth: 40 }}>
+                          <CheckCircleIcon sx={{ color: '#4CAF50' }} />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={benefit} 
+                          primaryTypographyProps={{ 
+                            color: 'white',
+                            fontWeight: 'medium' 
+                          }} 
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 3 }}>
+                    {[
+                      "Ansiedad", "Depresión", "Estrés", "Relaciones", "Autoestima", 
+                      "Duelo", "Trauma", "Adicciones", "Fobias", "Insomnio"
+                    ].map((topic, index) => (
+                      <Chip 
+                        key={index}
+                        label={topic}
+                        size="small"
+                        sx={{ 
+                          bgcolor: 'rgba(124, 77, 255, 0.15)', 
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: 'rgba(124, 77, 255, 0.25)',
+                          }
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+                
+                <Button 
+                  variant="contained" 
+                  size="large"
+                  fullWidth
+                  onClick={() => navigate('/subscription')}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    borderRadius: 3,
+                    background: 'linear-gradient(45deg, #00bcd4 30%, #7c4dff 90%)',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.5)',
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      boxShadow: '0 12px 20px rgba(124, 77, 255, 0.4)'
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  COMENZAR AHORA
+                </Button>
+              </motion.div>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
 
@@ -1805,6 +2119,7 @@ const LandingPage = () => {
       </Box>
     </div>
   </ClickSpark>
+</React.Fragment>
 );
 };
 
