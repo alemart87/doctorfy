@@ -94,8 +94,9 @@ def create_app(config_class=Config):
     CORS(app, 
          resources={
              r"/api/*": {"origins": allowed_origins}, 
-             r"/api/webhook/stripe": {"origins": "*"},  # Permitir solicitudes de Stripe
-             r"/api/webhook/stripe/debug": {"origins": "*"}  # Permitir solicitudes de Stripe
+             r"/api/webhook/stripe": {"origins": "*"},
+             r"/api/webhook/stripe/debug": {"origins": "*"},
+             r"/api/webhook/stripe/accept": {"origins": "*"}  # Añadir el nuevo endpoint
          }, 
          supports_credentials=True, 
          expose_headers=['Authorization'],
@@ -483,6 +484,79 @@ def create_app(config_class=Config):
         
         # Siempre devolver éxito
         return jsonify({'success': True, 'mode': 'debug'}), 200
+
+    @app.route('/api/webhook/stripe/accept', methods=['POST'])
+    def stripe_webhook_accept():
+        payload = request.data
+        
+        try:
+            # Parsear el evento sin verificación de firma
+            event = json.loads(payload)
+            app.logger.info(f"Webhook recibido en endpoint alternativo: {event.get('type')}")
+            
+            # Procesar el evento según su tipo
+            event_type = event.get('type')
+            
+            if event_type == 'checkout.session.completed':
+                session = event['data']['object']
+                customer_id = session.get('customer')
+                
+                if customer_id:
+                    # Buscar la suscripción por customer_id
+                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                    
+                    if subscription:
+                        # Actualizar el estado de la suscripción
+                        subscription.status = 'active'
+                        subscription.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        app.logger.info(f"Suscripción activada para customer_id: {customer_id}")
+                        
+                        # Obtener información del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            # Enviar notificación de nueva suscripción
+                            subject = "Nueva suscripción activada"
+                            body = f"""
+                            <html>
+                            <body>
+                                <h1>Nueva suscripción activada</h1>
+                                <p>Un usuario ha activado su suscripción:</p>
+                                <ul>
+                                    <li><strong>Email:</strong> {user.email}</li>
+                                    <li><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</li>
+                                    <li><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</li>
+                                </ul>
+                            </body>
+                            </html>
+                            """
+                            send_email(subject, body, to_email="info@marketeapy.com", html=True)
+            
+            elif event_type in ['customer.subscription.created', 'customer.subscription.updated']:
+                subscription_object = event['data']['object']
+                customer_id = subscription_object.get('customer')
+                status = subscription_object.get('status')
+                
+                if customer_id:
+                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                    
+                    if subscription:
+                        if status == 'active':
+                            subscription.status = 'active'
+                        else:
+                            subscription.status = 'inactive'
+                        
+                        subscription.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+            
+            # Siempre devolver éxito
+            return jsonify({'success': True}), 200
+        
+        except Exception as e:
+            app.logger.error(f"Error al procesar webhook alternativo: {str(e)}")
+            # Devolver 200 para que Stripe no reintente
+            return jsonify({'error': str(e)}), 200
 
     return app
 
