@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import MedicalChat from './pages/MedicalChat';
 
 // Componente de carga
 const LoadingFallback = () => (
@@ -41,7 +42,7 @@ const ErrorBoundary = ({ children }) => {
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const MedicalStudies = lazy(() => import('./pages/MedicalStudies'));
+const MedicalStudies = lazy(() => import('./pages/MedicalStudies.jsx'));
 const StudyDetail = lazy(() => import('./pages/StudyDetail'));
 const Nutrition = lazy(() => import('./pages/Nutrition'));
 const NutritionDashboard = lazy(() => import('./pages/NutritionDashboard'));
@@ -68,6 +69,7 @@ function App() {
               <Route path="/doctors" element={<DoctorDirectory />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/404" element={<NotFound />} />
+              <Route path="/medical-chat" element={<MedicalChat />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
           </Suspense>

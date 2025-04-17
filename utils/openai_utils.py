@@ -390,4 +390,82 @@ def generate_health_recommendations(user_data, health_profile):
     except Exception as e:
         print(f"Error en generate_health_recommendations (OpenAI Client): {str(e)}")
         traceback.print_exc()
-        return "No se pudieron generar recomendaciones de salud. Por favor, consulte a un profesional de la salud." 
+        return "No se pudieron generar recomendaciones de salud. Por favor, consulte a un profesional de la salud."
+
+def chat_with_medical_ai(messages, user_profile=None, specialty="general"):
+    """
+    Mantiene una conversación con la IA médica.
+    
+    Args:
+        messages: Lista de mensajes previos en formato [{role: "user/assistant", content: "mensaje"}]
+        user_profile: Información del perfil del usuario para personalizar respuestas
+        specialty: Especialidad médica para enfocar las respuestas ("general", "nutrition", "psychology", "clinical")
+    
+    Returns:
+        Respuesta de la IA
+    """
+    if not client:
+        return {"success": False, "error": "Cliente OpenAI no inicializado."}
+    
+    try:
+        # Construir el prompt del sistema según la especialidad
+        system_prompts = {
+            "general": "Eres un asistente médico virtual de Doctorfy, una plataforma de salud digital. Proporciona información médica precisa y basada en evidencia. Recuerda que no reemplazas a un médico real y siempre debes recomendar consultar con profesionales de la salud para diagnósticos y tratamientos. Mantén un tono profesional pero amigable.",
+            
+            "nutrition": "Eres un nutricionista virtual de Doctorfy, especializado en nutrición y dietética. Proporciona consejos nutricionales basados en evidencia científica, recomendaciones de dietas saludables y orientación sobre hábitos alimenticios. Evita dar consejos extremos y recuerda recomendar consultar con profesionales para planes personalizados.",
+            
+            "psychology": "Eres un psicólogo virtual de Doctorfy. Ofrece apoyo emocional, técnicas de manejo del estrés y consejos para el bienestar mental. No diagnostiques trastornos mentales y recomienda buscar ayuda profesional para problemas serios. Mantén un tono empático y comprensivo.",
+            
+            "clinical": "Eres un médico clínico virtual de Doctorfy. Proporciona información sobre síntomas, condiciones médicas y procedimientos clínicos. Explica conceptos médicos en términos comprensibles. Recuerda que no puedes diagnosticar y siempre debes recomendar consultar con un médico real."
+        }
+        
+        # Obtener el prompt adecuado o usar el general por defecto
+        system_prompt = system_prompts.get(specialty.lower(), system_prompts["general"])
+        
+        # Añadir información del perfil del usuario si está disponible
+        if user_profile:
+            profile_info = f"""
+            Información del paciente:
+            - Edad: {user_profile.get('age', 'No disponible')}
+            - Género: {user_profile.get('gender', 'No disponible')}
+            - Altura: {user_profile.get('height', 'No disponible')} cm
+            - Peso: {user_profile.get('weight', 'No disponible')} kg
+            - Condiciones médicas: {user_profile.get('medical_conditions', 'Ninguna reportada')}
+            - Alergias: {user_profile.get('allergies', 'Ninguna reportada')}
+            
+            Adapta tus respuestas considerando esta información del paciente.
+            """
+            system_prompt += profile_info
+        
+        # Construir la lista completa de mensajes
+        full_messages = [{"role": "system", "content": system_prompt}]
+        
+        # Añadir el historial de conversación
+        for message in messages:
+            if message["role"] in ["user", "assistant"]:
+                full_messages.append(message)
+        
+        # Llamar a la API de OpenAI
+        print(f"Llamando a OpenAI API para chat médico (especialidad: {specialty})...")
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=full_messages,
+            temperature=0.7,
+            max_tokens=2000
+        )
+        
+        ai_response = response.choices[0].message.content
+        
+        return {
+            "success": True,
+            "response": ai_response,
+            "specialty": specialty
+        }
+        
+    except Exception as e:
+        print(f"Error en chat_with_medical_ai: {str(e)}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        } 

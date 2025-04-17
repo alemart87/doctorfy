@@ -11,6 +11,7 @@ from routes.doctors import doctors_bp, init_app as init_doctors
 from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
+from routes.chat_routes import chat_bp
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -107,6 +108,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
+    app.register_blueprint(chat_bp)
     
     # Registrar el blueprint de media
     from routes.media_routes import media_bp

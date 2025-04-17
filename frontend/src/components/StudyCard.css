@@ -1,0 +1,79 @@
+.study-item-actions {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 100 !important;
+}
+
+.mobile-visible-button {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 100 !important;
+  position: relative !important;
+}
+
+/* Asegurar que los botones sean visibles en dispositivos móviles */
+@media (max-width: 768px) {
+  .study-item-actions {
+    position: absolute !important;
+    bottom: 8px !important;
+    right: 8px !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border-radius: 20px !important;
+    padding: 4px 8px !important;
+    z-index: 1000 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+  }
+  
+  .mobile-visible-button {
+    min-width: 32px !important;
+    height: 32px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+  }
+  
+  .view-button, .download-button, .analyze-button {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  /* Hacer que los iconos sean un poco más pequeños en móviles */
+  .mobile-visible-button svg {
+    font-size: 14px !important;
+  }
+}
+
+/* Ajustes para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .study-item-actions {
+    padding: 2px 6px !important;
+  }
+  
+  .mobile-visible-button {
+    min-width: 28px !important;
+    height: 28px !important;
+  }
+}
+
+/* Animación de pulso para llamar la atención sobre los botones */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Aplicar animación solo en móviles para llamar la atención */
+@media (max-width: 768px) {
+  .study-item-actions {
+    animation: pulse-border 2s infinite;
+  }
+} 

@@ -1,17 +1,22 @@
 .shiny-button-wrapper {
   position: relative;
   display: inline-block;
+  margin: 4px;
 }
 
 .shiny-button {
   position: relative;
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   transition: all 0.3s ease !important;
-  margin: 0 4px !important;
   padding: 12px !important;
   overflow: hidden !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .shiny-button::before {
@@ -54,7 +59,7 @@
 .shiny-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .shiny-button.disabled {
@@ -67,8 +72,41 @@
   animation: none;
 }
 
+/* Ajustes específicos para móviles */
 @media (max-width: 600px) {
+  .shiny-button-wrapper {
+    margin: 2px;
+  }
+  
   .shiny-button {
     padding: 8px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    /* Asegurar que sea visible en móviles */
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+  }
+  
+  /* Hacer los iconos un poco más pequeños en móviles */
+  .shiny-button svg {
+    font-size: 1.2rem !important;
+  }
+}
+
+/* Ajustes para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .shiny-button-wrapper {
+    margin: 1px;
+  }
+  
+  .shiny-button {
+    padding: 6px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+  }
+  
+  .shiny-button svg {
+    font-size: 1rem !important;
   }
 } 

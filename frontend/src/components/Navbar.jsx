@@ -10,7 +10,8 @@ import {
   useMediaQuery,
   useTheme,
   Typography,
-  Avatar
+  Avatar,
+  Button
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -20,6 +21,9 @@ import { useAuth } from '../context/AuthContext';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import GooeyNav from './GooeyNav';
 import MobileMenu from './MobileMenu';
+import { Link } from 'react-router-dom';
+import ChatIcon from '@mui/icons-material/Chat';
+import { alpha } from '@mui/material/styles';
 
 // Navbar con efecto glassmorphism
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -85,6 +89,7 @@ const Navbar = () => {
         { label: "Estudios Médicos", href: "/medical-studies" },
         { label: "Nutrición", href: "/nutrition" },
         { label: "Doctores", href: "/doctors" },
+        { label: "Chat Médico", href: "/medical-chat" },
         { label: "Mi Perfil", href: "/profile" },
         { label: "Configuración", href: "/settings" },
         { label: "Cerrar Sesión", href: "/logout" },
@@ -95,6 +100,7 @@ const Navbar = () => {
       { label: "Estudios Médicos", href: "/medical-studies" },
       { label: "Nutrición", href: "/nutrition" },
       { label: "Doctores", href: "/doctors" },
+      { label: "Chat Médico", href: "/medical-chat" },
       { label: "Registrarse", href: "/register" },
       { label: "Iniciar Sesión", href: "/login" },
     ];
@@ -159,6 +165,28 @@ const Navbar = () => {
                 <MenuIcon />
               </IconButton>
             )}
+
+            {/* Añadir el botón de Chat Médico al menú de navegación */}
+            <Button
+              variant="contained"
+              component={Link}
+              to="/medical-chat"
+              startIcon={<ChatIcon />}
+              sx={{ 
+                ml: 2,
+                fontWeight: 'bold',
+                background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                color: 'white',
+                '&:hover': {
+                  background: `linear-gradient(90deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              Chat Médico
+            </Button>
           </Toolbar>
         </Container>
       </GlassNavbar>

@@ -109,6 +109,94 @@ const MedicalStudies = () => {
     fetchStudies();
   }, [fetchStudies]);
 
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .mobile-visible-button {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: flex !important;
+        z-index: 100 !important;
+        position: relative !important;
+      }
+      
+      .study-item-actions {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: flex !important;
+        z-index: 100 !important;
+        animation: pulse-border 2s infinite;
+        position: absolute !important;
+        bottom: 12px !important;
+        right: 12px !important;
+        background: rgba(0, 0, 0, 0.7) !important;
+        border-radius: 20px !important;
+        padding: 6px 10px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      }
+      
+      /* Asegurar que el contenido del estudio no se superponga con los botones */
+      .study-info {
+        padding-bottom: 50px !important; /* Espacio para los botones */
+        position: relative !important;
+      }
+      
+      /* Mejorar la visibilidad de los botones */
+      .mobile-visible-button {
+        min-width: 38px !important;
+        height: 38px !important;
+        margin: 0 3px !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+        border: 2px solid rgba(255, 255, 255, 0.2) !important;
+      }
+      
+      @keyframes pulse-border {
+        0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+      }
+      
+      /* Ajustes específicos para móviles */
+      @media (max-width: 768px) {
+        .mobile-visible-button {
+          min-width: 36px !important;
+          height: 36px !important;
+        }
+        
+        .mobile-visible-button svg {
+          font-size: 16px !important;
+        }
+        
+        .study-item-actions {
+          bottom: 10px !important;
+          right: 10px !important;
+        }
+      }
+      
+      /* Ajustes para pantallas muy pequeñas */
+      @media (max-width: 360px) {
+        .mobile-visible-button {
+          min-width: 32px !important;
+          height: 32px !important;
+          margin: 0 2px !important;
+        }
+        
+        .mobile-visible-button svg {
+          font-size: 14px !important;
+        }
+        
+        .study-item-actions {
+          padding: 4px 6px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -288,8 +376,8 @@ const MedicalStudies = () => {
     };
     
     return (
-      <div className="study-item">
-        <div className="study-info">
+      <div className={`study-item ${isSelected ? 'selected' : ''}`} style={{ position: 'relative' }}>
+        <div className="study-info" style={{ paddingBottom: '50px' }}>
           <div 
             className="study-type" 
             style={{color: getStudyTypeColor()}}
@@ -309,35 +397,100 @@ const MedicalStudies = () => {
             </div>
           )}
         </div>
-        <div className="study-actions">
+        <div className="study-item-actions" style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px',
+          padding: '6px 10px',
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          zIndex: 10,
+          visibility: 'visible',
+          opacity: 1,
+          background: 'rgba(0, 0, 0, 0.7)',
+          borderRadius: '20px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+        }}>
           <button 
-            className="action-button" 
+            className="mobile-visible-button view-button"
             onClick={(e) => {
               e.stopPropagation();
               handleViewStudy(study);
             }}
-            title="Ver detalles"
+            style={{
+              minWidth: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0, 120, 255, 0.2)',
+              border: '2px solid rgba(0, 120, 255, 0.4)',
+              color: '#0078ff',
+              cursor: 'pointer',
+              padding: '0',
+              margin: '0 3px',
+              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
+              visibility: 'visible',
+              opacity: 1
+            }}
           >
-            <FaEye />
+            <FaEye style={{ fontSize: '16px' }} />
           </button>
-          {isPending && (
-            <button 
-              className="action-button" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAnalyzeStudy(study);
-              }}
-              title="Analizar con IA"
-            >
-              <FaRobot />
-            </button>
-          )}
+          
           <button 
-            className="action-button" 
-            onClick={(e) => handleDownloadStudy(study, e)}
-            title="Descargar"
+            className="mobile-visible-button download-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadStudy(study);
+            }}
+            style={{
+              minWidth: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(46, 204, 113, 0.2)',
+              border: '2px solid rgba(46, 204, 113, 0.4)',
+              color: '#2ecc71',
+              cursor: 'pointer',
+              padding: '0',
+              margin: '0 3px',
+              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
+              visibility: 'visible',
+              opacity: 1
+            }}
           >
-            <FaDownload />
+            <FaDownload style={{ fontSize: '16px' }} />
+          </button>
+          
+          <button 
+            className="mobile-visible-button analyze-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAnalyzeStudy(study);
+            }}
+            style={{
+              minWidth: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 183, 77, 0.2)',
+              border: '2px solid rgba(255, 183, 77, 0.4)',
+              color: '#ffb74d',
+              cursor: 'pointer',
+              padding: '0',
+              margin: '0 3px',
+              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
+              visibility: 'visible',
+              opacity: 1
+            }}
+          >
+            <FaRobot style={{ fontSize: '16px' }} />
           </button>
         </div>
       </div>

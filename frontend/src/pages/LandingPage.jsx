@@ -11,7 +11,9 @@ import {
   useMediaQuery,
   Paper,
   Avatar,
-  Divider
+  Divider,
+  Chip,
+  TextField
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -25,12 +27,35 @@ import {
   Restaurant as RestaurantIcon,
   Speed as SpeedIcon,
   Security as SecurityIcon,
-  Accessibility as AccessibilityIcon
+  Accessibility as AccessibilityIcon,
+  Chat as ChatIcon,
+  LocalHospital as DoctorIcon,
+  Restaurant as NutritionIcon,
+  Psychology as PsychologyIcon,
+  Science as ClinicalIcon,
+  Send as SendIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
 import Orb from '../components/Orb';
 import ActionButton from '../components/ActionButton';
+import CountUp from '../components/CountUp';
+import LiquidChrome from '../components/LiquidChrome';
+import { keyframes } from '@mui/system';
+import { alpha } from '@mui/material/styles';
+
+// Definir la animación de pulso
+const pulse = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
+`;
 
 const LandingPage = () => {
   const theme = useTheme();
@@ -61,6 +86,15 @@ const LandingPage = () => {
 
   const ctaRef = useRef(null);
   const ctaInView = useInView(ctaRef, { once: false, threshold: 0.3 });
+
+  const calorieCounterRef = useRef(null);
+  const calorieCounterInView = useInView(calorieCounterRef, { once: true, amount: 0.3 });
+
+  const healthAlertRef = useRef(null);
+  const healthAlertInView = useInView(healthAlertRef, { once: true, amount: 0.3 });
+
+  const chatSectionRef = useRef(null);
+  const chatSectionInView = useInView(chatSectionRef, { once: true, amount: 0.3 });
 
   // Variantes para animaciones
   const containerVariants = {
@@ -368,6 +402,755 @@ const LandingPage = () => {
             </Grid>
         </Container>
             </Box>
+
+      {/* Calorie Counter Section */}
+      <Box 
+        ref={calorieCounterRef}
+        component={motion.div}
+        initial="hidden"
+        animate={calorieCounterInView ? "visible" : "hidden"}
+        variants={containerVariants}
+        sx={{ 
+          py: { xs: 8, md: 12 },
+          background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 100%)',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        <Container maxWidth="lg">
+          <motion.div variants={itemVariants}>
+            <Typography
+              variant="h2"
+              align="center"
+              sx={{ 
+                mb: 3,
+                fontWeight: 700,
+                background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Controla tus Calorías con una Simple Foto
+            </Typography>
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
+            <Typography 
+              variant="h5" 
+              align="center" 
+              color="textSecondary" 
+              sx={{ mb: 5, maxWidth: 800, mx: 'auto' }}
+            >
+              Mide tus calorías diarias y recibe alertas inteligentes para mantener tu dieta bajo control.
+              ¡Todo con solo fotografiar cada alimento que consumes!
+            </Typography>
+          </motion.div>
+          
+          <Grid container spacing={4} justifyContent="center">
+            <Grid item xs={12} md={5}>
+              <motion.div 
+                variants={itemVariants}
+                whileHover={{ scale: 1.03, transition: { duration: 0.3 } }}
+              >
+                <Paper 
+                  elevation={4}
+                  sx={{
+                    p: 4, 
+                    textAlign: 'center',
+                    borderRadius: '16px',
+                    background: `linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(46, 204, 113, 0.3) 100%)`,
+                    border: `2px solid rgba(46, 204, 113, 0.5)`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2 }}>
+                    <Chip 
+                      label="META LOGRADA" 
+                      color="success" 
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  </Box>
+                  
+                  <Typography variant="h6" sx={{ mb: 3, color: '#2ecc71' }}>
+                    Tu consumo de hoy
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', mb: 2 }}>
+                    <CountUp
+                      from={0}
+                      to={2000}
+                      separator=","
+                      direction="up"
+                      duration={2.5}
+                      className="count-up-text"
+                      sx={{ 
+                        fontSize: { xs: '3rem', md: '4rem' },
+                        fontWeight: 700,
+                        color: '#2ecc71',
+                        mr: 1
+                      }}
+                    />
+                    <Typography variant="h5" color="textSecondary">
+                      calorías
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ 
+                    height: '10px', 
+                    width: '100%', 
+                    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                    borderRadius: '5px',
+                    mb: 2
+                  }}>
+                    <Box sx={{ 
+                      height: '100%', 
+                      width: '100%', 
+                      backgroundColor: '#2ecc71',
+                      borderRadius: '5px',
+                      transition: 'width 2s ease-in-out'
+                    }} />
+                  </Box>
+                  
+                  <Typography variant="body1" color="textSecondary">
+                    ¡Felicidades! Has alcanzado tu meta diaria de 2,000 calorías.
+                  </Typography>
+                </Paper>
+              </motion.div>
+            </Grid>
+            
+            <Grid item xs={12} md={5}>
+              <motion.div 
+                variants={itemVariants}
+                whileHover={{ scale: 1.03, transition: { duration: 0.3 } }}
+              >
+                <Paper 
+                  elevation={4}
+                  sx={{
+                    p: 4, 
+                    textAlign: 'center',
+                    borderRadius: '16px',
+                    background: `linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(231, 76, 60, 0.3) 100%)`,
+                    border: `2px solid rgba(231, 76, 60, 0.5)`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box sx={{ position: 'absolute', top: 0, right: 0, p: 2 }}>
+                    <Chip 
+                      label="META EXCEDIDA" 
+                      color="error" 
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  </Box>
+                  
+                  <Typography variant="h6" sx={{ mb: 3, color: '#e74c3c' }}>
+                    Tu consumo de ayer
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', mb: 2 }}>
+                    <CountUp
+                      from={0}
+                      to={2150}
+                      separator=","
+                      direction="up"
+                      duration={2.5}
+                      className="count-up-text"
+                      sx={{ 
+                        fontSize: { xs: '3rem', md: '4rem' },
+                        fontWeight: 700,
+                        color: '#e74c3c',
+                        mr: 1
+                      }}
+                    />
+                    <Typography variant="h5" color="textSecondary">
+                      calorías
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ 
+                    height: '10px', 
+                    width: '100%', 
+                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                    borderRadius: '5px',
+                    mb: 2
+                  }}>
+                    <Box sx={{ 
+                      height: '100%', 
+                      width: '107.5%', 
+                      backgroundColor: '#e74c3c',
+                      borderRadius: '5px',
+                      transition: 'width 2s ease-in-out'
+                    }} />
+                  </Box>
+                  
+                  <Typography variant="body1" color="textSecondary">
+                    Has excedido tu meta diaria por 150 calorías. ¡Doctorfy te ayudará a mejorar mañana!
+                  </Typography>
+                </Paper>
+              </motion.div>
+            </Grid>
+          </Grid>
+          
+          <motion.div variants={itemVariants}>
+            <Box sx={{ textAlign: 'center', mt: 6 }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                size="large"
+                onClick={() => navigate('/nutrition')}
+                sx={{
+                  py: 1.5, 
+                  px: 4, 
+                  borderRadius: '30px',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  textTransform: 'none',
+                  boxShadow: `0 4px 20px ${theme.palette.secondary.main}40`,
+                  '&:hover': {
+                    transform: 'translateY(-3px)',
+                    boxShadow: `0 6px 25px ${theme.palette.secondary.main}60`,
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                Probar Análisis Nutricional
+              </Button>
+            </Box>
+          </motion.div>
+        </Container>
+      </Box>
+
+      {/* Health Alert Section */}
+      <Box 
+        ref={healthAlertRef}
+        component={motion.div}
+        initial="hidden"
+        animate={healthAlertInView ? "visible" : "hidden"}
+        variants={containerVariants}
+        sx={{ 
+          py: { xs: 8, md: 12 },
+          position: 'relative',
+          zIndex: 2,
+          overflow: 'hidden',
+          minHeight: '500px',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.95) 100%)',
+        }}
+      >
+        {/* Fondo interactivo LiquidChrome */}
+        <Box sx={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          zIndex: 0,
+          opacity: 0.4, // Reducido para mayor contraste
+          mixBlendMode: 'screen', // Efecto espejo
+        }}>
+          <LiquidChrome
+            baseColor={[0.05, 0.1, 0.3]} // Color azul más oscuro
+            speed={0.3}
+            amplitude={0.5}
+            interactive={true}
+          />
+        </Box>
+        
+        {/* Contenido superpuesto */}
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <motion.div variants={itemVariants}>
+                <Typography
+                  variant="h2"
+                  sx={{ 
+                    mb: 3,
+                    fontWeight: 800,
+                    color: 'white',
+                    textShadow: '0 0 20px rgba(0,120,255,0.7)',
+                  }}
+                >
+                  ¿Te llegó un análisis por mail y tienes urgencia?
+                </Typography>
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    mb: 4, 
+                    color: 'white',
+                    textShadow: '0 0 10px rgba(0,120,255,0.5)',
+                    fontWeight: 400
+                  }}
+                >
+                  No esperes más para entender tus resultados. Ingresa a Doctorfy y obtén un análisis inmediato de tus estudios médicos con inteligencia artificial avanzada.
+                </Typography>
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={() => navigate('/medical-studies')}
+                    sx={{
+                      py: 1.5, 
+                      px: 4, 
+                      borderRadius: '30px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textTransform: 'none',
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      color: '#1976d2',
+                      boxShadow: '0 0 30px rgba(0,120,255,0.5)',
+                      '&:hover': {
+                        backgroundColor: 'white',
+                        transform: 'translateY(-3px)',
+                        boxShadow: '0 0 40px rgba(0,120,255,0.7)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    Analizar mis estudios
+                  </Button>
+                  
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={() => navigate('/login')}
+                    sx={{
+                      py: 1.5, 
+                      px: 4, 
+                      borderRadius: '30px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textTransform: 'none',
+                      borderColor: 'rgba(255,255,255,0.7)',
+                      borderWidth: '2px',
+                      color: 'white',
+                      '&:hover': {
+                        borderColor: 'white',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        transform: 'translateY(-3px)',
+                        boxShadow: '0 0 20px rgba(255,255,255,0.3)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    Iniciar sesión
+                  </Button>
+                </Box>
+              </motion.div>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <motion.div 
+                variants={itemVariants}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Box
+                  sx={{
+                    p: 4,
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    boxShadow: '0 10px 40px rgba(255,0,0,0.3), 0 0 100px rgba(0,120,255,0.2)',
+                    backdropFilter: 'blur(10px)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    width: '5px', 
+                    height: '100%', 
+                    backgroundColor: '#ff3b30',
+                    boxShadow: '0 0 20px rgba(255,0,0,0.7)'
+                  }} />
+                  
+                  <Typography 
+                    variant="h5" 
+                    color="error" 
+                    sx={{ 
+                      mb: 3, 
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      '&::before': {
+                        content: '""',
+                        display: 'inline-block',
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#ff3b30',
+                        marginRight: '10px',
+                        animation: `${pulse} 2s infinite`
+                      }
+                    }}
+                  >
+                    ALERTA MÉDICA URGENTE
+                  </Typography>
+                  
+                  <Typography variant="body1" color="white" sx={{ mb: 2, fontWeight: 300 }}>
+                    Estimado paciente,
+                  </Typography>
+                  
+                  <Typography variant="body1" color="white" sx={{ mb: 2, fontWeight: 300 }}>
+                    Hemos detectado valores anormales en sus últimos análisis de sangre que requieren atención inmediata. Por favor, revise los resultados en nuestra plataforma.
+                  </Typography>
+                  
+                  <Typography variant="body1" color="white" sx={{ mb: 3, fontWeight: 300 }}>
+                    Doctorfy puede ayudarle a entender estos resultados y conectarle con un especialista si es necesario.
+                  </Typography>
+                  
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      borderTop: '1px solid rgba(255,255,255,0.1)',
+                      paddingTop: 2
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                      Recibido: Hoy, 10:45 AM
+                    </Typography>
+                    
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      sx={{ 
+                        borderRadius: '20px', 
+                        textTransform: 'none',
+                        boxShadow: '0 0 15px rgba(255,0,0,0.4)',
+                        '&:hover': {
+                          boxShadow: '0 0 20px rgba(255,0,0,0.6)',
+                        }
+                      }}
+                    >
+                      Ver resultados
+                    </Button>
+                  </Box>
+                </Box>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </Container>
+        
+        {/* Efecto de reflejo en la parte inferior */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '150px',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,120,255,0.05) 100%)',
+            transform: 'scaleY(-1)',
+            filter: 'blur(10px)',
+            opacity: 0.5,
+            zIndex: 0,
+          }}
+        />
+      </Box>
+
+      {/* Chat Section - Versión mejorada con fondo negro */}
+      <Box 
+        ref={chatSectionRef}
+        component={motion.div}
+        initial="hidden"
+        animate={chatSectionInView ? "visible" : "hidden"}
+        variants={containerVariants}
+        sx={{ 
+          py: { xs: 8, md: 12 },
+          position: 'relative',
+          zIndex: 2,
+          background: 'linear-gradient(135deg, #121212 0%, #1e1e1e 100%)', // Fondo negro
+          color: 'white',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Grid container spacing={6} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <motion.div variants={itemVariants}>
+                <Typography
+                  variant="h2"
+                  sx={{ 
+                    mb: 3,
+                    fontWeight: 800,
+                    color: 'white',
+                    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  Consulta Médica Inteligente
+                </Typography>
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    mb: 4, 
+                    color: 'rgba(255,255,255,0.9)',
+                    fontWeight: 400,
+                    lineHeight: 1.6
+                  }}
+                >
+                  Nuestro asistente médico con IA te proporciona respuestas inmediatas a tus consultas de salud, nutrición y bienestar emocional, basadas en evidencia científica.
+                </Typography>
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={() => navigate('/medical-chat')}
+                    sx={{
+                      py: 1.5, 
+                      px: 4, 
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textTransform: 'none',
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                      color: 'white',
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.5)}`,
+                      '&:hover': {
+                        transform: 'translateY(-3px)',
+                        boxShadow: `0 6px 25px ${alpha(theme.palette.primary.main, 0.7)}`,
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    Iniciar Chat Médico
+                  </Button>
+                </Box>
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                <Box sx={{ 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'rgba(255,255,255,0.7)' }}>
+                    Lo que nuestros usuarios dicen:
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.9)' }}>
+                    "El asistente médico me ayudó a entender mis síntomas y me orientó sobre cuándo debía consultar con un especialista. ¡Una herramienta increíble!"
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      — María G., paciente de Doctorfy
+                    </Typography>
+                  </Box>
+                </Box>
+              </motion.div>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <motion.div 
+                variants={itemVariants}
+                whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+              >
+                <Paper
+                  elevation={8}
+                  sx={{
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    bgcolor: '#121212',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <Box sx={{ 
+                    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`, 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center' 
+                  }}>
+                    <ChatIcon sx={{ color: 'white', mr: 1 }} />
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                      Asistente Médico IA
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ p: 3, maxHeight: '350px', overflowY: 'auto', bgcolor: '#1a1a1a' }}>
+                    {/* Mensajes de ejemplo */}
+                    <Box sx={{ display: 'flex', mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.grey[800], color: 'white', mr: 2 }}>U</Avatar>
+                      <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), borderRadius: '0 16px 16px 16px', maxWidth: '80%', color: 'white' }}>
+                        <Typography variant="body2">
+                          Últimamente he tenido dolores de cabeza frecuentes, especialmente después de trabajar en la computadora.
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', mb: 3, justifyContent: 'flex-end' }}>
+                      <Paper sx={{ 
+                        p: 2, 
+                        bgcolor: alpha(theme.palette.secondary.main, 0.1), 
+                        borderRadius: '16px 0 16px 16px', 
+                        maxWidth: '80%',
+                        color: 'white'
+                      }}>
+                        <Typography variant="body2">
+                          Los dolores de cabeza después de usar la computadora podrían estar relacionados con la fatiga visual. Te recomendaría:
+                        </Typography>
+                        <Box component="ul" sx={{ pl: 2, m: 0, mt: 1 }}>
+                          <Typography component="li" variant="body2">Tomar descansos cada 20 minutos</Typography>
+                          <Typography component="li" variant="body2">Ajustar el brillo de tu pantalla</Typography>
+                          <Typography component="li" variant="body2">Considerar lentes con filtro de luz azul</Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          Si los síntomas persisten, sería recomendable consultar con un oftalmólogo.
+                        </Typography>
+                      </Paper>
+                      <Avatar sx={{ 
+                        background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        ml: 2 
+                      }}>AI</Avatar>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.grey[800], color: 'white', mr: 2 }}>U</Avatar>
+                      <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), borderRadius: '0 16px 16px 16px', maxWidth: '80%', color: 'white' }}>
+                        <Typography variant="body2">
+                          Gracias por los consejos. ¿Hay ejercicios específicos para reducir la tensión ocular?
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  </Box>
+                  
+                  <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', bgcolor: '#121212' }}>
+                    <TextField
+                      fullWidth
+                      placeholder="Escribe tu consulta médica..."
+                      variant="outlined"
+                      size="small"
+                      sx={{ 
+                        mr: 1,
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': {
+                            borderColor: 'rgba(255,255,255,0.2)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(255,255,255,0.3)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                        '& .MuiInputBase-input::placeholder': {
+                          color: 'rgba(255,255,255,0.5)',
+                        },
+                      }}
+                    />
+                    <Button 
+                      variant="contained" 
+                      sx={{ 
+                        minWidth: 'auto', 
+                        borderRadius: '8px',
+                        background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                      }}
+                    >
+                      <SendIcon />
+                    </Button>
+                  </Box>
+                </Paper>
+              </motion.div>
+            </Grid>
+          </Grid>
+          
+          {/* Características del chat - Versión mejorada */}
+          <Box sx={{ mt: 8 }}>
+            <Grid container spacing={3}>
+              {[
+                {
+                  icon: <DoctorIcon sx={{ fontSize: 36 }} />,
+                  title: "Consulta Médica General",
+                  description: "Resuelve dudas sobre síntomas, condiciones médicas y recomendaciones de salud basadas en evidencia científica."
+                },
+                {
+                  icon: <NutritionIcon sx={{ fontSize: 36 }} />,
+                  title: "Asesoría Nutricional",
+                  description: "Obtén consejos personalizados sobre alimentación saludable, dietas específicas y hábitos nutricionales."
+                },
+                {
+                  icon: <PsychologyIcon sx={{ fontSize: 36 }} />,
+                  title: "Apoyo Psicológico",
+                  description: "Recibe orientación para el manejo del estrés, ansiedad y técnicas efectivas para mejorar tu bienestar emocional."
+                },
+                {
+                  icon: <ClinicalIcon sx={{ fontSize: 36 }} />,
+                  title: "Información Clínica",
+                  description: "Comprende mejor tus análisis clínicos, procedimientos médicos y terminología especializada."
+                }
+              ].map((feature, index) => (
+                <Grid item xs={12} sm={6} md={3} key={index}>
+                  <motion.div 
+                    variants={itemVariants}
+                    whileHover={{ y: -5, transition: { duration: 0.3 } }}
+                  >
+                    <Paper
+                      elevation={4}
+                      sx={{
+                        p: 3,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderRadius: 2,
+                        bgcolor: 'rgba(26,26,26,0.95)',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.3s ease',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        '&:hover': {
+                          boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`,
+                        }
+                      }}
+                    >
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 2
+                      }}>
+                        <Avatar
+                          sx={{
+                            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                            mr: 2
+                          }}
+                        >
+                          {feature.icon}
+                        </Avatar>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
+                          {feature.title}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ flexGrow: 1, color: 'rgba(255,255,255,0.7)' }}>
+                        {feature.description}
+                      </Typography>
+                    </Paper>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </Container>
+      </Box>
 
       {/* Features Section */}
             <Box 

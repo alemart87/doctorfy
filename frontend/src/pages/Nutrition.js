@@ -234,55 +234,97 @@ const Nutrition = () => {
     
     const nutritionalInfo = extractNutritionalInfo(analysis.analysis);
 
-  return (
-      <div className={`study-item nutrition-item ${isSelected ? 'selected' : ''}`}>
-        <div className="study-info">
-          <div className="study-type">
-            <span className="study-type-icon">🍽️</span>
-          Análisis Nutricional
+    return (
+      <div className={`analysis-item ${isSelected ? 'selected' : ''}`}>
+        <div className="analysis-item-header">
+          <div className="analysis-item-icon">
+            <img src="/images/nutrition-icon.png" alt="Nutrition" />
           </div>
-          <div className="study-date">{date}</div>
-          
-          {nutritionalInfo && (
-            <div className="nutrition-preview">
-              <div className="nutrition-data-grid">
-                <div className="nutrition-data-item">
-                  <span className="nutrition-label">Calorías:</span>
-                  <span className="nutrition-value">{nutritionalInfo.calories} kcal</span>
-                </div>
-                <div className="nutrition-data-item">
-                  <span className="nutrition-label">Proteínas:</span>
-                  <span className="nutrition-value">{nutritionalInfo.proteins} g</span>
-                </div>
-                <div className="nutrition-data-item">
-                  <span className="nutrition-label">Carbohidratos:</span>
-                  <span className="nutrition-value">{nutritionalInfo.carbs} g</span>
-                </div>
-                <div className="nutrition-data-item">
-                  <span className="nutrition-label">Grasas:</span>
-                  <span className="nutrition-value">{nutritionalInfo.fats} g</span>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="analysis-item-title">
+            <h3>ANÁLISIS NUTRICIONAL</h3>
+            <p className="analysis-date">{date}</p>
+          </div>
         </div>
-        <div className="study-actions">
+        
+        <div className="analysis-item-content">
+          <div className="nutrition-info-grid">
+            <div className="nutrition-info-row">
+              <div className="nutrition-info-label">Calorías:</div>
+              <div className="nutrition-info-value">{nutritionalInfo?.calories || 'N/A'} kcal</div>
+              <div className="nutrition-info-label">Proteínas:</div>
+              <div className="nutrition-info-value">{nutritionalInfo?.proteins || 'N/A'} g</div>
+            </div>
+            <div className="nutrition-info-row">
+              <div className="nutrition-info-label">Carbohidratos:</div>
+              <div className="nutrition-info-value">{nutritionalInfo?.carbs || 'N/A'} g</div>
+              <div className="nutrition-info-label">Grasas:</div>
+              <div className="nutrition-info-value">{nutritionalInfo?.fats || 'N/A'} g</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* BOTONES RESPONSIVOS */}
+        <div className="analysis-item-actions" style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px',
+          padding: '8px',
+          position: 'relative',
+          zIndex: 10, // Asegurar que esté por encima de otros elementos
+          visibility: 'visible !important',
+          opacity: 1
+        }}>
           <button 
-            className="action-button" 
+            className="mobile-visible-button view-button"
             onClick={(e) => {
               e.stopPropagation();
               handleViewAnalysis(analysis);
             }}
-            title="Ver detalles"
+            style={{
+              minWidth: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0, 120, 255, 0.1)',
+              border: '1px solid rgba(0, 120, 255, 0.3)',
+              color: '#0078ff',
+              cursor: 'pointer',
+              padding: '0',
+              margin: '0',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              visibility: 'visible',
+              opacity: 1
+            }}
+            aria-label="Ver análisis"
           >
-            <FaEye />
+            <FaEye style={{ fontSize: '16px' }} />
           </button>
+          
           <button 
-            className="action-button" 
+            className="mobile-visible-button download-button"
             onClick={(e) => handleDownloadImage(analysis, e)}
-            title="Descargar imagen"
+            style={{
+              minWidth: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(46, 204, 113, 0.1)',
+              border: '1px solid rgba(46, 204, 113, 0.3)',
+              color: '#2ecc71',
+              cursor: 'pointer',
+              padding: '0',
+              margin: '0',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              visibility: 'visible',
+              opacity: 1
+            }}
+            aria-label="Descargar imagen"
           >
-            <FaDownload />
+            <FaDownload style={{ fontSize: '16px' }} />
           </button>
         </div>
       </div>
@@ -367,8 +409,23 @@ const Nutrition = () => {
     return (
       <div className="analysis-result-container">
         <button 
-          className="study-detail-back-button"
+          className="study-detail-back-button mobile-visible-button"
           onClick={() => setSelectedAnalysis(null)}
+          style={{
+            visibility: 'visible',
+            opacity: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            background: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            marginBottom: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
         >
           <FaArrowLeft /> Volver a la lista
         </button>
@@ -384,9 +441,24 @@ const Nutrition = () => {
               alt="Alimento analizado" 
             />
             <button 
-              className="download-image-button"
+              className="download-image-button mobile-visible-button"
               onClick={() => handleDownloadImage(selectedAnalysis)}
               title="Descargar imagen"
+              style={{
+                visibility: 'visible',
+                opacity: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                background: 'rgba(46, 204, 113, 0.8)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                marginTop: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
             >
               <FaDownload /> Descargar imagen
             </button>
@@ -465,8 +537,8 @@ const Nutrition = () => {
                       <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                       <span className="upload-progress-text">{uploadProgress}%</span>
                     </div>
-            ) : (
-              <>
+                  ) : (
+                    <>
                       <FaUtensils className="button-icon" />
                       <span>Analizar alimentos</span>
                     </>
