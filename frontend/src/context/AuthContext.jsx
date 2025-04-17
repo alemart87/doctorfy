@@ -9,6 +9,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const navigate = useNavigate();
 
   // Verificar si el usuario está autenticado al cargar la aplicación
@@ -32,6 +33,31 @@ export const AuthProvider = ({ children }) => {
     };
     
     checkAuth();
+  }, []);
+
+  // Añadir un efecto para actualizar el estado de suscripción periódicamente
+  useEffect(() => {
+    // Verificar el estado de suscripción al cargar el componente
+    if (user) {
+      checkSubscription();
+      
+      // Configurar un intervalo para verificar el estado de suscripción cada 5 minutos
+      const subscriptionInterval = setInterval(() => {
+        checkSubscription();
+      }, 5 * 60 * 1000);
+      
+      return () => clearInterval(subscriptionInterval);
+    }
+  }, [user]);
+
+  // Configurar axios para incluir el token en todas las peticiones
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+    }
   }, []);
 
   // Función de inicio de sesión
@@ -137,18 +163,23 @@ export const AuthProvider = ({ children }) => {
   const checkSubscription = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return false;
-      
+      if (!token) {
+        console.error('No hay token disponible');
+        return { active: false, subscription: false, trial: false };
+      }
+
       const response = await axios.get('/api/subscription/status', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      return response.data.active;
+      console.log("Respuesta de verificación de suscripción:", response.data);
+      setSubscriptionStatus(response.data);
+      return response.data;
     } catch (error) {
       console.error('Error al verificar suscripción:', error);
-      return false;
+      return { active: false, subscription: false, trial: false };
     }
   };
 
@@ -186,6 +217,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     isLoading,
+    subscriptionStatus,
     login,
     logout,
     register,

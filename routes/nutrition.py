@@ -279,4 +279,194 @@ def manage_calorie_goal():
         except Exception as e:
             db.session.rollback()
             print(f"Error al actualizar objetivo: {str(e)}")
-            return jsonify({'error': 'Error al actualizar el objetivo'}), 500 
+            return jsonify({'error': 'Error al actualizar el objetivo'}), 500
+
+@nutrition_bp.route('/dashboard', methods=['GET'])
+@jwt_required()
+def get_nutrition_dashboard():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+    
+    # Obtener parámetros de la solicitud
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    try:
+        # Convertir strings a objetos date
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
+    except ValueError:
+        return jsonify({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}), 400
+    
+    # Obtener los análisis nutricionales del usuario
+    query = NutritionAnalysis.query.filter_by(user_id=current_user_id)
+    
+    # Aplicar filtros de fecha si se proporcionaron
+    if start_date:
+        query = query.filter(func.date(NutritionAnalysis.created_at) >= start_date)
+    if end_date:
+        query = query.filter(func.date(NutritionAnalysis.created_at) <= end_date)
+    
+    # Ordenar por fecha de creación (más reciente primero)
+    analyses = query.order_by(NutritionAnalysis.created_at.desc()).all()
+    
+    if not analyses:
+        return jsonify({
+            'success': False,
+            'message': 'No hay datos disponibles para este usuario en el rango de fechas especificado'
+        }), 200
+    
+    # Obtener los registros de nutrición del usuario
+    nutrition_logs = NutritionLog.query.filter_by(user_id=current_user_id)
+    
+    # Aplicar filtros de fecha si se proporcionaron
+    if start_date:
+        nutrition_logs = nutrition_logs.filter(NutritionLog.log_date >= start_date)
+    if end_date:
+        nutrition_logs = nutrition_logs.filter(NutritionLog.log_date <= end_date)
+    
+    # Ordenar por fecha
+    nutrition_logs = nutrition_logs.order_by(NutritionLog.log_date).all()
+    
+    # Calcular totales y promedios
+    total_calories = sum(log.calories for log in nutrition_logs) if nutrition_logs else 0
+    total_proteins = sum(log.proteins for log in nutrition_logs) if nutrition_logs else 0
+    total_carbs = sum(log.carbs for log in nutrition_logs) if nutrition_logs else 0
+    total_fats = sum(log.fats for log in nutrition_logs) if nutrition_logs else 0
+    
+    # Calcular promedios diarios
+    days_count = len(set(log.log_date for log in nutrition_logs)) if nutrition_logs else 1
+    avg_calories = total_calories / days_count if days_count > 0 else 0
+    avg_proteins = total_proteins / days_count if days_count > 0 else 0
+    avg_carbs = total_carbs / days_count if days_count > 0 else 0
+    avg_fats = total_fats / days_count if days_count > 0 else 0
+    
+    # Obtener el objetivo calórico del usuario
+    calorie_goal = user.daily_calorie_goal or 2000
+    
+    # Calcular distribución por comidas (si está disponible)
+    meals = {}
+    for log in nutrition_logs:
+        meal_type = log.meal_type or 'other'
+        if meal_type not in meals:
+            meals[meal_type] = {
+                'calories': 0,
+                'proteins': 0,
+                'carbs': 0,
+                'fats': 0
+            }
+        meals[meal_type]['calories'] += log.calories
+        meals[meal_type]['proteins'] += log.proteins
+        meals[meal_type]['carbs'] += log.carbs
+        meals[meal_type]['fats'] += log.fats
+    
+    # Preparar datos para gráfico semanal
+    weekly_data = []
+    if nutrition_logs:
+        # Agrupar por fecha
+        logs_by_date = {}
+        for log in nutrition_logs:
+            date_str = log.log_date.strftime('%Y-%m-%d')
+            if date_str not in logs_by_date:
+                logs_by_date[date_str] = {
+                    'date': log.log_date,
+                    'calories': 0,
+                    'goal': calorie_goal
+                }
+            logs_by_date[date_str]['calories'] += log.calories
+        
+        # Convertir a lista ordenada
+        weekly_data = [
+            {
+                'day': date.strftime('%a'),  # Abreviatura del día de la semana
+                'calories': data['calories'],
+                'goal': data['goal']
+            }
+            for date_str, data in sorted(logs_by_date.items())
+        ]
+    
+    # Construir respuesta con todos los datos disponibles
+    response_data = {
+        'success': True,
+        'calories': {
+            'amount': int(avg_calories),
+            'goal': calorie_goal,
+            'percentage': int((avg_calories / calorie_goal) * 100) if calorie_goal > 0 else 0
+        },
+        'macros': {
+            'protein': {
+                'amount': int(avg_proteins),
+                'goal': int(calorie_goal * 0.3 / 4),  # 30% de calorías de proteínas, 4 cal/g
+                'percentage': int((avg_proteins / (calorie_goal * 0.3 / 4)) * 100) if calorie_goal > 0 else 0
+            },
+            'carbs': {
+                'amount': int(avg_carbs),
+                'goal': int(calorie_goal * 0.5 / 4),  # 50% de calorías de carbohidratos, 4 cal/g
+                'percentage': int((avg_carbs / (calorie_goal * 0.5 / 4)) * 100) if calorie_goal > 0 else 0
+            },
+            'fat': {
+                'amount': int(avg_fats),
+                'goal': int(calorie_goal * 0.2 / 9),  # 20% de calorías de grasas, 9 cal/g
+                'percentage': int((avg_fats / (calorie_goal * 0.2 / 9)) * 100) if calorie_goal > 0 else 0
+            }
+        },
+        'meals': {
+            'breakfast': meals.get('breakfast', {}).get('calories', 0),
+            'lunch': meals.get('lunch', {}).get('calories', 0),
+            'dinner': meals.get('dinner', {}).get('calories', 0),
+            'snacks': meals.get('snack', {}).get('calories', 0)
+        },
+        'weeklyData': weekly_data,
+        'analyses': [
+            {
+                'id': analysis.id,
+                'created_at': analysis.created_at.isoformat(),
+                'analysis': analysis.analysis,
+                'image_url': f"/api/nutrition/analyses/{analysis.id}/image"
+            }
+            for analysis in analyses[:5]  # Limitar a los 5 análisis más recientes
+        ]
+    }
+    
+    # Añadir datos de agua si están disponibles
+    water_logs = [log for log in nutrition_logs if hasattr(log, 'water') and log.water]
+    if water_logs:
+        total_water = sum(log.water for log in water_logs)
+        avg_water = total_water / days_count if days_count > 0 else 0
+        water_goal = 2000  # ml, objetivo diario recomendado
+        
+        response_data['water'] = {
+            'amount': int(avg_water),
+            'goal': water_goal,
+            'percentage': int((avg_water / water_goal) * 100)
+        }
+    
+    return jsonify(response_data), 200
+
+@nutrition_bp.route('/update-goal', methods=['POST'])
+@jwt_required()
+def update_calorie_goal():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+    
+    data = request.get_json()
+    calorie_goal = data.get('calorie_goal')
+    
+    if not calorie_goal or not isinstance(calorie_goal, int) or calorie_goal < 500 or calorie_goal > 5000:
+        return jsonify({'error': 'Objetivo calórico inválido'}), 400
+    
+    # Actualizar el objetivo calórico del usuario en la base de datos
+    user.daily_calorie_goal = calorie_goal
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Objetivo calórico actualizado correctamente',
+        'calorie_goal': calorie_goal
+    }), 200 

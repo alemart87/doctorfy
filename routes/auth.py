@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
 import secrets
 from flask import current_app, url_for
-from utils.email_utils import send_password_reset_email, send_registration_notification
+from utils.email_utils import send_password_reset_email, send_registration_notification, send_welcome_email
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -23,26 +23,41 @@ def register():
         if User.query.filter_by(email=data['email']).first():
             return jsonify({'error': 'El email ya está registrado'}), 400
         
+        # Configurar el período de prueba (2 días)
+        now = datetime.utcnow()
+        trial_end = now + timedelta(days=2)
+        
         # Crear nuevo usuario
         user = User(
             email=data['email'],
             is_doctor=data.get('is_doctor', False),
             role='DOCTOR' if data.get('is_doctor', False) else 'USER',
             specialty=data.get('specialty'),
-            license_number=data.get('license_number')
+            license_number=data.get('license_number'),
+            trial_start=now,
+            trial_end=trial_end,
+            trial_used=False,
+            subscription_active=False  # Asegurarse de que este campo esté en False
         )
         user.set_password(data['password'])
         
         db.session.add(user)
         db.session.commit()
         
-        # Enviar notificación por correo
+        # Imprimir información de depuración
+        print(f"Usuario creado: ID={user.id}, Email={user.email}")
+        print(f"Período de prueba: Inicio={user.trial_start}, Fin={user.trial_end}, Usado={user.trial_used}")
+        
+        # Enviar notificación por correo con información sobre el período de prueba
         user_data = {
             'email': user.email,
-            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'is_doctor': user.is_doctor
+            'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_doctor': user.is_doctor,
+            'id': user.id,
+            'trial_end': trial_end.strftime('%Y-%m-%d %H:%M:%S')
         }
         send_registration_notification(user_data)
+        send_welcome_email(user)  # Nueva función para enviar email de bienvenida
         
         # Si es doctor, crear entrada en la tabla de doctores
         if data.get('is_doctor', False):

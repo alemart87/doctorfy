@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, useTheme } from '@mui/material';
+import { Box, Container, Typography, Grid, useTheme, Paper, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -7,6 +7,9 @@ import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
 import GlassIcons from '../components/GlassIcons';
 import { AnimatedBackgroundText } from '../components/AnimatedElements';
+import { Link } from 'react-router-dom';
+import TrialBanner from '../components/TrialBanner';
+import axios from 'axios';
 
 // Importar iconos
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -16,6 +19,7 @@ import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import GroupIcon from '@mui/icons-material/Group';
 import ChatIcon from '@mui/icons-material/Chat';
+import PeopleIcon from '@mui/icons-material/People';
 
 const DashboardPage = () => {
   const theme = useTheme();
@@ -141,6 +145,10 @@ const DashboardPage = () => {
           >
             <AnimatedBackgroundText text="DASHBOARD" />
 
+            <Box sx={{ width: '100%', mb: 4 }}>
+              <TrialBanner />
+            </Box>
+
             <motion.div variants={titleVariants}>
               <Typography 
                 variant="h1" // Cambiar a h1 para hacerlo más grande
@@ -183,6 +191,47 @@ const DashboardPage = () => {
                 scale={1.5} // Escala general para hacer todo más grande
               />
             </motion.div>
+
+            {user && user.email === 'alemart87@gmail.com' && (
+              <Paper sx={{ p: 3, mb: 3, bgcolor: '#f5f5f5' }}>
+                <Typography variant="h5" gutterBottom>
+                  Administración
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  Como administrador, puedes gestionar las suscripciones de los usuarios.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  to="/admin/users"
+                  startIcon={<PeopleIcon />}
+                >
+                  Gestionar Usuarios
+                </Button>
+              </Paper>
+            )}
+
+            {user && user.email === 'alemart87@gmail.com' && (
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get('/api/debug/subscription-check');
+                      console.log("Información de depuración:", response.data);
+                      alert("Información de depuración registrada en la consola");
+                    } catch (error) {
+                      console.error("Error al obtener información de depuración:", error);
+                      alert("Error al obtener información de depuración");
+                    }
+                  }}
+                >
+                  Verificar Estado de Suscripción
+                </Button>
+              </Box>
+            )}
           </Container>
         </Box>
       </Box>

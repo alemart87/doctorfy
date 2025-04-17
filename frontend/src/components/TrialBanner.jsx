@@ -7,10 +7,13 @@ import {
   useTheme,
   Paper,
   Collapse,
-  useMediaQuery
+  useMediaQuery,
+  Chip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CelebrationIcon from '@mui/icons-material/Celebration';
+import WarningIcon from '@mui/icons-material/Warning';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -32,7 +35,7 @@ const pulse = keyframes`
 
 const TrialBanner = () => {
   const [dismissed, setDismissed] = useState(false);
-  const { user, checkSubscription } = useAuth();
+  const { user, checkSubscription, subscriptionStatus } = useAuth();
   const [hasSubscription, setHasSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -82,158 +85,166 @@ const TrialBanner = () => {
     return null;
   }
   
-  return (
-    <Collapse in={!dismissed}>
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 70, md: 20 },
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          width: { xs: '90%', sm: '80%', md: '60%' },
-          maxWidth: 800,
-        }}
+  // Si no hay información de suscripción o el usuario tiene suscripción activa, no mostrar nada
+  if (!subscriptionStatus || subscriptionStatus.subscription) {
+    return null;
+  }
+  
+  // Si el usuario está en período de prueba
+  if (subscriptionStatus.trial) {
+    // Calcular tiempo restante en formato legible
+    const hoursRemaining = subscriptionStatus.trial_remaining || 0;
+    let timeDisplay = '';
+    
+    if (hoursRemaining > 24) {
+      const days = Math.floor(hoursRemaining / 24);
+      const hours = hoursRemaining % 24;
+      timeDisplay = `${days} día${days !== 1 ? 's' : ''} y ${hours} hora${hours !== 1 ? 's' : ''}`;
+    } else {
+      timeDisplay = `${hoursRemaining} hora${hoursRemaining !== 1 ? 's' : ''}`;
+    }
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, type: 'spring', stiffness: 120 }}
+        <Paper 
+          elevation={3}
+          sx={{ 
+            p: 3, 
+            mb: 3, 
+            background: 'linear-gradient(135deg, #2c3e50 0%, #4a69bd 100%)',
+            color: 'white',
+            borderRadius: 3,
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)'
+          }}
         >
-          <Paper
-            elevation={8}
-            sx={{
-              borderRadius: 3,
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              position: 'relative',
-            }}
-          >
-            {/* Círculos decorativos */}
-            <Box 
-              sx={{ 
-                position: 'absolute', 
-                top: -20, 
-                right: -20, 
-                width: 100, 
-                height: 100, 
-                borderRadius: '50%', 
-                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
-                zIndex: 0
-              }} 
-            />
-            <Box 
-              sx={{ 
-                position: 'absolute', 
-                bottom: -30, 
-                left: -30, 
-                width: 120, 
-                height: 120, 
-                borderRadius: '50%', 
-                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
-                zIndex: 0
-              }} 
-            />
-            
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' }, 
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: { xs: 2, sm: 3 },
-                position: 'relative',
-                zIndex: 1
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 0 } }}>
-                <Box 
-                  sx={{ 
-                    bgcolor: '#E91E63',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: { xs: 40, sm: 50 },
-                    height: { xs: 40, sm: 50 },
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2,
-                    boxShadow: '0 4px 8px rgba(233, 30, 99, 0.4)',
-                  }}
-                >
-                  <AccessTimeIcon fontSize={isMobile ? "small" : "medium"} />
-                </Box>
-                <Box>
-                  <Typography 
-                    variant={isMobile ? "body1" : "h6"} 
-                    sx={{ 
-                      color: 'white',
-                      fontWeight: 'bold',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    ¡PRUEBA GRATUITA POR 2 DÍAS!
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography 
-                      variant={isMobile ? "body2" : "body1"} 
-                      sx={{ 
-                        color: 'rgba(255,255,255,0.9)',
-                        mr: 1
-                      }}
-                    >
-                      La oferta termina en:
-                    </Typography>
-                    <CountdownTimer 
-                      endDate={offerEndDate} 
-                      onComplete={handleDismiss}
-                    />
-                  </Box>
-                </Box>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box 
+                sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.15)', 
+                  borderRadius: '50%', 
+                  p: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CelebrationIcon fontSize="large" sx={{ color: '#FFD700' }} />
               </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Button 
-                  variant="contained" 
-                  size={isMobile ? "small" : "medium"}
-                  onClick={() => navigate('/subscription')}
-                  sx={{
-                    mr: 1,
-                    fontWeight: 'bold',
-                    background: 'linear-gradient(45deg, #4CAF50 30%, #8BC34A 90%)',
-                    boxShadow: '0 4px 8px rgba(76,175,80,0.4)',
-                    animation: `${pulse} 1.5s infinite`,
-                    '&:hover': {
-                      background: 'linear-gradient(45deg, #43A047 30%, #7CB342 90%)',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 6px 10px rgba(76,175,80,0.6)',
-                      animation: 'none'
-                    },
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  COMENZAR AHORA
-                </Button>
-                <IconButton 
-                  size="small" 
-                  onClick={handleDismiss}
-                  sx={{ 
-                    color: 'rgba(255,255,255,0.7)',
-                    '&:hover': {
-                      color: 'white',
-                      backgroundColor: 'rgba(255,255,255,0.1)'
-                    }
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    ¡Período de Prueba Activo!
+                  </Typography>
+                  <Chip 
+                    label="PREMIUM" 
+                    size="small" 
+                    sx={{ 
+                      bgcolor: '#FFD700', 
+                      color: '#2c3e50',
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                </Box>
+                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  Estás disfrutando de acceso completo a todas las funcionalidades premium durante <span style={{ fontWeight: 'bold', color: '#FFD700' }}>{timeDisplay}</span> más.
+                </Typography>
               </Box>
             </Box>
-          </Paper>
-        </motion.div>
-      </Box>
-    </Collapse>
+            
+            <Button 
+              variant="contained" 
+              size="large"
+              onClick={() => navigate('/subscription')}
+              sx={{ 
+                bgcolor: '#FFD700', 
+                color: '#2c3e50',
+                fontWeight: 'bold',
+                px: 3,
+                '&:hover': {
+                  bgcolor: '#F4C430',
+                },
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                minWidth: { xs: '100%', sm: 'auto' }
+              }}
+            >
+              Suscribirme Ahora
+            </Button>
+          </Box>
+        </Paper>
+      </motion.div>
+    );
+  }
+  
+  // Si el período de prueba ha expirado
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Paper 
+        elevation={3}
+        sx={{ 
+          p: 3, 
+          mb: 3, 
+          background: 'linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%)',
+          color: 'white',
+          borderRadius: 3,
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)'
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box 
+              sx={{ 
+                bgcolor: 'rgba(255,255,255,0.15)', 
+                borderRadius: '50%', 
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <WarningIcon fontSize="large" sx={{ color: '#FFC107' }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                Tu período de prueba ha finalizado
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                Suscríbete ahora para seguir disfrutando de todas las funcionalidades premium de Doctorfy.
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Button 
+            variant="contained" 
+            size="large"
+            onClick={() => navigate('/subscription')}
+            sx={{ 
+              bgcolor: '#FFC107', 
+              color: '#6a1b9a',
+              fontWeight: 'bold',
+              px: 3,
+              '&:hover': {
+                bgcolor: '#FFD54F',
+              },
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              minWidth: { xs: '100%', sm: 'auto' }
+            }}
+          >
+            Suscribirme Ahora
+          </Button>
+        </Box>
+      </Paper>
+    </motion.div>
   );
 };
 

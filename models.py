@@ -66,6 +66,11 @@ class User(db.Model):
     address = db.Column(db.String(255))
     emergency_contact = db.Column(db.String(255))
     
+    # Campos para el período de prueba
+    trial_start = db.Column(db.DateTime, nullable=True)  # Fecha de inicio del período de prueba
+    trial_end = db.Column(db.DateTime, nullable=True)    # Fecha de fin del período de prueba
+    trial_used = db.Column(db.Boolean, default=False)    # Indica si ya usó su período de prueba
+    
     # Relaciones
     consultations = db.relationship('Consultation', backref='patient', lazy=True, foreign_keys='Consultation.patient_id')
     payments = db.relationship('Payment', backref='user', lazy=True)
@@ -125,6 +130,32 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+
+    def is_in_trial_period(self):
+        """Verifica si el usuario está en su período de prueba gratuito"""
+        if not self.trial_start or not self.trial_end:
+            return False
+        
+        now = datetime.utcnow()
+        # Verificar si el usuario está dentro del período de prueba y no lo ha usado
+        return now >= self.trial_start and now <= self.trial_end and not self.trial_used
+    
+    def has_active_access(self):
+        """Verifica si el usuario tiene acceso activo (suscripción o período de prueba)"""
+        # Verificar si es el usuario administrador
+        if self.email == 'alemart87@gmail.com':
+            return True
+        
+        # Verificar si tiene suscripción activa
+        if self.subscription_active:
+            return True
+        
+        # Verificar si está en período de prueba
+        if self.is_in_trial_period():
+            return True
+        
+        # Si no cumple ninguna condición, no tiene acceso
+        return False
 
 class Doctor(db.Model):
     __tablename__ = 'doctors'

@@ -46,6 +46,7 @@ os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
 
 # Al inicio de tu archivo app.py, después de importar stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
 
 def ensure_upload_dirs(app):
     """
@@ -96,7 +97,10 @@ def create_app(config_class=Config):
              r"/api/*": {"origins": allowed_origins}, 
              r"/api/webhook/stripe": {"origins": "*"},
              r"/api/webhook/stripe/debug": {"origins": "*"},
-             r"/api/webhook/stripe/accept": {"origins": "*"}  # Añadir el nuevo endpoint
+             r"/api/webhook/stripe/accept": {"origins": "*"},
+             r"/api/subscription/status": {"origins": allowed_origins},
+             r"/api/debug/subscription-check": {"origins": allowed_origins},
+             r"/api/debug/force-trial/*": {"origins": allowed_origins}
          }, 
          supports_credentials=True, 
          expose_headers=['Authorization'],
@@ -119,125 +123,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
-    app.register_blueprint(chat_bp)
-    
-    # Registrar el blueprint de media
-    from routes.media_routes import media_bp
-    app.register_blueprint(media_bp, url_prefix='/api/media')
-
-    # Ruta para servir archivos estáticos desde cualquier subdirectorio de uploads
-    @app.route('/uploads/<path:filename>')
-    def uploaded_file(filename):
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-    # Solo registrar las rutas del frontend si serve_frontend es True
-    if serve_frontend:
-        @app.route('/')
-        def index():
-            return render_template('index.html')
-    else:
-        @app.route('/')
-        def api_info():
-            return jsonify({
-                "name": "Doctorfy API",
-                "version": "1.0.0",
-                "status": "running",
-                "message": "El frontend se encuentra en https://doctorfy-frontend.onrender.com",
-                "documentation": "https://github.com/alemart87/doctorfy",
-                "endpoints": [
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/medical-studies/upload",
-                    "/api/nutrition/analyze-food",
-                    "/api/doctors/directory"
-                ]
-            })
-
-    # Ruta directa para subir estudios médicos
-    @app.route('/api/medical-studies/upload', methods=['POST'])
-    @jwt_required()
-    def upload_study():
-        try:
-            print("Recibida solicitud para subir estudio médico")
-            user_id = get_jwt_identity()
-            print(f"ID de usuario: {user_id}")
-            
-            user = User.query.get(user_id)
-            
-            # Si el usuario no existe, crearlo automáticamente
-            if not user:
-                print(f"Usuario no encontrado con ID: {user_id}. Creando usuario automáticamente.")
-                user = User(
-                    id=user_id,
-                    email=f"user{user_id}@example.com",
-                    password_hash=generate_password_hash("password123"),
-                    is_doctor=False,
-                    role='USER'
-                )
-                db.session.add(user)
-                db.session.commit()
-                print(f"Usuario creado automáticamente con ID: {user.id}, Email: {user.email}")
-            
-            # Verificar si se envió un archivo
-            if 'file' not in request.files:
-                print("No se envió ningún archivo")
-                return jsonify({'error': 'No se envió ningún archivo'}), 400
-            
-            file = request.files['file']
-            study_type = request.form.get('study_type', 'general')
-            
-            print(f"Archivo recibido: {file.filename}, tipo: {study_type}")
-            
-            # Verificar si el archivo tiene un nombre
-            if file.filename == '':
-                print("No se seleccionó ningún archivo")
-                return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
-            
-            # Verificar si el archivo tiene una extensión permitida
-            if not allowed_file(file.filename):
-                print(f"Tipo de archivo no permitido: {file.filename}")
-                return jsonify({'error': 'Tipo de archivo no permitido'}), 400
-            
-            # Crear un nombre de archivo seguro y único
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}_{filename}"
-            
-            # Guardar el archivo en el subdirectorio correcto
-            file_path = os.path.join(app.root_path, 'uploads', 'medical_studies', unique_filename)
-            print(f"Guardando archivo en: {file_path}")
-            file.save(file_path)
-            
-            # La ruta que se guarda en la base de datos incluye el subdirectorio
-            db_file_path = f"medical_studies/{unique_filename}"
-            
-            # Crear el registro en la base de datos
-            study = MedicalStudy(
-                patient_id=user_id,
-                study_type=study_type,
-                file_path=db_file_path
-            )
-            
-            db.session.add(study)
-            db.session.commit()
-            
-            print(f"Estudio médico guardado con ID: {study.id}")
-            
-            return jsonify({
-                'message': 'Estudio médico subido con éxito',
-                'study': {
-                    'id': study.id,
-                    'patient_id': study.patient_id,
-                    'study_type': study.study_type,
-                    'file_path': study.file_path,
-                    'created_at': study.created_at.isoformat() if study.created_at else None
-                }
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error al subir estudio médico: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': str(e)}), 500
+    app.register_blueprint(chat_bp, url_prefix='/api/chat')
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader
@@ -264,8 +150,59 @@ def create_app(config_class=Config):
             'message': 'No se proporcionó token de acceso'
         }), 401
 
-    # Configurar Stripe
-    stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
+    # Ruta para verificar el estado de la suscripción
+    @app.route('/api/subscription/status', methods=['GET'])
+    @jwt_required()
+    def check_subscription_status():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Si el usuario es alemart87@gmail.com, siempre devolver activo
+        if user.email == 'alemart87@gmail.com':
+            return jsonify({
+                'active': True,
+                'subscription': True,
+                'trial': False,
+                'is_admin': True
+            })
+        
+        # Verificar período de prueba directamente
+        now = datetime.utcnow()
+        in_trial = False
+        trial_remaining = None
+        
+        if user.trial_start and user.trial_end and not user.trial_used:
+            if now >= user.trial_start and now <= user.trial_end:
+                in_trial = True
+                delta = user.trial_end - now
+                trial_remaining = int(delta.total_seconds() / 3600)  # Convertir a horas
+        
+        # Verificar suscripción
+        subscription = Subscription.query.filter_by(user_id=user.id).first()
+        has_subscription = subscription and subscription.status == 'active'
+        
+        # Determinar si tiene acceso activo
+        has_access = has_subscription or in_trial
+        
+        # Registrar información para depuración
+        app.logger.info(f"Verificación de acceso para usuario {user.email} (ID: {user.id}):")
+        app.logger.info(f"- Suscripción activa: {has_subscription}")
+        app.logger.info(f"- En período de prueba: {in_trial}")
+        app.logger.info(f"- Tiempo restante de prueba: {trial_remaining} horas")
+        app.logger.info(f"- Tiene acceso activo: {has_access}")
+        
+        return jsonify({
+            'active': has_access,
+            'subscription': has_subscription,
+            'trial': in_trial,
+            'trial_remaining': trial_remaining,
+            'trial_end': user.trial_end.isoformat() if user.trial_end else None,
+            'trial_start': user.trial_start.isoformat() if user.trial_start else None,
+            'trial_used': user.trial_used
+        }), 200
 
     # Ruta para iniciar el proceso de suscripción
     @app.route('/api/subscription/create', methods=['POST'])
@@ -334,51 +271,29 @@ def create_app(config_class=Config):
     # Webhook para recibir eventos de Stripe
     @app.route('/api/webhook/stripe', methods=['POST'])
     def stripe_webhook():
-        payload = request.data
-        sig_header = request.headers.get('Stripe-Signature')
-        
-        # Obtener la clave secreta del webhook
-        stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
-        
-        # Registrar información para depuración
-        app.logger.info(f"Webhook recibido de Stripe")
-        
-        # Verificar si estamos en modo de desarrollo
-        is_development = os.environ.get('FLASK_ENV') == 'development'
-        
-        # En desarrollo, podemos omitir la verificación de firma
-        if is_development and not stripe_webhook_secret:
-            try:
-                event = json.loads(payload)
-                app.logger.warning("Modo desarrollo: omitiendo verificación de firma")
-            except Exception as e:
-                app.logger.error(f"Error al parsear payload en modo desarrollo: {str(e)}")
-                return jsonify({'error': 'Invalid payload'}), 400
-        else:
-            # En producción, verificar la firma
-            if not stripe_webhook_secret:
-                app.logger.error("STRIPE_WEBHOOK_SECRET no está configurado")
-                return jsonify({'error': 'Webhook secret not configured'}), 500
+        try:
+            # Obtener el payload y la firma
+            payload = request.data
+            sig_header = request.headers.get('Stripe-Signature')
             
+            # Verificar la firma
             try:
                 event = stripe.Webhook.construct_event(
                     payload, sig_header, stripe_webhook_secret
                 )
             except ValueError as e:
-                app.logger.error(f"Error de payload inválido: {str(e)}")
-                return jsonify({'error': 'Invalid payload'}), 400
+                # Payload inválido
+                app.logger.error(f"Payload inválido: {str(e)}")
+                return jsonify({'error': 'Payload inválido'}), 400
             except stripe.error.SignatureVerificationError as e:
-                app.logger.error(f"Error de verificación de firma: {str(e)}")
-                app.logger.error(f"Signature recibida: {sig_header}")
-                app.logger.error(f"Primeros 100 caracteres del payload: {payload[:100]}")
-                return jsonify({'error': 'Invalid signature'}), 400
-        
-        # Procesar el evento
-        try:
-            event_type = event['type']
-            app.logger.info(f"Procesando evento de Stripe: {event_type}")
+                # Firma inválida
+                app.logger.error(f"Firma inválida: {str(e)}")
+                return jsonify({'error': 'Firma inválida'}), 400
             
-            # Manejar el evento
+            # Procesar el evento
+            event_type = event['type']
+            app.logger.info(f"Evento Stripe recibido: {event_type}")
+            
             if event_type == 'customer.subscription.created' or event_type == 'customer.subscription.updated':
                 subscription_object = event['data']['object']
                 customer_id = subscription_object['customer']
@@ -392,12 +307,25 @@ def create_app(config_class=Config):
                     # Actualizar el estado de la suscripción
                     if status == 'active':
                         subscription.status = 'active'
+                        
+                        # Actualizar también el campo subscription_active del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            user.subscription_active = True
+                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
                     else:
                         subscription.status = 'inactive'
+                        
+                        # Actualizar también el campo subscription_active del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            user.subscription_active = False
+                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
                     
                     subscription.stripe_subscription_id = subscription_id
                     subscription.updated_at = datetime.utcnow()
                     db.session.commit()
+                    app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
             
             elif event_type == 'customer.subscription.deleted':
                 subscription_object = event['data']['object']
@@ -409,154 +337,304 @@ def create_app(config_class=Config):
                 if subscription:
                     # Marcar la suscripción como cancelada
                     subscription.status = 'canceled'
+                    
+                    # Actualizar también el campo subscription_active del usuario
+                    user = User.query.get(subscription.user_id)
+                    if user:
+                        user.subscription_active = False
+                        app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
+                    
                     subscription.updated_at = datetime.utcnow()
                     db.session.commit()
-            
-            elif event_type == 'checkout.session.completed':
-                session = event['data']['object']
-                app.logger.info(f"Checkout completado para la sesión: {session['id']}")
-                
-                # Buscar el usuario por customer_id
-                customer_id = session.get('customer')
-                if customer_id:
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                    
-                    if subscription:
-                        # Actualizar el estado de la suscripción
-                        subscription.status = 'active'
-                        subscription.updated_at = datetime.utcnow()
-                        db.session.commit()
-                        
-                        # Obtener información del usuario
-                        user = User.query.get(subscription.user_id)
-                        if user:
-                            # Enviar notificación de nueva suscripción
-                            subject = "Nueva suscripción activada"
-                            body = f"""
-                            <html>
-                            <body>
-                                <h1>Nueva suscripción activada</h1>
-                                <p>Un usuario ha activado su suscripción:</p>
-                                <ul>
-                                    <li><strong>Email:</strong> {user.email}</li>
-                                    <li><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</li>
-                                    <li><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</li>
-                                </ul>
-                            </body>
-                            </html>
-                            """
-                            send_email(subject, body, to_email="info@marketeapy.com", html=True)
-            
-            return jsonify({'success': True}), 200
-        except Exception as e:
-            app.logger.error(f"Error al procesar evento: {str(e)}")
-            # Devolver 200 para que Stripe no reintente
-            return jsonify({'error': str(e)}), 200
-
-    # Ruta para verificar el estado de la suscripción
-    @app.route('/api/subscription/status', methods=['GET'])
-    @jwt_required()
-    def check_subscription_status():
-        current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
-        
-        # Si el usuario es alemart87@gmail.com, siempre devolver activo
-        if user.email == 'alemart87@gmail.com':
-            return jsonify({'active': True})
-        
-        # Verificar si el usuario tiene una suscripción activa
-        subscription = Subscription.query.filter_by(user_id=user.id).first()
-        
-        if subscription and subscription.status == 'active':
-            return jsonify({'active': True})
-        
-        return jsonify({'active': False})
-
-    @app.route('/api/webhook/stripe/debug', methods=['POST'])
-    def stripe_webhook_debug():
-        payload = request.data
-        headers = dict(request.headers)
-        
-        # Registrar toda la información recibida
-        app.logger.info("=== WEBHOOK DEBUG ===")
-        app.logger.info(f"Headers: {headers}")
-        app.logger.info(f"Payload: {payload.decode('utf-8')}")
-        
-        # Siempre devolver éxito
-        return jsonify({'success': True, 'mode': 'debug'}), 200
-
-    @app.route('/api/webhook/stripe/accept', methods=['POST'])
-    def stripe_webhook_accept():
-        payload = request.data
-        
-        try:
-            # Parsear el evento sin verificación de firma
-            event = json.loads(payload)
-            app.logger.info(f"Webhook recibido en endpoint alternativo: {event.get('type')}")
-            
-            # Procesar el evento según su tipo
-            event_type = event.get('type')
-            
-            if event_type == 'checkout.session.completed':
-                session = event['data']['object']
-                customer_id = session.get('customer')
-                
-                if customer_id:
-                    # Buscar la suscripción por customer_id
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                    
-                    if subscription:
-                        # Actualizar el estado de la suscripción
-                        subscription.status = 'active'
-                        subscription.updated_at = datetime.utcnow()
-                        db.session.commit()
-                        app.logger.info(f"Suscripción activada para customer_id: {customer_id}")
-                        
-                        # Obtener información del usuario
-                        user = User.query.get(subscription.user_id)
-                        if user:
-                            # Enviar notificación de nueva suscripción
-                            subject = "Nueva suscripción activada"
-                            body = f"""
-                            <html>
-                            <body>
-                                <h1>Nueva suscripción activada</h1>
-                                <p>Un usuario ha activado su suscripción:</p>
-                                <ul>
-                                    <li><strong>Email:</strong> {user.email}</li>
-                                    <li><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</li>
-                                    <li><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</li>
-                                </ul>
-                            </body>
-                            </html>
-                            """
-                            send_email(subject, body, to_email="info@marketeapy.com", html=True)
-            
-            elif event_type in ['customer.subscription.created', 'customer.subscription.updated']:
-                subscription_object = event['data']['object']
-                customer_id = subscription_object.get('customer')
-                status = subscription_object.get('status')
-                
-                if customer_id:
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                    
-                    if subscription:
-                        if status == 'active':
-                            subscription.status = 'active'
-                        else:
-                            subscription.status = 'inactive'
-                        
-                        subscription.updated_at = datetime.utcnow()
-                        db.session.commit()
-                        app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+                    app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
             
             # Siempre devolver éxito
             return jsonify({'success': True}), 200
         
         except Exception as e:
-            app.logger.error(f"Error al procesar webhook alternativo: {str(e)}")
+            app.logger.error(f"Error al procesar webhook: {str(e)}")
             # Devolver 200 para que Stripe no reintente
             return jsonify({'error': str(e)}), 200
+
+    # Webhook alternativo para Stripe
+    @app.route('/api/webhook/stripe/accept', methods=['POST'])
+    def stripe_webhook_accept():
+        try:
+            # Obtener el payload y la firma
+            payload = request.data
+            sig_header = request.headers.get('Stripe-Signature')
+            
+            # Verificar la firma
+            try:
+                event = stripe.Webhook.construct_event(
+                    payload, sig_header, stripe_webhook_secret
+                )
+            except ValueError as e:
+                # Payload inválido
+                app.logger.error(f"Payload inválido: {str(e)}")
+                return jsonify({'error': 'Payload inválido'}), 400
+            except stripe.error.SignatureVerificationError as e:
+                # Firma inválida
+                app.logger.error(f"Firma inválida: {str(e)}")
+                return jsonify({'error': 'Firma inválida'}), 400
+            
+            # Procesar el evento
+            event_type = event['type']
+            app.logger.info(f"Evento Stripe recibido: {event_type}")
+            
+            if event_type == 'checkout.session.completed':
+                session = event['data']['object']
+                customer_id = session.get('customer')
+                subscription_id = session.get('subscription')
+                
+                if customer_id and subscription_id:
+                    # Buscar el usuario por customer_id
+                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                    
+                    if subscription:
+                        # Actualizar la suscripción existente
+                        subscription.stripe_subscription_id = subscription_id
+                        subscription.status = 'active'
+                        subscription.updated_at = datetime.utcnow()
+                        
+                        # Actualizar también el campo subscription_active del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            user.subscription_active = True
+                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
+                        
+                        db.session.commit()
+                        app.logger.info(f"Suscripción actualizada para customer_id: {customer_id}")
+                    else:
+                        # Buscar el usuario por email
+                        customer = stripe.Customer.retrieve(customer_id)
+                        email = customer.get('email')
+                        
+                        if email:
+                            user = User.query.filter_by(email=email).first()
+                            
+                            if user:
+                                # Crear una nueva suscripción
+                                subscription = Subscription(
+                                    user_id=user.id,
+                                    stripe_customer_id=customer_id,
+                                    stripe_subscription_id=subscription_id,
+                                    status='active',
+                                    created_at=datetime.utcnow(),
+                                    updated_at=datetime.utcnow()
+                                )
+                                
+                                # Actualizar el campo subscription_active del usuario
+                                user.subscription_active = True
+                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
+                                
+                                db.session.add(subscription)
+                                db.session.commit()
+                                app.logger.info(f"Nueva suscripción creada para customer_id: {customer_id}")
+                                
+                                # Enviar correo de notificación
+                                try:
+                                    subject = "Nueva suscripción activada en Doctorfy"
+                                    body = f"""
+                                    <html>
+                                    <head>
+                                        <style>
+                                            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                                            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                                            h1 {{ color: #7c4dff; }}
+                                            .info {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; }}
+                                            .footer {{ margin-top: 20px; font-size: 12px; color: #777; }}
+                                            .button {{ display: inline-block; background-color: #7c4dff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin-top: 15px; }}
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <div class="container">
+                                            <h1>Nueva suscripción activada</h1>
+                                            <p>Un usuario ha activado su suscripción a través de Stripe:</p>
+                                            
+                                            <div class="info">
+                                                <p><strong>Email:</strong> {user.email}</p>
+                                                <p><strong>ID:</strong> {user.id}</p>
+                                                <p><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</p>
+                                                <p><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                                                <p><strong>Customer ID de Stripe:</strong> {customer_id}</p>
+                                            </div>
+                                            
+                                            <p>Si necesitas verificar o modificar esta suscripción, puedes hacerlo desde el panel de administración:</p>
+                                            
+                                            <a href="https://doctorfy.onrender.com/admin/users" class="button">Ir al Panel de Administración</a>
+                                            
+                                            <div class="footer">
+                                                <p>Este es un mensaje automático del sistema Doctorfy.</p>
+                                            </div>
+                                        </div>
+                                    </body>
+                                    </html>
+                                    """
+                                    
+                                    send_email(subject, body, to_email="info@marketeapy.com", html=True)
+                                    app.logger.info(f"Correo de notificación enviado para la nueva suscripción")
+                                except Exception as e:
+                                    app.logger.error(f"Error al enviar correo de notificación: {str(e)}")
+            
+            elif event_type == 'customer.subscription.updated':
+                subscription_object = event['data']['object']
+                customer_id = subscription_object.get('customer')
+                status = subscription_object.get('status')
+                
+                if customer_id and status:
+                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                    
+                    if subscription:
+                        subscription.status = status
+                        
+                        # Actualizar también el campo subscription_active del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            if status == 'active':
+                                user.subscription_active = True
+                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
+                            else:
+                                user.subscription_active = False
+                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
+                        
+                        subscription.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+            
+            elif event_type == 'customer.subscription.deleted':
+                subscription_object = event['data']['object']
+                customer_id = subscription_object.get('customer')
+                
+                if customer_id:
+                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                    
+                    if subscription:
+                        subscription.status = 'canceled'
+                        
+                        # Actualizar también el campo subscription_active del usuario
+                        user = User.query.get(subscription.user_id)
+                        if user:
+                            user.subscription_active = False
+                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
+                        
+                        subscription.updated_at = datetime.utcnow()
+                        db.session.commit()
+                        app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
+            
+            # Siempre devolver éxito
+            return jsonify({'success': True}), 200
+        
+        except Exception as e:
+            app.logger.error(f"Error al procesar webhook: {str(e)}")
+            # Devolver 200 para que Stripe no reintente
+            return jsonify({'error': str(e)}), 200
+
+    @app.route('/api/debug/trial-status', methods=['GET'])
+    @jwt_required()
+    def debug_trial_status():
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        now = datetime.utcnow()
+        
+        return jsonify({
+            'user_id': user.id,
+            'email': user.email,
+            'trial_start': user.trial_start.isoformat() if user.trial_start else None,
+            'trial_end': user.trial_end.isoformat() if user.trial_end else None,
+            'trial_used': user.trial_used,
+            'current_time': now.isoformat(),
+            'is_in_trial_period': user.is_in_trial_period(),
+            'subscription_active': user.subscription_active,
+            'has_active_access': user.has_active_access()
+        }), 200
+
+    @app.route('/api/debug/force-trial/<int:user_id>', methods=['POST'])
+    @jwt_required()
+    def force_trial_access(user_id):
+        current_user_id = get_jwt_identity()
+        admin_user = User.query.get(current_user_id)
+        
+        # Solo permitir a alemart87@gmail.com
+        if not admin_user or admin_user.email != 'alemart87@gmail.com':
+            return jsonify({'error': 'No autorizado'}), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Configurar período de prueba de 2 días desde ahora
+        now = datetime.utcnow()
+        user.trial_start = now
+        user.trial_end = now + timedelta(days=2)
+        user.trial_used = False
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Período de prueba forzado para usuario {user.email}',
+            'trial_start': user.trial_start.isoformat(),
+            'trial_end': user.trial_end.isoformat(),
+            'trial_used': user.trial_used
+        }), 200
+
+    @app.route('/api/debug/subscription-check', methods=['GET'])
+    @jwt_required()
+    def debug_subscription_check():
+        """Endpoint para depurar la verificación de suscripción"""
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Verificar período de prueba
+        now = datetime.utcnow()
+        in_trial = False
+        trial_remaining = None
+        
+        if user.trial_start and user.trial_end and not user.trial_used:
+            if now >= user.trial_start and now <= user.trial_end:
+                in_trial = True
+                delta = user.trial_end - now
+                trial_remaining = int(delta.total_seconds() / 3600)  # Convertir a horas
+        
+        # Verificar suscripción
+        subscription = Subscription.query.filter_by(user_id=user.id).first()
+        has_subscription = subscription and subscription.status == 'active'
+        
+        # Verificar acceso
+        has_access = user.email == 'alemart87@gmail.com' or has_subscription or in_trial
+        
+        # Información detallada para depuración
+        return jsonify({
+            'user_id': user.id,
+            'email': user.email,
+            'is_admin': user.email == 'alemart87@gmail.com',
+            'subscription_active_field': user.subscription_active,
+            'has_subscription': has_subscription,
+            'subscription_details': {
+                'exists': subscription is not None,
+                'status': subscription.status if subscription else None,
+                'customer_id': subscription.stripe_customer_id if subscription else None
+            } if subscription else None,
+            'trial_details': {
+                'trial_start': user.trial_start.isoformat() if user.trial_start else None,
+                'trial_end': user.trial_end.isoformat() if user.trial_end else None,
+                'trial_used': user.trial_used,
+                'current_time': now.isoformat(),
+                'in_trial': in_trial,
+                'trial_remaining_hours': trial_remaining
+            },
+            'has_access': has_access,
+            'is_in_trial_period_method': user.is_in_trial_period(),
+            'has_active_access_method': user.has_active_access()
+        }), 200
 
     return app
 
