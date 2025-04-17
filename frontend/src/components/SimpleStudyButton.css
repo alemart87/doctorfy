@@ -1,0 +1,34 @@
+.simple-study-button {
+  margin: 0 4px;
+  transition: all 0.2s ease !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.simple-study-button:hover {
+  transform: translateY(-2px);
+}
+
+.simple-study-button.processing {
+  animation: simple-pulse 1.5s infinite;
+}
+
+@keyframes simple-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Ajustes para móviles */
+@media (max-width: 600px) {
+  .simple-study-button {
+    padding: 8px !important;
+    margin: 0 2px !important;
+  }
+} 

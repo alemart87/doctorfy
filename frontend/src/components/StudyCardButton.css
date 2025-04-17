@@ -1,0 +1,160 @@
+/* Estilos base para StudyCardButton */
+.study-card-button {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+  margin: 0 4px !important;
+  padding: 8px !important;
+  border-radius: 50% !important;
+}
+
+/* Efecto Hover */
+.study-card-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Colores específicos */
+.study-card-button.primary { color: #64b5f6 !important; }
+.study-card-button.primary:hover { background: rgba(100, 181, 246, 0.15) !important; }
+
+.study-card-button.success { color: #81c784 !important; }
+.study-card-button.success:hover { background: rgba(129, 199, 132, 0.15) !important; }
+
+.study-card-button.warning { color: #ffb74d !important; }
+.study-card-button.warning:hover { background: rgba(255, 183, 77, 0.15) !important; }
+
+.study-card-button.error { color: #e57373 !important; }
+.study-card-button.error:hover { background: rgba(229, 115, 115, 0.15) !important; }
+
+/* Estilo para botón deshabilitado */
+.study-card-button:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Ajustes específicos para móviles */
+@media (max-width: 600px) {
+  .study-card-button {
+    padding: 6px !important;
+    margin: 2px !important;
+  }
+  .study-card-button svg {
+    font-size: 1.1rem !important;
+  }
+}
+
+.neobutton-container {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 6px;
+  border-radius: 12px;
+  background: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  overflow: visible;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.neobutton-container:hover {
+  background: rgba(40, 40, 40, 0.8);
+  border-color: var(--main-color);
+}
+
+.neobutton-container:active {
+  transform: scale(0.95) translateY(0) !important;
+}
+
+.neobutton-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.neobutton-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.neobutton-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.neobutton-container.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(20, 20, 20, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Ajustes para móviles */
+@media (max-width: 600px) {
+  .neobutton-container {
+    width: 36px;
+    height: 36px;
+    margin: 0 4px;
+    border-radius: 10px;
+  }
+  
+  .neobutton-icon svg {
+    font-size: 1.1rem !important;
+  }
+  
+  /* Ocultar etiqueta en móviles para ahorrar espacio */
+  .neobutton-label {
+    display: none;
+  }
+  
+  /* Ajustar el contenedor para que los botones quepan mejor */
+  .card-actions-container {
+    justify-content: space-around !important;
+    padding: 8px 4px !important;
+  }
+}
+
+/* Efecto de pulso sutil para el botón de analizar cuando está en proceso */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 var(--glow-color); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 183, 77, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 183, 77, 0); }
+}
+
+.neobutton-container.processing {
+  animation: pulse 2s infinite;
+} 
