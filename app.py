@@ -20,6 +20,7 @@ import uuid
 from werkzeug.security import generate_password_hash
 from utils.logging_config import setup_logging
 import stripe
+from utils.email_utils import send_email
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -372,6 +373,41 @@ def create_app(config_class=Config):
                 subscription.status = 'canceled'
                 subscription.updated_at = datetime.utcnow()
                 db.session.commit()
+        
+        elif event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            app.logger.info(f"Checkout completado para la sesión: {session['id']}")
+            
+            # Buscar el usuario por customer_id
+            customer_id = session.get('customer')
+            if customer_id:
+                subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                
+                if subscription:
+                    # Actualizar el estado de la suscripción
+                    subscription.status = 'active'
+                    subscription.updated_at = datetime.utcnow()
+                    db.session.commit()
+                    
+                    # Obtener información del usuario
+                    user = User.query.get(subscription.user_id)
+                    if user:
+                        # Enviar notificación de nueva suscripción
+                        subject = "Nueva suscripción activada"
+                        body = f"""
+                        <html>
+                        <body>
+                            <h1>Nueva suscripción activada</h1>
+                            <p>Un usuario ha activado su suscripción:</p>
+                            <ul>
+                                <li><strong>Email:</strong> {user.email}</li>
+                                <li><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</li>
+                                <li><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</li>
+                            </ul>
+                        </body>
+                        </html>
+                        """
+                        send_email(subject, body, to_email="info@marketeapy.com", html=True)
         
         return jsonify({'success': True})
 

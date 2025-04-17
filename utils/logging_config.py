@@ -43,4 +43,17 @@ def setup_logging():
     logging.getLogger('werkzeug').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     
+    # Configurar logger para correos
+    email_logger = logging.getLogger('utils.email_utils')
+    email_logger.setLevel(logging.DEBUG)
+    
+    # Crear un manejador específico para eventos de correo
+    email_handler = RotatingFileHandler(
+        os.path.join(log_dir, 'email.log'),
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=3
+    )
+    email_handler.setFormatter(formatter)
+    email_logger.addHandler(email_handler)
+    
     return logger 

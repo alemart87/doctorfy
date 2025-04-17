@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, datetime
 import secrets
 from flask import current_app, url_for
-from utils.email_utils import send_password_reset_email
+from utils.email_utils import send_password_reset_email, send_registration_notification
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -35,6 +35,14 @@ def register():
         
         db.session.add(user)
         db.session.commit()
+        
+        # Enviar notificación por correo
+        user_data = {
+            'email': user.email,
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'is_doctor': user.is_doctor
+        }
+        send_registration_notification(user_data)
         
         # Si es doctor, crear entrada en la tabla de doctores
         if data.get('is_doctor', False):

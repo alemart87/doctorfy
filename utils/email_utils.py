@@ -4,46 +4,60 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app
 import datetime
+import logging
 
-def send_email(to_email, subject, html_content):
+logger = logging.getLogger(__name__)
+
+def send_email(subject, body, to_email=None, html=False):
     """
-    Función para enviar correos electrónicos
+    Envía un correo electrónico utilizando las credenciales SMTP configuradas.
+    
+    Args:
+        subject (str): Asunto del correo
+        body (str): Cuerpo del correo
+        to_email (str, optional): Destinatario. Si es None, se usa el email configurado en SMTP_USERNAME
+        html (bool, optional): Si el cuerpo es HTML. Por defecto es False.
+    
+    Returns:
+        bool: True si el correo se envió correctamente, False en caso contrario
     """
-    # Configuración del servidor SMTP
-    smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-    smtp_port = int(os.environ.get('SMTP_PORT', 587))
-    smtp_username = os.environ.get('SMTP_USERNAME')
-    smtp_password = os.environ.get('SMTP_PASSWORD')
-    
-    # Verificar que se hayan configurado las credenciales
-    if not smtp_username or not smtp_password:
-        print("Error: No se han configurado las credenciales SMTP")
-        return False
-    
-    # Crear el mensaje
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From'] = smtp_username
-    msg['To'] = to_email
-    
-    # Adjuntar el contenido HTML
-    html_part = MIMEText(html_content, 'html')
-    msg.attach(html_part)
-    
     try:
+        # Obtener configuración de correo desde variables de entorno
+        smtp_server = os.environ.get('SMTP_SERVER')
+        smtp_port = int(os.environ.get('SMTP_PORT', 587))
+        smtp_username = os.environ.get('SMTP_USERNAME')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        # Si no se especifica destinatario, usar el mismo remitente
+        if to_email is None:
+            to_email = smtp_username
+        
+        # Crear mensaje
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = smtp_username
+        msg['To'] = to_email
+        
+        # Adjuntar cuerpo del mensaje
+        if html:
+            msg.attach(MIMEText(body, 'html'))
+        else:
+            msg.attach(MIMEText(body, 'plain'))
+        
         # Conectar al servidor SMTP
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
         server.login(smtp_username, smtp_password)
         
-        # Enviar el correo
+        # Enviar correo
         server.sendmail(smtp_username, to_email, msg.as_string())
         server.quit()
         
-        print(f"Correo enviado a {to_email}")
+        logger.info(f"Correo enviado exitosamente a {to_email}")
         return True
+    
     except Exception as e:
-        print(f"Error al enviar correo: {str(e)}")
+        logger.error(f"Error al enviar correo: {str(e)}")
         return False
 
 def send_password_reset_email(to_email, reset_url):
@@ -89,4 +103,50 @@ def send_password_reset_email(to_email, reset_url):
     </html>
     """
     
-    return send_email(to_email, subject, html_content) 
+    return send_email(subject, html_content, to_email)
+
+def send_registration_notification(user_data):
+    """
+    Envía una notificación por correo cuando un nuevo usuario se registra.
+    
+    Args:
+        user_data (dict): Datos del usuario registrado
+    
+    Returns:
+        bool: True si el correo se envió correctamente, False en caso contrario
+    """
+    subject = "Nuevo usuario registrado en Doctorfy"
+    
+    # Crear cuerpo del mensaje en HTML
+    html_body = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            h1 {{ color: #7c4dff; }}
+            .info {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; }}
+            .footer {{ margin-top: 20px; font-size: 12px; color: #777; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Nuevo usuario registrado en Doctorfy</h1>
+            <p>Se ha registrado un nuevo usuario en la plataforma:</p>
+            
+            <div class="info">
+                <p><strong>Email:</strong> {user_data.get('email')}</p>
+                <p><strong>Fecha:</strong> {user_data.get('created_at')}</p>
+                <p><strong>Tipo de usuario:</strong> {"Médico" if user_data.get('is_doctor') else "Paciente"}</p>
+            </div>
+            
+            <div class="footer">
+                <p>Este es un mensaje automático del sistema Doctorfy.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Enviar correo a la dirección configurada
+    return send_email(subject, html_body, to_email="info@marketeapy.com", html=True) 
