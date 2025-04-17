@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Container, 
   Typography, 
@@ -35,9 +35,20 @@ const SubscriptionPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   
-  // Si el usuario es alemart87@gmail.com, redirigir al dashboard
-  if (user && user.email === 'alemart87@gmail.com') {
-    navigate('/dashboard');
+  // Redirigir usuarios según su estado
+  useEffect(() => {
+    // Si no hay usuario (no está logueado), redirigir a login
+    if (user === null) {
+      navigate('/login', { state: { from: '/subscription' } });
+    }
+    // Si el usuario es alemart87@gmail.com, redirigir al dashboard
+    else if (user && user.email === 'alemart87@gmail.com') {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+  
+  // Si el usuario es alemart87@gmail.com o no está logueado, no renderizar nada mientras se redirecciona
+  if (user === null || (user && user.email === 'alemart87@gmail.com')) {
     return null;
   }
   

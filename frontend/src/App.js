@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './context/AuthContext';
 import theme from './theme';
 import axios from 'axios';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -73,48 +74,48 @@ function App() {
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               
               <Route path="/medical-studies" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <MedicalStudies />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/medical-studies/:studyId" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <StudyDetails />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/nutrition" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <Nutrition />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/doctors" element={<DoctorDirectory />} />
               <Route path="/admin" element={
-                <PrivateRoute adminOnly>
+                <ProtectedRoute adminOnly>
                   <AdminPanel />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/profile" element={
-                <PrivateRoute>
+                <ProtectedRoute requireSubscription={false}>
                   <UserProfile />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/doctor/profile" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <DoctorProfile />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/nutrition-dashboard" element={<NutritionDashboard />} />
               
               {/* Rutas para médicos */}
               <Route path="/doctor/dashboard" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <DoctorDashboard />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/doctor/patient/:patientId/nutrition" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <PatientNutritionView />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               
               {/* Ruta para ver el perfil detallado de un médico */}
@@ -123,20 +124,24 @@ function App() {
               {/* Ruta para manejar URLs no encontradas */}
               <Route path="*" element={<Navigate to="/" replace />} />
 
-              <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
               <Route path="/guide" element={<GuidePage />} />
               {/* Comentar temporalmente la ruta del Chat Médico IA */}
               {/*
               <Route path="/medical-chat" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <MedicalChat />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               */}
               <Route path="/tixae-chatbot" element={
-                <PrivateRoute>
+                <ProtectedRoute>
                   <TixaeChatbot />
-                </PrivateRoute>
+                </ProtectedRoute>
               } />
               <Route path="/subscription" element={<SubscriptionPage />} />
             </Routes>
