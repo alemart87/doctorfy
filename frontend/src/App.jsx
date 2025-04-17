@@ -2,6 +2,8 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import MedicalChat from './pages/MedicalChat';
+import TixaeChatbot from './pages/TixaeChatbot';
+import FloatingChatButton from './components/FloatingChatButton';
 
 // Componente de carga
 const LoadingFallback = () => (
@@ -70,8 +72,10 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/404" element={<NotFound />} />
               <Route path="/medical-chat" element={<MedicalChat />} />
+              <Route path="/tixae-chatbot" element={<TixaeChatbot />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
+            <FloatingChatButton />
           </Suspense>
         </ErrorBoundary>
       </Router>

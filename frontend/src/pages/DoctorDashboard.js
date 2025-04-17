@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Paper, Button, Alert, CircularProgress, Grid, Card, CardContent, Divider } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { doctorsService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -9,6 +10,7 @@ const DoctorDashboard = () => {
   const [error, setError] = useState(null);
   const [subscribeUrl, setSubscribeUrl] = useState(null);
   const [subscribeLoading, setSubscribeLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubscribe = async () => {
     try {
@@ -112,6 +114,38 @@ const DoctorDashboard = () => {
                   </Typography>
                 </CardContent>
               </Card>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Herramientas de Asistencia
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Card sx={{ height: '100%' }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Psicólogo y Doctor Virtual
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Accede a nuestro asistente virtual especializado para consultas psicológicas y médicas.
+                      </Typography>
+                      <Button 
+                        variant="contained" 
+                        color="secondary" 
+                        fullWidth
+                        onClick={() => navigate('/tixae-chatbot')}
+                      >
+                        Acceder
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
             </Paper>
           </Grid>
         </Grid>

@@ -32,6 +32,27 @@ const setupAxios = () => {
     axios.defaults.baseURL = apiUrl;
   }
 
+  // Añadir interceptor para incluir el token en todas las solicitudes
+  axios.interceptors.request.use(
+    config => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Asegurarse de que headers exista
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${token}`;
+        
+        // Para depuración
+        console.log('Token incluido en solicitud:', config.url);
+      } else {
+        console.warn('No hay token disponible para la solicitud:', config.url);
+      }
+      return config;
+    },
+    error => {
+      return Promise.reject(error);
+    }
+  );
+
   // Interceptor global para manejar errores de red (común para ambos entornos)
   axios.interceptors.response.use(
     response => response,

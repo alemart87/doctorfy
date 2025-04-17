@@ -9,6 +9,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ChatIcon from '@mui/icons-material/Chat';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -44,10 +45,10 @@ const Dashboard = () => {
       color: '#9C27B0' // Púrpura
     },
     {
-      title: 'Chat Médico IA',
-      icon: <ChatIcon sx={{ fontSize: 60 }} />,
-      path: '/medical-chat',
-      color: '#673AB7' // Púrpura más claro
+      title: 'Psicólogo y Doctor Virtual',
+      icon: <PsychologyIcon sx={{ fontSize: 60 }} />,
+      path: '/tixae-chatbot',
+      color: '#E91E63' // Rosa
     },
     {
       title: 'Mi Perfil',
@@ -241,28 +242,28 @@ const Dashboard = () => {
         ))}
       </Grid>
       
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
         <Button
           variant="contained"
           size="large"
-          color="primary"
-          startIcon={<ChatIcon />}
-          onClick={() => navigate('/medical-chat')}
+          color="secondary"
+          startIcon={<PsychologyIcon />}
+          onClick={() => navigate('/tixae-chatbot')}
           sx={{
             py: 1.5,
             px: 4,
             borderRadius: '8px',
             fontWeight: 600,
             fontSize: '1.1rem',
-            boxShadow: '0 4px 20px rgba(25, 118, 210, 0.4)',
+            boxShadow: '0 4px 20px rgba(156, 39, 176, 0.4)',
             '&:hover': {
               transform: 'translateY(-3px)',
-              boxShadow: '0 6px 25px rgba(25, 118, 210, 0.6)',
+              boxShadow: '0 6px 25px rgba(156, 39, 176, 0.6)',
             },
             transition: 'all 0.3s ease',
           }}
         >
-          Consultar con Asistente Médico IA
+          Consultar con Psicólogo y Doctor Virtual
         </Button>
       </Box>
       

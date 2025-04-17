@@ -15,6 +15,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import GroupIcon from '@mui/icons-material/Group';
+import ChatIcon from '@mui/icons-material/Chat';
 
 const DashboardPage = () => {
   const theme = useTheme();
@@ -64,6 +65,13 @@ const DashboardPage = () => {
       href: "/settings", 
       icon: <SettingsIcon sx={largeIconStyle} />, 
       color: 'indigo',
+      labelSize: '1.8rem'
+    },
+    { 
+      label: "Psicólogo y Doctor Virtual", 
+      href: "/tixae-chatbot", 
+      icon: <ChatIcon sx={largeIconStyle} />, 
+      color: 'pink',
       labelSize: '1.8rem'
     },
   ];

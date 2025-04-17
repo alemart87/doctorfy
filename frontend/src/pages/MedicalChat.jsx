@@ -49,7 +49,7 @@ import { useAuth } from '../context/AuthContext';
 const MedicalChat = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, getToken, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [specialty, setSpecialty] = useState('general');
   const [message, setMessage] = useState('');
@@ -160,10 +160,18 @@ const MedicalChat = () => {
     setLoading(true);
     
     try {
+      // Obtener el token antes de hacer la solicitud
+      const token = localStorage.getItem('token');
+      
+      // Incluir el token en la solicitud
       const response = await axios.post('/api/chat/message', {
         message: userMessage.content,
         session_id: currentSession ? currentSession.id : null,
         specialty: specialty
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.data.success) {
@@ -285,6 +293,34 @@ const MedicalChat = () => {
       </Box>
     );
   };
+  
+  // Añadir este efecto al inicio del componente
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // No hay token, redirigir al login
+        navigate('/login');
+        return;
+      }
+      
+      // Configurar el token para todas las solicitudes
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      try {
+        // Verificar si el token es válido haciendo una solicitud de prueba
+        await axios.get('/api/auth/verify');
+      } catch (error) {
+        console.error('Error de autenticación:', error);
+        // Token inválido, redirigir al login
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        navigate('/login');
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
   
   return (
     <Box 

@@ -27,6 +27,7 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import ChatIcon from '@mui/icons-material/Chat';
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -74,6 +75,8 @@ const Navbar = () => {
     { text: 'Nutrición', path: '/nutrition' },
     { text: 'Dashboard Nutrición', path: '/nutrition-dashboard' },
     { text: 'Directorio de Médicos', path: '/doctors' },
+    { text: 'Chat Médico IA', path: '/medical-chat' },
+    { text: 'Psicólogo y Doctor Virtual', path: '/tixae-chatbot' },
   ];
 
   const authItems = user 

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './context/AuthContext';
 import theme from './theme';
+import axios from 'axios';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -29,6 +30,9 @@ import PatientNutritionView from './pages/PatientNutritionView';
 import DoctorProfileView from './pages/DoctorProfileView';
 import DashboardPage from './pages/DashboardPage';
 import GuidePage from './pages/GuidePage';
+import MedicalChat from './pages/MedicalChat';
+import TixaeChatbot from './pages/TixaeChatbot';
+import FloatingChatButton from './components/FloatingChatButton';
 
 // Componente para decidir si mostrar el navbar general
 const NavbarWrapper = ({ children }) => {
@@ -44,6 +48,14 @@ const NavbarWrapper = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    // Cargar el token al iniciar la aplicación
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -112,7 +124,21 @@ function App() {
 
               <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
               <Route path="/guide" element={<GuidePage />} />
+              {/* Comentar temporalmente la ruta del Chat Médico IA */}
+              {/*
+              <Route path="/medical-chat" element={
+                <PrivateRoute>
+                  <MedicalChat />
+                </PrivateRoute>
+              } />
+              */}
+              <Route path="/tixae-chatbot" element={
+                <PrivateRoute>
+                  <TixaeChatbot />
+                </PrivateRoute>
+              } />
             </Routes>
+            <FloatingChatButton />
           </NavbarWrapper>
         </Router>
       </AuthProvider>

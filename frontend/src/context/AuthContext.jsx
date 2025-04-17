@@ -29,3 +29,58 @@ const login = async (email, password) => {
 };
 
 // Similar para register 
+
+export const AuthProvider = ({ children }) => {
+  // Estado existente...
+  
+  // Función para obtener el token
+  const getToken = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Si no hay token, redirigir al login
+      logout();
+      return null;
+    }
+    return token;
+  };
+  
+  // Añadir esta función a AuthContext
+  const verifyToken = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return false;
+      }
+      
+      // Verificar el token con el backend
+      const response = await axios.get('/api/auth/verify', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      return response.data.valid;
+    } catch (error) {
+      console.error('Error al verificar token:', error);
+      // Si hay un error, probablemente el token no sea válido
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+      return false;
+    }
+  };
+  
+  // Incluir getToken en el valor del contexto
+  const value = {
+    user,
+    isLoading,
+    login,
+    logout,
+    register,
+    isAdmin,
+    getToken, // Añadir esta función
+    verifyToken, // Añadir esta función
+    // Otras funciones existentes...
+  };
+  
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}; 
