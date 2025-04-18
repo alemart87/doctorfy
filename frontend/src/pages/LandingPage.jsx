@@ -20,7 +20,7 @@ import {
   ListItemText
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/LandingNavbar';
 import { FloatingDisc, AnimatedBackgroundText, RotatingText } from '../components/AnimatedElements';
 import TrueFocus from '../components/TrueFocus';
@@ -1890,6 +1890,9 @@ const LandingPage = () => {
                       </Button>
                       <Button color="inherit" onClick={() => navigate('/login')}>
                         Iniciar Sesión
+                      </Button>
+                      <Button component={Link} to="/blog" color="inherit">
+                        Blog
                       </Button>
               </Box>
             </Grid>

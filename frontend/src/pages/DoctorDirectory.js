@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Grid, Card, CardContent, CardActions, Button, CircularProgress, Alert, TextField, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { doctorsService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorDirectory = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDoctors();
@@ -81,7 +83,12 @@ const DoctorDirectory = () => {
                   </CardContent>
                   <CardActions>
                     <Button size="small">Contactar</Button>
-                    <Button size="small">Ver Perfil</Button>
+                    <Button
+                      size="small"
+                      onClick={() => navigate(`/doctors/${doctor.id}`)}
+                    >
+                      Ver Perfil
+                    </Button>
                   </CardActions>
                 </Card>
               </Grid>

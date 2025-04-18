@@ -208,26 +208,41 @@ const UserProfile = () => {
     }
   };
   
+  // ─────────────────────  SUBIDA FOTO PERFIL  ────────────────────
+  const uploadPicture = async (file) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+
+    // usamos axios "crudo" para que no herede Content-Type:application/json
+    const token = localStorage.getItem('token');
+    return (await import('axios')).default.post(
+      '/api/profile/upload-profile-picture',
+      fd,
+      { headers: { Authorization:`Bearer ${token}` } }
+    );
+  };
+
   const handleProfilePictureUpdate = async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await api.post('/profile/upload-profile-picture', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // Actualizar la imagen de perfil en los datos del perfil
-      setProfileData({
-        ...profileData,
-        profile_picture: response.data.profile_picture
-      });
-      
+      const { data } = await uploadPicture(file);
+      setProfileData(prev => ({ ...prev, profile_picture:data.profile_picture }));
       setPictureDialogOpen(false);
     } catch (err) {
       console.error('Error al actualizar imagen de perfil:', err);
+    }
+  };
+
+  /*  El diálogo "Cambiar foto" usa este handler directo
+      (same lógica que la función anterior)                       */
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try{
+      const { data } = await uploadPicture(file);
+      setProfileData(prev => ({ ...prev, profile_picture:data.profile_picture }));
+    }catch(err){
+      console.error(err);
+      alert('Error al subir la imagen');
     }
   };
   

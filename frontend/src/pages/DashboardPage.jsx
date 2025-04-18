@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Container, Typography, Grid, useTheme, Paper, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Container, Typography, Grid, useTheme, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -7,7 +7,7 @@ import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
 import GlassIcons from '../components/GlassIcons';
 import { AnimatedBackgroundText } from '../components/AnimatedElements';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 
@@ -23,7 +23,8 @@ import PeopleIcon from '@mui/icons-material/People';
 
 const DashboardPage = () => {
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, token: ctxToken } = useAuth();
+  const navigate = useNavigate();
 
   // Aumentar el tamaño de los iconos
   const largeIconStyle = { fontSize: '4rem' }; // Iconos mucho más grandes
@@ -103,6 +104,11 @@ const DashboardPage = () => {
     hidden: { scale: 0.8, opacity: 0 },
     visible: { scale: 1, opacity: 1, transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.4 } },
   };
+
+  const [openBlog, setOpenBlog] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [loadingBlog, setLoadingBlog] = useState(false);
+  const [errorBlog, setErrorBlog] = useState('');
 
   return (
     // <ClickSpark> // Temporalmente comentar ClickSpark si el CSS no funciona
@@ -232,8 +238,66 @@ const DashboardPage = () => {
                 </Button>
               </Box>
             )}
+
+            {user && user.email === 'alemart87@gmail.com' && (
+              <Button variant="contained" sx={{ mt: 2 }} onClick={() => setOpenBlog(true)}>
+                Crear artículo de Blog
+              </Button>
+            )}
           </Container>
         </Box>
+
+        {/* Diálogo de creación */}
+        <Dialog open={openBlog} onClose={() => setOpenBlog(false)} fullWidth maxWidth="sm">
+          <DialogTitle>Nuevo artículo de Blog</DialogTitle>
+          <DialogContent>
+            {errorBlog && <Alert severity="error" sx={{ mb: 2 }}>{errorBlog}</Alert>}
+            <TextField
+              label="Prompt / Tema"
+              fullWidth
+              multiline
+              minRows={3}
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions sx={{ pr: 3, pb: 2 }}>
+            <Button onClick={() => setOpenBlog(false)}>Cancelar</Button>
+            <Button
+              variant="contained"
+              disabled={loadingBlog || !prompt.trim()}
+              onClick={async () => {
+                try {
+                  setLoadingBlog(true);
+                  setErrorBlog('');
+                  console.log("Enviando solicitud para crear blog...");
+                  const res = await axios.post(
+                    '/api/blog',
+                    { prompt },
+                    {
+                      headers: {
+                        // Usar solo la clave de API para simplificar
+                        'X-Admin-Key': 'doctorfy-admin-2024'
+                      }
+                    }
+                  );
+                  console.log("Respuesta recibida:", res.data);
+                  const slug = res.data.slug;
+                  setOpenBlog(false);
+                  navigate(`/blog/${slug}`);
+                } catch (err) {
+                  console.error("Error al crear blog:", err);
+                  setErrorBlog(err?.response?.data?.error || 'Error al crear');
+                } finally {
+                  setLoadingBlog(false);
+                }
+              }}
+              startIcon={loadingBlog && <CircularProgress size={18} />}
+            >
+              {loadingBlog ? 'Generando...' : 'Publicar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     // </ClickSpark> // Temporalmente comentar ClickSpark si el CSS no funciona
   );

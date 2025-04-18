@@ -1,6 +1,8 @@
-from flask import Flask, send_from_directory, jsonify, request, render_template, redirect
+from flask import Flask, send_from_directory, jsonify, request, render_template, redirect, Response
 from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    JWTManager, jwt_required, get_jwt_identity
+)
 from config import Config
 from flask_cors import CORS
 from models import db, MedicalStudy, User, Subscription
@@ -12,8 +14,9 @@ from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
+from routes.blog import blog_bp
 import os
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime, timezone, date
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import uuid
@@ -22,6 +25,7 @@ from utils.logging_config import setup_logging
 import stripe
 from utils.email_utils import send_email
 import json
+from xml.etree.ElementTree import Element, SubElement, tostring
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -124,6 +128,7 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
+    app.register_blueprint(blog_bp)
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader
@@ -272,10 +277,10 @@ def create_app(config_class=Config):
     @app.route('/api/webhook/stripe', methods=['POST'])
     def stripe_webhook():
         try:
-            payload = request.data
-            sig_header = request.headers.get('Stripe-Signature')
-            event = None
-            
+            payload     = request.data
+            sig_header  = request.headers.get('Stripe-Signature')
+            event       = None
+
             # Verificar la firma
             try:
                 event = stripe.Webhook.construct_event(
@@ -321,12 +326,12 @@ def create_app(config_class=Config):
                         if user:
                             user.subscription_active = False
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
-                
-                subscription.stripe_subscription_id = subscription_id
-                subscription.updated_at = datetime.now(timezone.utc)
-                db.session.commit()
-                app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
-        
+                    
+                    subscription.stripe_subscription_id = subscription_id
+                    subscription.updated_at = datetime.now(timezone.utc)
+                    db.session.commit()
+                    app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+            
             elif event_type == 'customer.subscription.deleted':
                 subscription_object = event['data']['object']
                 customer_id = subscription_object['customer']
@@ -635,6 +640,74 @@ def create_app(config_class=Config):
             'is_in_trial_period_method': user.is_in_trial_period(),
             'has_active_access_method': user.has_active_access()
         }), 200
+
+    # === SITEMAP.XML =================================================
+    @app.route('/sitemap.xml', methods=['GET'])
+    def sitemap():
+        """Devuelve sitemap conforme al protocolo XML de sitemaps.org"""
+        static_urls = [
+            ('landing',        '/'),                   # página principal
+            ('login',          '/login'),
+            ('register',       '/register'),
+            ('forgot',         '/forgot-password'),
+            ('docs',           '/guide'),
+            ('directory',      '/doctors'),
+            ('nutrition',      '/nutrition'),
+            ('pricing',        '/subscription'),
+        ]
+
+        urlset = Element('urlset', xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+        today  = date.today().isoformat()
+
+        # 1️⃣  URLs estáticas
+        for name, path in static_urls:
+            url = SubElement(urlset, 'url')
+            loc = SubElement(url, 'loc');  loc.text = request.url_root.rstrip('/') + path
+            lastmod = SubElement(url, 'lastmod'); lastmod.text = today
+            change = SubElement(url, 'changefreq'); change.text = 'monthly'
+            prio   = SubElement(url, 'priority');   prio.text = '0.8'
+
+        # 2️⃣  URLs dinámicas (ej: perfiles de doctor)
+        #    – Sólo añadimos los primeros 200 por simplicidad
+        for doc in User.query.filter_by(is_doctor=True).limit(200):
+            url = SubElement(urlset, 'url')
+            loc = SubElement(url, 'loc')
+            loc.text = f"{request.url_root.rstrip('/')}/doctors/{doc.id}"
+            lastmod = SubElement(url, 'lastmod'); lastmod.text = today
+            change = SubElement(url, 'changefreq'); change.text = 'weekly'
+            prio   = SubElement(url, 'priority');   prio.text = '0.6'
+
+        xml = tostring(urlset, encoding='utf-8', method='xml')
+        return Response(xml, mimetype='application/xml')
+
+    # === ROBOTS.TXT ==================================================
+    @app.route('/robots.txt')
+    def robots():
+        lines = [
+            "User-agent: *",
+            "Disallow:",
+            f"Sitemap: {request.url_root.rstrip('/')}/sitemap.xml"
+        ]
+        return Response("\n".join(lines), mimetype='text/plain')
+
+    # ──────────────────────────────────────────────────────────────
+    #  SERVIR ARCHIVOS SUBIDOS  (fotos de perfil, estudios, etc.)
+    #  Ej.:  /uploads/profile_pics/1234.jpg
+    # ──────────────────────────────────────────────────────────────
+    @app.route('/uploads/<path:filename>')
+    def uploaded_files(filename):
+        """Devuelve cualquier archivo dentro de la carpeta uploads/"""
+        uploads_dir = os.path.join(app.root_path, 'uploads')
+        return send_from_directory(uploads_dir, filename, as_attachment=False)
+
+    # ──  IGNORAR JWT SÓLO EN PRE‑FLIGHT (OPTIONS) ────────────────
+    @app.before_request
+    def skip_jwt_on_options():
+        if request.method == "OPTIONS":
+            # simplemente devolvemos 200; CORS se maneja por Flask‑CORS
+            return Response(status=200)
+        # el resto de métodos continúan normalmente;
+        # la verificación se hará únicamente en las rutas con @jwt_required
 
     return app
 

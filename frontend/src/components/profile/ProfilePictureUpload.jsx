@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -17,7 +17,17 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const fileInputRef = useRef(null);
+  const fileInputRef = React.useRef(null);
+  
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreview(null);
+      return;
+    }
+    const objUrl = URL.createObjectURL(selectedFile);
+    setPreview(objUrl);
+    return () => URL.revokeObjectURL(objUrl);
+  }, [selectedFile]);
   
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -29,7 +39,6 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
       }
       
       setSelectedFile(file);
-      setPreview(URL.createObjectURL(file));
       setError(null);
     }
   };
@@ -40,20 +49,18 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
       return;
     }
     
-    setLoading(true);
-    
-    // Crear FormData para enviar el archivo
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    
-    onSave(formData)
-      .finally(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        // enviamos EL ARCHIVO, no FormData
+        await Promise.resolve(onSave(selectedFile));
+      } finally {
         setLoading(false);
-        // Limpiar el estado al cerrar
         setSelectedFile(null);
         setPreview(null);
         setError(null);
-      });
+      }
+    })();
   };
   
   const handleClose = () => {

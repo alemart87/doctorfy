@@ -39,6 +39,8 @@ import MedicalChat from './pages/MedicalChat';
 import TixaeChatbot from './pages/TixaeChatbot';
 import SubscriptionPage from './pages/SubscriptionPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -164,6 +166,8 @@ function App() {
                         <AdminUsersPage />
                       </ProtectedRoute>
                     } />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<BlogPost />} />
                   </Routes>
                 </Suspense>
                 <FloatingChatButton />
