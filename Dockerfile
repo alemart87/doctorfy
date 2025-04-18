@@ -17,8 +17,11 @@ RUN apt-get update && apt-get install -y \
     && pip install --no-cache-dir gunicorn \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el resto del código
+# Copiar el resto del código (incluye la carpeta scripts)
 COPY . .
+
+# Ejecutar el generador de sitemap
+RUN python scripts/generate_sitemap.py
 
 # Crear directorios necesarios
 RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
@@ -31,7 +34,5 @@ ENV FLASK_ENV=production
 # Variable personalizada que puedes usar en app.py
 ENV SERVE_FRONTEND=false
 
-# Comando para ejecutar la aplicación
+# Comando para ejecutar la aplicación (DEBE quedar el último)
 CMD gunicorn --bind 0.0.0.0:$PORT app:app
-
-RUN python scripts/generate_sitemap.py 
