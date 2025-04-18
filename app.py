@@ -174,16 +174,18 @@ def create_app(config_class=Config):
                 'is_admin': True
             })
         
-        # Verificar período de prueba directamente
-        now = datetime.now(timezone.utc)
+        # Verificar período de prueba
+        now_naive = datetime.utcnow()                    # ← sin tz
         in_trial = False
         trial_remaining = None
         
         if user.trial_start and user.trial_end and not user.trial_used:
-            if now >= user.trial_start and now <= user.trial_end:
+            start = user.trial_start.replace(tzinfo=None)
+            end   = user.trial_end.replace(tzinfo=None)
+            if start <= now_naive <= end:
                 in_trial = True
-                delta = user.trial_end - now
-                trial_remaining = int(delta.total_seconds() / 3600)  # Convertir a horas
+                delta = end - now_naive
+                trial_remaining = int(delta.total_seconds() / 3600)
         
         # Verificar suscripción
         subscription = Subscription.query.filter_by(user_id=user.id).first()
@@ -206,7 +208,8 @@ def create_app(config_class=Config):
             'trial_remaining': trial_remaining,
             'trial_end': user.trial_end.isoformat() if user.trial_end else None,
             'trial_start': user.trial_start.isoformat() if user.trial_start else None,
-            'trial_used': user.trial_used
+            'trial_used': user.trial_used,
+            'current_time': now_naive.isoformat()
         }), 200
 
     # Ruta para iniciar el proceso de suscripción
@@ -544,7 +547,7 @@ def create_app(config_class=Config):
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
-        now = datetime.now(timezone.utc)
+        now_naive = datetime.utcnow()                    # ← sin tz
         
         return jsonify({
             'user_id': user.id,
@@ -552,7 +555,7 @@ def create_app(config_class=Config):
             'trial_start': user.trial_start.isoformat() if user.trial_start else None,
             'trial_end': user.trial_end.isoformat() if user.trial_end else None,
             'trial_used': user.trial_used,
-            'current_time': now.isoformat(),
+            'current_time': now_naive.isoformat(),
             'is_in_trial_period': user.is_in_trial_period(),
             'subscription_active': user.subscription_active,
             'has_active_access': user.has_active_access()
@@ -573,9 +576,9 @@ def create_app(config_class=Config):
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
         # Configurar período de prueba de 2 días desde ahora
-        now = datetime.now(timezone.utc)
-        user.trial_start = now
-        user.trial_end = now + timedelta(days=2)
+        now_naive = datetime.utcnow()                    # ← sin tz
+        user.trial_start = now_naive
+        user.trial_end = now_naive + timedelta(days=2)
         user.trial_used = False
         
         db.session.commit()
@@ -599,15 +602,17 @@ def create_app(config_class=Config):
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
         # Verificar período de prueba
-        now = datetime.now(timezone.utc)
+        now_naive = datetime.utcnow()                    # ← sin tz
         in_trial = False
         trial_remaining = None
         
         if user.trial_start and user.trial_end and not user.trial_used:
-            if now >= user.trial_start and now <= user.trial_end:
+            start = user.trial_start.replace(tzinfo=None)
+            end   = user.trial_end.replace(tzinfo=None)
+            if start <= now_naive <= end:
                 in_trial = True
-                delta = user.trial_end - now
-                trial_remaining = int(delta.total_seconds() / 3600)  # Convertir a horas
+                delta = end - now_naive
+                trial_remaining = int(delta.total_seconds() / 3600)
         
         # Verificar suscripción
         subscription = Subscription.query.filter_by(user_id=user.id).first()
@@ -632,7 +637,7 @@ def create_app(config_class=Config):
                 'trial_start': user.trial_start.isoformat() if user.trial_start else None,
                 'trial_end': user.trial_end.isoformat() if user.trial_end else None,
                 'trial_used': user.trial_used,
-                'current_time': now.isoformat(),
+                'current_time': now_naive.isoformat(),
                 'in_trial': in_trial,
                 'trial_remaining_hours': trial_remaining
             },
