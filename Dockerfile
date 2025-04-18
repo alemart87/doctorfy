@@ -17,8 +17,12 @@ RUN apt-get update && apt-get install -y \
     && pip install --no-cache-dir gunicorn \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el resto del código (incluye la carpeta scripts)
+# Copiar todo lo que hay en doctorfy/
 COPY . .
+
+# Copiar la carpeta scripts que está junto a doctorfy/
+# (ruta relativa al contexto de construcción, es decir, al repo raíz)
+COPY ../scripts ./scripts
 
 # Ejecutar el generador de sitemap
 RUN python scripts/generate_sitemap.py
