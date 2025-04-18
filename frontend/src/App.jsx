@@ -4,6 +4,7 @@ import './App.css';
 import MedicalChat from './pages/MedicalChat';
 import TixaeChatbot from './pages/TixaeChatbot';
 import FloatingChatButton from './components/FloatingChatButton';
+import IntroModal from './components/IntroModal';
 
 // Componente de carga
 const LoadingFallback = () => (
@@ -58,6 +59,9 @@ function App() {
     return (
       <Router>
         <ErrorBoundary>
+          {/* Pop‑up global: se muestra incluso durante la carga */}
+          <IntroModal />
+
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />

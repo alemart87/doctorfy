@@ -2091,26 +2091,7 @@ const LandingPage = () => {
                         <ListItemText primary={item} />
                       </ListItem>
                     ))}
-                  </List>
-                  
-                  <Button 
-                    variant="contained" 
-                    fullWidth
-                    component="a"
-                    href="/subscription"
-                    sx={{
-                      mt: 2,
-                      py: 1,
-                      fontWeight: 'bold',
-                      borderRadius: 2
-                    }}
-                  >
-                    Comenzar Ahora
-                  </Button>
-                  
-                  <Typography variant="body2" align="center" sx={{ mt: 1, opacity: 0.7 }}>
-                    Sin compromiso. Cancela cuando quieras.
-                  </Typography>
+                  </List>              
                 </Paper>
               </Box>
             </Grid>

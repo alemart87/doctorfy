@@ -122,32 +122,26 @@ def get_analyses():
         return jsonify({'error': str(e)}), 500
 
 @nutrition_bp.route('/analyses/<int:analysis_id>/image', methods=['GET'])
-@jwt_required()
 def get_analysis_image(analysis_id):
-    """Obtener la imagen de un análisis nutricional"""
+    """
+    Devuelve la imagen asociada a un análisis nutricional sin requerir token.
+    (Si deseas mantener cierta seguridad, podrías verificar un hash temporal
+     o que la imagen exista, pero no se pedirá JWT.)
+    """
     try:
-        user_id = get_jwt_identity()
-        
         analysis = NutritionAnalysis.query.get(analysis_id)
+        if not analysis or not analysis.file_path:
+            return jsonify({'error': 'Imagen no encontrada'}), 404
         
-        if not analysis:
-            return jsonify({'error': 'Análisis no encontrado'}), 404
+        # Ruta absoluta al archivo
+        img_path = os.path.join(current_app.config['UPLOAD_FOLDER'], analysis.file_path)
+        if not os.path.exists(img_path):
+            return jsonify({'error': 'Archivo no encontrado'}), 404
         
-        # Verificar que el usuario tenga acceso a este análisis
-        if analysis.user_id != user_id:
-            return jsonify({'error': 'No tienes permiso para ver este análisis'}), 403
-        
-        # Construir la ruta completa al archivo
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], analysis.file_path)
-        
-        # Verificar que el archivo exista
-        if not os.path.exists(file_path):
-            return jsonify({'error': 'Archivo de imagen no encontrado'}), 404
-        
-        # Enviar el archivo como respuesta
-        return send_file(file_path)
+        return send_file(img_path)
+    
     except Exception as e:
-        current_app.logger.error(f"Error al obtener imagen: {str(e)}")
+        current_app.logger.error(f"Error al servir imagen del análisis: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @nutrition_bp.route('/summary/<string:log_date_str>', methods=['GET'])

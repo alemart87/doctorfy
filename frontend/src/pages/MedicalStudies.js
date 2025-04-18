@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Container, Typography, Button, Box, Paper, Grid, Card, CardContent, CardActions, CircularProgress, Alert, TextField, MenuItem, Snackbar } from '@mui/material';
+import { Container, Typography, Button, Box, Paper, CircularProgress,
+  TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  IconButton, useTheme, useMediaQuery
+} from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import AnimatedList from '../components/AnimatedList';
-import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaFilter, FaTimes } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaFilter, FaTimes, FaFileAlt } from 'react-icons/fa';
 import '../components/AnimatedList.css';
 
 // Añadir esta función fuera del componente para que esté disponible en todo el archivo
@@ -19,21 +21,20 @@ const getStudyTypeName = (type) => {
   }
 };
 
-// Añadir esta función para obtener la URL correcta de las imágenes
+// Devuelve la URL completa (backend sirve en /api/media/uploads/<nombre>)
 const getImageUrl = (imagePath) => {
-  // Si estamos en desarrollo local, usamos el proxy
+  if (!imagePath) return null;
   if (process.env.NODE_ENV === 'development') {
-    return `/api/media/uploads/${imagePath}`;
+    return `/api/media/uploads/medical_studies/${imagePath}`;
   }
-  // Si estamos en producción, usamos la URL completa
-  return `${process.env.REACT_APP_API_URL}/api/media/uploads/${imagePath}`;
+  return `${process.env.REACT_APP_API_URL}/api/media/uploads/medical_studies/${imagePath}`;
 };
 
 const MedicalStudies = () => {
   const [studies, setStudies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [studyType, setStudyType] = useState('general');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -45,6 +46,8 @@ const MedicalStudies = () => {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   
   const navigate = useNavigate();
+  const theme     = useTheme();
+  const isMobile  = useMediaQuery(theme.breakpoints.down('sm'));   //  ≤ 600 px
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
@@ -53,8 +56,13 @@ const MedicalStudies = () => {
       'application/pdf': ['.pdf'],
     },
     onDrop: acceptedFiles => {
-      setSelectedFile(acceptedFiles[0]);
+      // Solo las 4 primeras imágenes (descarta el resto)
+      setSelectedFiles(prev =>
+        [...prev, ...acceptedFiles]
+          .slice(0, 4));      // máximo 4
     },
+    maxFiles: 4,
+    multiple: true,
   });
 
   const fetchStudies = useCallback(async () => {
@@ -198,15 +206,17 @@ const MedicalStudies = () => {
   }, []);
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
+    if (!e.target.files) return;
+    const filesArr = Array.from(e.target.files);
+    setSelectedFiles(prev =>
+      [...prev, ...filesArr]
+        .slice(0, 4));   // máximo 4
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
+      setSelectedFiles(prev => [...prev, e.dataTransfer.files[0]]);
     }
   };
 
@@ -215,10 +225,10 @@ const MedicalStudies = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFiles.length) return;
 
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    selectedFiles.forEach((f) => formData.append('files', f));
     formData.append('study_type', studyType);
 
     try {
@@ -237,7 +247,7 @@ const MedicalStudies = () => {
         }
       });
 
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setStudyType('general');
       fetchStudies();
       showNotification('Estudio subido con éxito', 'success');
@@ -278,48 +288,58 @@ const MedicalStudies = () => {
   };
 
   const handleDownloadStudy = async (study, e) => {
-    e.stopPropagation();
+    e?.stopPropagation();
     try {
       const token = localStorage.getItem('token');
-      
-      // Realizar una solicitud para obtener el archivo
-      const response = await axios.get(`/api/medical-studies/studies/${study.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob' // Importante para recibir datos binarios
-      });
-      
-      // Crear un objeto URL para el blob
+      const response = await axios.get(
+        `/api/medical-studies/studies/${study.id}/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+
+      const disposition = response.headers['content-disposition'] || '';
+      let fileName = `estudio_${study.id}`;
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      if (match) fileName = decodeURIComponent(match[1]);
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      
-      // Crear un elemento <a> temporal
       const link = document.createElement('a');
       link.href = url;
-      
-      // Extraer el nombre del archivo de la ruta
-      const fileName = study.file_path.split('/').pop() || `estudio_${study.id}`;
       link.setAttribute('download', fileName);
-      
-      // Añadir el enlace al documento
       document.body.appendChild(link);
-      
-      // Simular clic en el enlace
       link.click();
-      
-      // Limpiar
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
-      
-      showNotification('Descarga iniciada', 'success');
-    } catch (error) {
-      console.error('Error al descargar el estudio:', error);
-      showNotification('Error al descargar el estudio', 'error');
-      
-      // Intentar método alternativo si falla
-      try {
-        window.open(`/api/medical-studies/studies/${study.id}/download`, '_blank');
-      } catch (fallbackError) {
-        console.error('Error en método alternativo de descarga:', fallbackError);
-      }
+    } catch (err) {
+      console.error('Descarga falló:', err);
+      showNotification('Error al descargar', 'error');
+    }
+  };
+
+  const handleDownloadInterpretation = async (study, e) => {
+    e?.stopPropagation();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `/api/medical-studies/studies/${study.id}/interpretation/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `interpretacion_estudio_${study.id}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Error al descargar interpretación:', err);
+      showNotification('Error al descargar interpretación', 'error');
     }
   };
 
@@ -345,156 +365,6 @@ const MedicalStudies = () => {
 
   const handleCloseNotification = () => {
     setNotification({...notification, open: false});
-  };
-
-  const renderStudyItem = (study, index, isSelected) => {
-    const isPending = !study.interpretation || study.interpretation.trim() === '';
-    const date = formatDate(study.created_at);
-    
-    // Determinar el icono según el tipo de estudio
-    const getStudyTypeIcon = () => {
-      switch(study.study_type.toLowerCase()) {
-        case 'xray': return '🔬';
-        case 'mri': return '🧠';
-        case 'ct': return '🔄';
-        case 'ultrasound': return '🔊';
-        case 'bloodwork': return '🩸';
-        default: return '📋';
-      }
-    };
-    
-    // Obtener un color según el tipo de estudio para mejor identificación visual
-    const getStudyTypeColor = () => {
-      switch(study.study_type.toLowerCase()) {
-        case 'xray': return '#3498db';
-        case 'mri': return '#9b59b6';
-        case 'ct': return '#e74c3c';
-        case 'ultrasound': return '#2ecc71';
-        case 'bloodwork': return '#e67e22';
-        default: return '#4a90e2';
-      }
-    };
-    
-    return (
-      <div className={`study-item ${isSelected ? 'selected' : ''}`} style={{ position: 'relative' }}>
-        <div className="study-info" style={{ paddingBottom: '50px' }}>
-          <div 
-            className="study-type" 
-            style={{color: getStudyTypeColor()}}
-          >
-            <span className="study-type-icon">{getStudyTypeIcon()}</span>
-            {getStudyTypeName(study.study_type)}
-            {study.name && <span className="study-name"> - {study.name}</span>}
-          </div>
-          <div className="study-date">{date}</div>
-          <div className={`study-status ${isPending ? 'status-pending' : 'status-completed'}`}>
-            {isPending ? 'Pendiente de interpretación' : 'Interpretado'}
-          </div>
-          
-          {!isPending && (
-            <div className="study-interpretation-preview">
-              {study.interpretation.substring(0, 100)}...
-            </div>
-          )}
-        </div>
-        <div className="study-item-actions" style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '8px',
-          padding: '6px 10px',
-          position: 'absolute',
-          bottom: '12px',
-          right: '12px',
-          zIndex: 10,
-          visibility: 'visible',
-          opacity: 1,
-          background: 'rgba(0, 0, 0, 0.7)',
-          borderRadius: '20px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-        }}>
-          <button 
-            className="mobile-visible-button view-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewStudy(study);
-            }}
-            style={{
-              minWidth: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 120, 255, 0.2)',
-              border: '2px solid rgba(0, 120, 255, 0.4)',
-              color: '#0078ff',
-              cursor: 'pointer',
-              padding: '0',
-              margin: '0 3px',
-              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
-              visibility: 'visible',
-              opacity: 1
-            }}
-          >
-            <FaEye style={{ fontSize: '16px' }} />
-          </button>
-          
-          <button 
-            className="mobile-visible-button download-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownloadStudy(study);
-            }}
-            style={{
-              minWidth: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(46, 204, 113, 0.2)',
-              border: '2px solid rgba(46, 204, 113, 0.4)',
-              color: '#2ecc71',
-              cursor: 'pointer',
-              padding: '0',
-              margin: '0 3px',
-              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
-              visibility: 'visible',
-              opacity: 1
-            }}
-          >
-            <FaDownload style={{ fontSize: '16px' }} />
-          </button>
-          
-          <button 
-            className="mobile-visible-button analyze-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAnalyzeStudy(study);
-            }}
-            style={{
-              minWidth: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255, 183, 77, 0.2)',
-              border: '2px solid rgba(255, 183, 77, 0.4)',
-              color: '#ffb74d',
-              cursor: 'pointer',
-              padding: '0',
-              margin: '0 3px',
-              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
-              visibility: 'visible',
-              opacity: 1
-            }}
-          >
-            <FaRobot style={{ fontSize: '16px' }} />
-          </button>
-        </div>
-      </div>
-    );
   };
 
   const filteredStudies = useMemo(() => {
@@ -612,6 +482,8 @@ const MedicalStudies = () => {
     </div>
   );
 
+  studies.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+
   return (
     <div className="medical-studies-container">
       <div className="medical-studies-header">
@@ -638,21 +510,25 @@ const MedicalStudies = () => {
         <h3 className="upload-text">Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo</h3>
         <p className="upload-formats">Formatos aceptados: JPG, PNG, TXT, PDF</p>
         
-        <input 
-          type="file" 
-          id="file-upload" 
-          onChange={handleFileChange} 
+        <input
+          type="file"
+          id="file-upload"
+          multiple
+          onChange={handleFileChange}
           style={{ display: 'none' }}
-          accept=".jpg,.jpeg,.png,.pdf,.txt"
+          accept=".jpg,.jpeg,.png"
         />
         
         <label htmlFor="file-upload" className="upload-button">
           Seleccionar archivo
         </label>
         
-        {selectedFile && (
+        {selectedFiles.length > 0 && (
           <div className="selected-file-container">
-            <p className="selected-file-name">Archivo seleccionado: {selectedFile.name}</p>
+             <p className="selected-file-name">
+                {selectedFiles.length} archivo(s) seleccionado(s)
+                {selectedFiles.length > 1 && ' (máx. 4)'}
+             </p>
             
             <div className="study-type-selector">
               <label htmlFor="study-type">
@@ -719,15 +595,79 @@ const MedicalStudies = () => {
             </div>
           )}
           
-          <AnimatedList
-            items={filteredStudies}
-            onItemSelect={handleViewStudy}
-            showGradients={true}
-            enableArrowNavigation={true}
-            displayScrollbar={true}
-            renderItem={renderStudyItem}
-            className="studies-list"
-          />
+          <TableContainer component={Paper}
+            sx={{ bgcolor:'#0a0a0a', borderRadius:2, px:1, overflowX:'auto' }}
+          >
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ '& th': { color:'#00bfff', fontWeight:700 }}}>
+                  <TableCell align="center">#</TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Fecha</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Interpretación</TableCell>
+                  <TableCell align="center">Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {filteredStudies.map((study, idx) => (
+                  <TableRow key={study.id} hover
+                    sx={{ '&:hover': { backgroundColor:'#111' } }}
+                  >
+                    <TableCell align="center">{idx + 1}</TableCell>
+                    <TableCell>{getStudyTypeName(study.study_type)}</TableCell>
+                    <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>
+                      {formatDate(study.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      {study.interpretation ? (
+                        <span style={{ color:'#2ecc71', fontWeight:600 }}>Interpretado</span>
+                      ) : (
+                        <span style={{ color:'#f39c12', fontWeight:600 }}>Pendiente</span>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth:250, display:{ xs:'none', sm:'table-cell' }}}>
+                      {study.interpretation
+                        ? study.interpretation.slice(0, 60) + '…'
+                        : '—'}
+                    </TableCell>
+
+                    {/* Acciones */}
+                    <TableCell align="center">
+                      <Box sx={{ display:'flex', justifyContent:'center', gap:1 }}>
+                        <IconButton size="small" color="primary"
+                          onClick={(e)=>{e.stopPropagation(); handleViewStudy(study);} }
+                          sx={{ bgcolor:'#2196f322' }} title="Ver estudio">
+                          <FaEye style={{ color:'#2196f3' }}/>
+                        </IconButton>
+
+                        <IconButton size="small" color="success"
+                          onClick={(e)=>handleDownloadStudy(study,e)}
+                          sx={{ bgcolor:'#4caf5030' }} title="Descargar estudio">
+                          <FaDownload style={{ color:'#4caf50' }}/>
+                        </IconButton>
+
+                        <IconButton size="small"
+                          onClick={(e)=>{e.stopPropagation(); handleAnalyzeStudy(study);} }
+                          sx={{ bgcolor:'#9c27b030' }} title="Analizar con IA">
+                          <FaRobot style={{ color:'#9c27b0' }}/>
+                        </IconButton>
+
+                        {study.interpretation && (
+                          <IconButton size="small"
+                            onClick={(e)=>handleDownloadInterpretation(study,e)}
+                            sx={{ bgcolor:'#ffc10733' }} title="Descargar interpretación">
+                            <FaFileAlt style={{ color:'#ffc107' }}/>
+                          </IconButton>
+                        )}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </>
       ) : studies.length > 0 ? (
         <div className="no-results-message">

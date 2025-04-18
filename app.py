@@ -13,7 +13,7 @@ from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
 import os
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import uuid
@@ -155,7 +155,7 @@ def create_app(config_class=Config):
     @jwt_required()
     def check_subscription_status():
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
@@ -170,7 +170,7 @@ def create_app(config_class=Config):
             })
         
         # Verificar período de prueba directamente
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         in_trial = False
         trial_remaining = None
         
@@ -209,7 +209,7 @@ def create_app(config_class=Config):
     @jwt_required()
     def create_subscription():
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         # Si el usuario es alemart87@gmail.com, darle acceso automáticamente
         if user.email == 'alemart87@gmail.com':
@@ -260,7 +260,7 @@ def create_app(config_class=Config):
     @jwt_required()
     def customer_portal():
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         # Redirigir al portal de clientes de Stripe
         return jsonify({
@@ -272,9 +272,9 @@ def create_app(config_class=Config):
     @app.route('/api/webhook/stripe', methods=['POST'])
     def stripe_webhook():
         try:
-            # Obtener el payload y la firma
             payload = request.data
             sig_header = request.headers.get('Stripe-Signature')
+            event = None
             
             # Verificar la firma
             try:
@@ -309,7 +309,7 @@ def create_app(config_class=Config):
                         subscription.status = 'active'
                         
                         # Actualizar también el campo subscription_active del usuario
-                        user = User.query.get(subscription.user_id)
+                        user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = True
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
@@ -317,16 +317,16 @@ def create_app(config_class=Config):
                         subscription.status = 'inactive'
                         
                         # Actualizar también el campo subscription_active del usuario
-                        user = User.query.get(subscription.user_id)
+                        user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = False
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
-                    
-                    subscription.stripe_subscription_id = subscription_id
-                    subscription.updated_at = datetime.utcnow()
-                    db.session.commit()
-                    app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
-            
+                
+                subscription.stripe_subscription_id = subscription_id
+                subscription.updated_at = datetime.now(timezone.utc)
+                db.session.commit()
+                app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+        
             elif event_type == 'customer.subscription.deleted':
                 subscription_object = event['data']['object']
                 customer_id = subscription_object['customer']
@@ -339,12 +339,12 @@ def create_app(config_class=Config):
                     subscription.status = 'canceled'
                     
                     # Actualizar también el campo subscription_active del usuario
-                    user = User.query.get(subscription.user_id)
+                    user = db.session.get(User, subscription.user_id)
                     if user:
                         user.subscription_active = False
                         app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
                     
-                    subscription.updated_at = datetime.utcnow()
+                    subscription.updated_at = datetime.now(timezone.utc)
                     db.session.commit()
                     app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
             
@@ -395,10 +395,10 @@ def create_app(config_class=Config):
                         # Actualizar la suscripción existente
                         subscription.stripe_subscription_id = subscription_id
                         subscription.status = 'active'
-                        subscription.updated_at = datetime.utcnow()
+                        subscription.updated_at = datetime.now(timezone.utc)
                         
                         # Actualizar también el campo subscription_active del usuario
-                        user = User.query.get(subscription.user_id)
+                        user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = True
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
@@ -420,8 +420,8 @@ def create_app(config_class=Config):
                                     stripe_customer_id=customer_id,
                                     stripe_subscription_id=subscription_id,
                                     status='active',
-                                    created_at=datetime.utcnow(),
-                                    updated_at=datetime.utcnow()
+                                    created_at=datetime.now(timezone.utc),
+                                    updated_at=datetime.now(timezone.utc)
                                 )
                                 
                                 # Actualizar el campo subscription_active del usuario
@@ -456,7 +456,7 @@ def create_app(config_class=Config):
                                                 <p><strong>Email:</strong> {user.email}</p>
                                                 <p><strong>ID:</strong> {user.id}</p>
                                                 <p><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</p>
-                                                <p><strong>Fecha:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                                                <p><strong>Fecha:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}</p>
                                                 <p><strong>Customer ID de Stripe:</strong> {customer_id}</p>
                                             </div>
                                             
@@ -489,7 +489,7 @@ def create_app(config_class=Config):
                         subscription.status = status
                         
                         # Actualizar también el campo subscription_active del usuario
-                        user = User.query.get(subscription.user_id)
+                        user = db.session.get(User, subscription.user_id)
                         if user:
                             if status == 'active':
                                 user.subscription_active = True
@@ -498,7 +498,7 @@ def create_app(config_class=Config):
                                 user.subscription_active = False
                                 app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
                         
-                        subscription.updated_at = datetime.utcnow()
+                        subscription.updated_at = datetime.now(timezone.utc)
                         db.session.commit()
                         app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
             
@@ -513,12 +513,12 @@ def create_app(config_class=Config):
                         subscription.status = 'canceled'
                         
                         # Actualizar también el campo subscription_active del usuario
-                        user = User.query.get(subscription.user_id)
+                        user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = False
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
                         
-                        subscription.updated_at = datetime.utcnow()
+                        subscription.updated_at = datetime.now(timezone.utc)
                         db.session.commit()
                         app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
             
@@ -534,12 +534,12 @@ def create_app(config_class=Config):
     @jwt_required()
     def debug_trial_status():
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         return jsonify({
             'user_id': user.id,
@@ -557,18 +557,18 @@ def create_app(config_class=Config):
     @jwt_required()
     def force_trial_access(user_id):
         current_user_id = get_jwt_identity()
-        admin_user = User.query.get(current_user_id)
+        admin_user = db.session.get(User, current_user_id)
         
         # Solo permitir a alemart87@gmail.com
         if not admin_user or admin_user.email != 'alemart87@gmail.com':
             return jsonify({'error': 'No autorizado'}), 403
         
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
         # Configurar período de prueba de 2 días desde ahora
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         user.trial_start = now
         user.trial_end = now + timedelta(days=2)
         user.trial_used = False
@@ -588,13 +588,13 @@ def create_app(config_class=Config):
     def debug_subscription_check():
         """Endpoint para depurar la verificación de suscripción"""
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
         
         # Verificar período de prueba
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         in_trial = False
         trial_remaining = None
         

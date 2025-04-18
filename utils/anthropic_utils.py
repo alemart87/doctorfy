@@ -33,9 +33,12 @@ def get_anthropic_client():
     return client
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-ANTHROPIC_VERSION = "2023-06-01" # Versión de la API de Anthropic
-MAX_RETRIES = 3 # Número máximo de reintentos
-INITIAL_BACKOFF = 1 # Tiempo inicial de espera en segundos
+ANTHROPIC_VERSION = "2023-06-01"  # versión de la API
+MAX_RETRIES = 3
+INITIAL_BACKOFF = 1
+
+# NUEVO – máx. tokens de salida
+MAX_TOKENS = 7000
 
 def extract_text_from_pdf(pdf_path):
     """
@@ -218,7 +221,7 @@ async def analyze_medical_study_with_anthropic(file_path, study_type="general", 
         try:
             message = anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=2048,
+                max_tokens=MAX_TOKENS,
                 messages=[
                     {
                         "role": "user",
@@ -273,7 +276,7 @@ async def analyze_medical_study_with_anthropic(file_path, study_type="general", 
                 try:
                     message = anthropic_client.messages.create(
                         model="claude-3-haiku-20240307",  # Modelo más ligero
-                        max_tokens=2048,
+                        max_tokens=MAX_TOKENS,
                         messages=[
                             {
                                 "role": "user",
@@ -580,7 +583,23 @@ def analyze_food_image_with_anthropic(file_path):
             "content": [
                 {
                     "type": "text",
-                    "text": "Eres un nutricionista experto. Analiza esta imagen de comida y proporciona la siguiente información:\n1. Identificación de los alimentos\n2. Calorías aproximadas\n3. Macronutrientes (proteínas, carbohidratos, grasas)\n4. Valoración nutricional\n5. Recomendaciones\n\nFormatea la respuesta de manera clara y estructurada."
+                    "text": (
+                      "Eres un nutricionista experto. Analiza esta imagen de comida y devuelve EXCLUSIVAMENTE un JSON "
+                      "válido con la siguiente estructura (sin explicaciones adicionales):\n\n"
+                      "{\n"
+                      '  "food": ["Tortilla", "Ensalada", ...],\n'
+                      '  "calories": 550,\n'
+                      '  "protein_g": 32,\n'
+                      '  "carbs_g": 45,\n'
+                      '  "fat_g": 18,\n'
+                      '  "fiber_g": 8,\n'
+                      '  "sugars_g": 10,\n'
+                      '  "sodium_mg": 720,\n'
+                      '  "quality": "Buena / Regular / Mala",\n'
+                      '  "recommendations": "Texto breve…"\n'
+                      "}\n\n"
+                      "Si algún dato no puede estimarse devuelve 0 (para números) o una cadena vacía."
+                    )
                 },
                 {
                     "type": "image",
@@ -598,7 +617,7 @@ def analyze_food_image_with_anthropic(file_path):
         try:
             response = client.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=4000,
+                max_tokens=MAX_TOKENS,
                 messages=messages
             )
             print("Respuesta recibida de Anthropic.")
@@ -645,3 +664,69 @@ def analyze_food_image_with_anthropic(file_path):
         ## Error
         No se pudo analizar la imagen debido a un error. Por favor, inténtelo de nuevo más tarde.
         """ 
+
+# ----------------------------------------------------------------------------------
+# Nuevo analizador "GENÉRICO"
+# ----------------------------------------------------------------------------------
+
+def analyze_general_image_with_anthropic(image_path: str) -> str:
+    """
+    Analiza cualquier tipo de estudio médico (radiografía, ecografía, hemograma,
+    resonancia, etc.) y devuelve:
+      1. Descripción / hallazgos relevantes.
+      2. Posibles diagnósticos diferenciales (⚠️ no sustituye la valoración médica).
+      3. Recomendaciones o siguientes pasos sugeridos.
+    """
+    try:
+        client = get_anthropic_client()
+
+        # preparar la imagen (reutilizamos compresión & base64)
+        compressed_path = compress_image_for_anthropic(image_path)
+        with open(compressed_path, "rb") as img_file:
+            image_data = base64.b64encode(img_file.read()).decode("utf-8")
+
+        mime_type = get_mime_type(compressed_path) or "image/jpeg"
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Eres un médico especialista. Analiza la imagen que recibes "
+                            "y genera un informe estructurado en español:"
+                            "\n\n1. Tipo de estudio y descripción."
+                            "\n2. Hallazgos relevantes."
+                            "\n3. Posibles diagnósticos diferenciales (máx. 5)."
+                            "\n4. Recomendaciones / pasos siguientes."
+                            "\n\nSi la imagen no es de índole médica, indícalo educadamente."
+                        )
+                    },
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime_type,
+                            "data": image_data
+                        }
+                    }
+                ]
+            }
+        ]
+
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=MAX_TOKENS,
+            messages=messages
+        )
+
+        return response.content[0].text
+
+    except Exception as e:
+        current_app.logger.error(f"Error en analyze_general_image_with_anthropic: {e}", exc_info=True)
+        return (
+            "# Informe Médico\n"
+            "## Error\n"
+            "No se pudo analizar el estudio. Por favor, inténtalo de nuevo más tarde."
+        ) 
