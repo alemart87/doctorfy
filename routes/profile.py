@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models import db, User, HealthProfile, Medication, MedicationReminder, PhysicalActivity, BloodPressure, WeightRecord
@@ -118,16 +118,23 @@ def upload_profile_picture():
         unique_filename = f"{uuid.uuid4()}_{filename}"
         
         # Guardar el archivo
-        file_path = os.path.join(current_app.root_path, 'uploads', 'profile_pics', unique_filename)
+        dest_dir  = os.path.join(current_app.root_path, 'uploads', 'profile_pics')
+        os.makedirs(dest_dir, exist_ok=True)
+        file_path = os.path.join(dest_dir, unique_filename)
         file.save(file_path)
-        
-        # Actualizar la base de datos
-        user.profile_picture = f"profile_pics/{unique_filename}"
+
+        # URL absoluta que apunta al endpoint /uploads/<file>
+        pic_url = url_for('uploaded_files',
+                          filename=f"profile_pics/{unique_filename}",
+                          _external=True)
+
+        # Guardar la URL (o sólo el nombre, a elección)
+        user.profile_picture = pic_url
         db.session.commit()
         
         return jsonify({
             'message': 'Foto de perfil actualizada con éxito',
-            'profile_picture': user.profile_picture
+            'profile_picture': pic_url
         }), 200
         
     except Exception as e:

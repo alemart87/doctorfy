@@ -32,4 +32,6 @@ ENV FLASK_ENV=production
 ENV SERVE_FRONTEND=false
 
 # Comando para ejecutar la aplicación
-CMD gunicorn --bind 0.0.0.0:$PORT app:app 
+CMD gunicorn --bind 0.0.0.0:$PORT app:app
+
+RUN python scripts/generate_sitemap.py 

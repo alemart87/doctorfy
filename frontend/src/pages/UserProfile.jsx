@@ -270,7 +270,7 @@ const UserProfile = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              src={profileData.profile_picture ? `/uploads/${profileData.profile_picture}` : null}
+              src={profileData.profile_picture || undefined}
               alt={profileData.first_name || profileData.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />
