@@ -1937,7 +1937,7 @@ const LandingPage = () => {
         
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={7}>
+            <Grid item xs={12}>
               <Typography 
                 variant="h3" 
                 component="h2" 
@@ -2007,96 +2007,6 @@ const LandingPage = () => {
               >
                 COMENZAR PRUEBA GRATUITA
               </Button>
-            </Grid>
-            
-            <Grid item xs={12} md={5}>
-              <Box 
-                sx={{ 
-                  position: 'relative',
-                  p: 2
-                }}
-              >
-                <Box 
-                  sx={{ 
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    borderRadius: 4,
-                    background: 'linear-gradient(135deg, rgba(233, 30, 99, 0.4) 0%, rgba(156, 39, 176, 0.4) 100%)',
-                    transform: 'rotate(-3deg)',
-                    zIndex: 0
-                  }} 
-                />
-                
-                <Paper 
-                  elevation={6}
-                  sx={{ 
-                    p: 4, 
-                    borderRadius: 4,
-                    position: 'relative',
-                    zIndex: 1,
-                    background: 'rgba(255,255,255,0.9)',
-                    backdropFilter: 'blur(10px)'
-                  }}
-                >
-                  <Box 
-                    sx={{ 
-                      position: 'absolute',
-                      top: -15,
-                      right: -15,
-                      bgcolor: '#E91E63',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: 80,
-                      height: 80,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 'bold',
-                      boxShadow: '0 4px 8px rgba(233, 30, 99, 0.4)',
-                      zIndex: 2
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ lineHeight: 1 }}>GRATIS</Typography>
-                    <Typography variant="h6" sx={{ lineHeight: 1 }}>2 DÍAS</Typography>
-                  </Box>
-                  
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
-                    Plan Premium
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 2 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      €35
-                    </Typography>
-                    <Typography variant="body1" sx={{ ml: 1, opacity: 0.7 }}>
-                      /mes
-                    </Typography>
-                  </Box>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <List dense>
-                    {[
-                      "Consultas psicológicas ilimitadas",
-                      "Asistencia médica 24/7",
-                      "Análisis de estudios médicos",
-                      "Recomendaciones nutricionales",
-                      "Soporte prioritario"
-                    ].map((item, index) => (
-                      <ListItem key={index} sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
-                          <CheckCircleIcon color="success" />
-                        </ListItemIcon>
-                        <ListItemText primary={item} />
-                      </ListItem>
-                    ))}
-                  </List>              
-                </Paper>
-              </Box>
             </Grid>
           </Grid>
         </Container>
