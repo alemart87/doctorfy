@@ -285,15 +285,15 @@ def create_app(config_class=Config):
             event       = None
 
             # Verificar la firma
-            try:
-                event = stripe.Webhook.construct_event(
-                    payload, sig_header, stripe_webhook_secret
-                )
-            except ValueError as e:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, stripe_webhook_secret
+            )
+        except ValueError as e:
                 # Payload inválido
                 app.logger.error(f"Payload inválido: {str(e)}")
                 return jsonify({'error': 'Payload inválido'}), 400
-            except stripe.error.SignatureVerificationError as e:
+        except stripe.error.SignatureVerificationError as e:
                 # Firma inválida
                 app.logger.error(f"Firma inválida: {str(e)}")
                 return jsonify({'error': 'Firma inválida'}), 400
@@ -303,48 +303,48 @@ def create_app(config_class=Config):
             app.logger.info(f"Evento Stripe recibido: {event_type}")
             
             if event_type == 'customer.subscription.created' or event_type == 'customer.subscription.updated':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object['customer']
-                subscription_id = subscription_object['id']
-                status = subscription_object['status']
-                
-                # Buscar el usuario por customer_id
-                subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                
-                if subscription:
-                    # Actualizar el estado de la suscripción
-                    if status == 'active':
-                        subscription.status = 'active'
+            subscription_object = event['data']['object']
+            customer_id = subscription_object['customer']
+            subscription_id = subscription_object['id']
+            status = subscription_object['status']
+            
+            # Buscar el usuario por customer_id
+            subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+            
+            if subscription:
+                # Actualizar el estado de la suscripción
+                if status == 'active':
+                    subscription.status = 'active'
                         
                         # Actualizar también el campo subscription_active del usuario
                         user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = True
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
-                    else:
-                        subscription.status = 'inactive'
+                else:
+                    subscription.status = 'inactive'
                         
                         # Actualizar también el campo subscription_active del usuario
                         user = db.session.get(User, subscription.user_id)
                         if user:
                             user.subscription_active = False
                             app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
-                    
-                    subscription.stripe_subscription_id = subscription_id
+                
+                subscription.stripe_subscription_id = subscription_id
                     subscription.updated_at = datetime.now(timezone.utc)
-                    db.session.commit()
+                db.session.commit()
                     app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
-            
+        
             elif event_type == 'customer.subscription.deleted':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object['customer']
-                
-                # Buscar el usuario por customer_id
-                subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                
-                if subscription:
-                    # Marcar la suscripción como cancelada
-                    subscription.status = 'canceled'
+            subscription_object = event['data']['object']
+            customer_id = subscription_object['customer']
+            
+            # Buscar el usuario por customer_id
+            subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+            
+            if subscription:
+                # Marcar la suscripción como cancelada
+                subscription.status = 'canceled'
                     
                     # Actualizar también el campo subscription_active del usuario
                     user = db.session.get(User, subscription.user_id)
@@ -581,7 +581,7 @@ def create_app(config_class=Config):
         user.trial_end = now_naive + timedelta(days=2)
         user.trial_used = False
         
-        db.session.commit()
+                db.session.commit()
         
         return jsonify({
             'success': True,
