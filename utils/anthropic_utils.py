@@ -584,7 +584,7 @@ def analyze_food_image_with_anthropic(file_path):
                 {
                     "type": "text",
                     "text": (
-                      "Eres un nutricionista experto. Analiza esta imagen de comida y devuelve EXCLUSIVAMENTE un JSON "
+                      "Eres un nutricionista experto y te encargas de analizar imágenes de comida, para poder devolver un análisis nutricional de la imagen, para que el usuario pueda conocer el contenido nutricional de la comida que está por ingerir, tomas en cuenta el tamaño de la porción, el tipo de comida, el color, el tamaño, etc. Analiza esta imagen de comida y devuelve EXCLUSIVAMENTE un JSON "
                       "válido con la siguiente estructura (sin explicaciones adicionales):\n\n"
                       "{\n"
                       '  "food": ["Tortilla", "Ensalada", ...],\n'
@@ -595,8 +595,8 @@ def analyze_food_image_with_anthropic(file_path):
                       '  "fiber_g": 8,\n'
                       '  "sugars_g": 10,\n'
                       '  "sodium_mg": 720,\n'
-                      '  "quality": "Buena / Regular / Mala",\n'
-                      '  "recommendations": "Texto breve…"\n'
+                      '  "quality": "Buena / Regular / Mala / Muy mala / Insalubre",\n'
+                      '  "recommendations": "Texto detallado de recomendaciones para el usuario"\n'
                       "}\n\n"
                       "Si algún dato no puede estimarse devuelve 0 (para números) o una cadena vacía."
                     )
