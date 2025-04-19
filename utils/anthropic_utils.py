@@ -13,6 +13,8 @@ import mimetypes # Para detectar el tipo de imagen
 import traceback
 import time # Importar time para los reintentos
 from utils.image_utils import compress_image, get_mime_type, get_image_size_mb, resize_image_if_needed
+from models import User, db
+from flask_jwt_extended import get_jwt_identity
 
 # Cargar variables de entorno
 load_dotenv()
@@ -159,6 +161,20 @@ async def analyze_medical_study_with_anthropic(file_path, study_type="general", 
         str: La interpretación generada por la IA, o None si ocurre un error.
     """
     try:
+        # Obtener usuario y verificar créditos
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            current_app.logger.error(f"Usuario no encontrado: {user_id}")
+            return None
+            
+        if not user.has_enough_credits('medical'):
+            current_app.logger.warning(f"Créditos insuficientes para usuario {user.email} (ID: {user_id}). Créditos: {user.credits}")
+            return "Créditos insuficientes para realizar el análisis. Necesitas 5 créditos."
+
+        current_app.logger.info(f"Iniciando análisis médico para usuario {user.email} (ID: {user_id}). Créditos actuales: {user.credits}")
+        
         anthropic_client = get_anthropic_client() # Usar la función para obtener el cliente
 
         if not os.path.exists(file_path):
@@ -258,6 +274,10 @@ async def analyze_medical_study_with_anthropic(file_path, study_type="general", 
 
             # --- Asegúrate de devolver el texto ---
             current_app.logger.info("Interpretación generada exitosamente.")
+            # Consumir créditos
+            user.consume_credits('medical')
+            db.session.commit()
+            current_app.logger.info(f"Análisis médico exitoso. Créditos consumidos: 5. Créditos restantes: {user.credits}")
             return interpretation_text.strip()
             
         except anthropic.APIStatusError as e:
@@ -309,6 +329,10 @@ async def analyze_medical_study_with_anthropic(file_path, study_type="general", 
                     
                     if interpretation_text:
                         current_app.logger.info("Interpretación generada exitosamente con modelo alternativo.")
+                        # Consumir créditos
+                        user.consume_credits('medical')
+                        db.session.commit()
+                        current_app.logger.info(f"Análisis médico exitoso. Créditos consumidos: 5. Créditos restantes: {user.credits}")
                         return interpretation_text.strip()
                 except Exception as fallback_error:
                     current_app.logger.error(f"Error con modelo alternativo: {fallback_error}")
@@ -552,16 +576,25 @@ def analyze_medical_study_with_openai(image_path, study_type):
         return f"No se pudo analizar el estudio médico con OpenAI: {str(e)}"
 
 def analyze_food_image_with_anthropic(file_path):
-    """
-    Analiza una imagen de alimentos usando la API de Anthropic Claude.
-    
-    Args:
-        file_path (str): Ruta al archivo de imagen.
-        
-    Returns:
-        str: Texto del análisis o mensaje de error.
-    """
     try:
+        # Verificación de usuario y créditos (código existente)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            current_app.logger.error(f"Usuario no encontrado: {user_id}")
+            return "Error: Usuario no encontrado"
+            
+        if not user.has_enough_credits('nutrition'):
+            current_app.logger.warning(f"Créditos insuficientes para usuario {user.email}. Créditos: {user.credits}")
+            return """
+            # Análisis Nutricional
+            ## Error
+            Créditos insuficientes. Necesitas 1 crédito.
+            """
+
+        current_app.logger.info(f"Iniciando análisis nutricional para {user.email}. Créditos: {user.credits}")
+        
         # Verificar que el archivo exista
         if not os.path.exists(file_path):
             print(f"El archivo no existe: {file_path}")
@@ -613,57 +646,52 @@ def analyze_food_image_with_anthropic(file_path):
         }]
 
         # Llamar a la API de Anthropic
-        print(f"Llamando a Anthropic API con modelo claude-3-5-sonnet-20240620...")
-        try:
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=MAX_TOKENS,
-                messages=messages
-            )
-            print("Respuesta recibida de Anthropic.")
-            return response.content[0].text
-        except anthropic.RateLimitError as rate_error:
-            print(f"Error de límite de tasa en Anthropic: {rate_error}")
-            return """
-            # Análisis Nutricional
-            ## Error
-            El servicio está experimentando alta demanda. Por favor, intenta de nuevo en unos minutos.
-            """
-        except anthropic.BadRequestError as bad_request:
-            print(f"Error de solicitud incorrecta: {bad_request}")
-            if "image exceeds 5 MB maximum" in str(bad_request):
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=MAX_TOKENS,
+            messages=messages
+        )
+
+        if response and response.content[0].text:
+            try:
+                # Verificar que sea JSON válido
+                analysis_result = json.loads(response.content[0].text)
+                
+                # Consumir créditos DESPUÉS de verificar respuesta válida
+                user.consume_credits('nutrition')
+                db.session.commit()
+                current_app.logger.info(f"""
+                    Análisis nutricional exitoso para {user.email}:
+                    - Créditos consumidos: 1
+                    - Créditos restantes: {user.credits}
+                    - Calorías detectadas: {analysis_result.get('calories', 'N/A')}
+                    - Alimentos: {', '.join(analysis_result.get('food', []))}
+                """)
+                
+                return response.content[0].text
+                
+            except json.JSONDecodeError as e:
+                current_app.logger.error(f"Error en formato JSON para {user.email}: {str(e)}")
                 return """
                 # Análisis Nutricional
                 ## Error
-                La imagen es demasiado grande para ser procesada. Por favor, intenta con una imagen más pequeña.
+                Error en el formato de la respuesta. No se consumieron créditos.
                 """
-            return f"""
-            # Análisis Nutricional
-            ## Error
-            Error en la solicitud: {str(bad_request)}
-            """
-        except anthropic.APIError as api_error:
-            print(f"Error de API en Anthropic: {api_error}")
+        else:
+            current_app.logger.error(f"Respuesta vacía de Anthropic para {user.email}")
             return """
             # Análisis Nutricional
             ## Error
-            Error en el servicio de análisis. Por favor, intenta de nuevo más tarde.
-            """
-        except Exception as e:
-            print(f"Error general en Anthropic: {e}")
-            return f"""
-            # Análisis Nutricional
-            ## Error
-            Error al analizar la imagen: {str(e)}
+            No se recibió respuesta del análisis. No se consumieron créditos.
             """
 
     except Exception as e:
-        current_app.logger.error(f"Error en analyze_food_image_with_anthropic: {str(e)}", exc_info=True)
+        current_app.logger.error(f"Error en análisis nutricional para {user.email if user else 'usuario desconocido'}: {str(e)}", exc_info=True)
         return """
         # Análisis Nutricional
         ## Error
-        No se pudo analizar la imagen debido a un error. Por favor, inténtelo de nuevo más tarde.
-        """ 
+        Error en el análisis. No se consumieron créditos.
+        """
 
 # ----------------------------------------------------------------------------------
 # Nuevo analizador "GENÉRICO"

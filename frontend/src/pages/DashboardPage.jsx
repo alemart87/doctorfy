@@ -10,6 +10,7 @@ import { AnimatedBackgroundText } from '../components/AnimatedElements';
 import { Link, useNavigate } from 'react-router-dom';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
+import EmailCampaigns from '../components/EmailCampaigns';
 
 // Importar iconos
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -20,6 +21,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import GroupIcon from '@mui/icons-material/Group';
 import ChatIcon from '@mui/icons-material/Chat';
 import PeopleIcon from '@mui/icons-material/People';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 const DashboardPage = () => {
   const theme = useTheme();
@@ -199,50 +201,69 @@ const DashboardPage = () => {
             </motion.div>
 
             {user && user.email === 'alemart87@gmail.com' && (
-              <Paper sx={{ p: 3, mb: 3, bgcolor: '#f5f5f5' }}>
-                <Typography variant="h5" gutterBottom>
-                  Administración
-                </Typography>
-                <Typography variant="body1" paragraph>
-                  Como administrador, puedes gestionar las suscripciones de los usuarios.
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  component={Link}
-                  to="/admin/users"
-                  startIcon={<PeopleIcon />}
-                >
-                  Gestionar Usuarios
-                </Button>
-              </Paper>
-            )}
-
-            {user && user.email === 'alemart87@gmail.com' && (
-              <Box sx={{ mt: 2 }}>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={async () => {
-                    try {
-                      const response = await axios.get('/api/debug/subscription-check');
-                      console.log("Información de depuración:", response.data);
-                      alert("Información de depuración registrada en la consola");
-                    } catch (error) {
-                      console.error("Error al obtener información de depuración:", error);
-                      alert("Error al obtener información de depuración");
-                    }
+              <>
+                <Paper 
+                  sx={{ 
+                    p: 3, 
+                    mb: 3, 
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)'
                   }}
                 >
-                  Verificar Estado de Suscripción
-                </Button>
-              </Box>
-            )}
+                  <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
+                    Panel de Administración
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      component={Link}
+                      to="/admin/users"
+                      startIcon={<PeopleIcon />}
+                    >
+                      Gestionar Usuarios
+                    </Button>
 
-            {user && user.email === 'alemart87@gmail.com' && (
-              <Button variant="contained" sx={{ mt: 2 }} onClick={() => setOpenBlog(true)}>
-                Crear artículo de Blog
-              </Button>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      component={Link}
+                      to="/admin/credits"
+                      startIcon={<AccountBalanceWalletIcon />}
+                    >
+                      Administrar Créditos
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      color="info"
+                      onClick={async () => {
+                        try {
+                          const response = await axios.get('/api/debug/subscription-check');
+                          console.log("Información de depuración:", response.data);
+                          alert("Información de depuración registrada en la consola");
+                        } catch (error) {
+                          console.error("Error al obtener información de depuración:", error);
+                          alert("Error al obtener información de depuración");
+                        }
+                      }}
+                    >
+                      Verificar Suscripciones
+                    </Button>
+
+                    <Button 
+                      variant="contained" 
+                      color="success"
+                      onClick={() => setOpenBlog(true)}
+                    >
+                      Crear artículo de Blog
+                    </Button>
+                  </Box>
+                </Paper>
+
+                <EmailCampaigns />
+              </>
             )}
           </Container>
         </Box>

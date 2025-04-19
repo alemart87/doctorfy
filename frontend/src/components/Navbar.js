@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -28,6 +28,8 @@ import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ChatIcon from '@mui/icons-material/Chat';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import axios from 'axios';
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -36,6 +38,7 @@ const Navbar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [credits, setCredits] = useState(null);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -85,6 +88,21 @@ const Navbar = () => {
         { text: 'Iniciar Sesión', path: '/login' },
         { text: 'Registrarse', path: '/register' }
       ];
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (user) {
+        try {
+          const response = await axios.get('/api/credits/balance');
+          setCredits(response.data.credits);
+        } catch (error) {
+          console.error('Error fetching credits:', error);
+        }
+      }
+    };
+    
+    fetchCredits();
+  }, [user]);
 
   const drawer = (
     <Box onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
@@ -155,6 +173,60 @@ const Navbar = () => {
             Doctorfy
           </Typography>
           
+          {user && (
+            <Box 
+              component={RouterLink}
+              to="/credits-info"
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mr: 3,
+                px: 2,
+                py: 0.5,
+                borderRadius: 2,
+                textDecoration: 'none',
+                color: 'inherit',
+                background: 'rgba(0, 255, 255, 0.1)',
+                border: '1px solid rgba(0, 255, 255, 0.2)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  background: 'rgba(0, 255, 255, 0.2)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 2px 8px rgba(0, 255, 255, 0.2)'
+                }
+              }}
+            >
+              <AccountBalanceWalletIcon 
+                sx={{ 
+                  mr: 1,
+                  color: '#00ffff',
+                  filter: 'drop-shadow(0 0 2px rgba(0, 255, 255, 0.5))'
+                }} 
+              />
+              <Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    color: '#00ffff',
+                    textShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+                  }}
+                >
+                  {credits?.toFixed(1) || '0'}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    opacity: 0.9,
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  créditos
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          
           {isMobile ? (
             <IconButton
               color="inherit"
@@ -200,7 +272,27 @@ const Navbar = () => {
         open={drawerOpen}
         onClose={toggleDrawer(false)}
       >
-        {drawer}
+        <Box onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
+          {user && (
+            <ListItem 
+              component={RouterLink} 
+              to="/credits-info"
+              sx={{
+                bgcolor: 'rgba(0, 191, 255, 0.1)',
+                my: 1
+              }}
+            >
+              <ListItemIcon>
+                <AccountBalanceWalletIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary={`${credits?.toFixed(1) || '0'} créditos`}
+                secondary="Click para más info"
+              />
+            </ListItem>
+          )}
+          {drawer}
+        </Box>
       </Drawer>
 
       <Menu

@@ -11,7 +11,8 @@ import {
   useTheme,
   Typography,
   Avatar,
-  Button
+  Button,
+  Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -24,6 +25,7 @@ import MobileMenu from './MobileMenu';
 import { Link } from 'react-router-dom';
 import ChatIcon from '@mui/icons-material/Chat';
 import { alpha } from '@mui/material/styles';
+import axios from 'axios';
 
 // Navbar con efecto glassmorphism
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -67,6 +69,7 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [credits, setCredits] = useState(null);
 
   // Detectar scroll
   useEffect(() => {
@@ -75,6 +78,19 @@ const Navbar = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const response = await axios.get('/api/credits/balance');
+        setCredits(response.data.credits);
+      } catch (error) {
+        console.error('Error fetching credits:', error);
+      }
+    };
+    
+    fetchCredits();
   }, []);
 
   const handleDrawerToggle = () => {
@@ -187,6 +203,26 @@ const Navbar = () => {
             >
               Chat Médico
             </Button>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Tooltip title="Ver información de créditos">
+                <Box 
+                  component={Link} 
+                  to="/credits-info"
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    color: 'white',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Typography variant="h6" sx={{ mr: 1 }}>
+                    {credits?.toFixed(1)}
+                  </Typography>
+                  <Typography variant="body2">créditos</Typography>
+                </Box>
+              </Tooltip>
+            </Box>
           </Toolbar>
         </Container>
       </GlassNavbar>

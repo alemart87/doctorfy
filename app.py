@@ -15,6 +15,7 @@ from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
 from routes.blog import blog_bp
+from routes.credits import credits_bp
 import os
 from datetime import timedelta, datetime, timezone, date
 from dotenv import load_dotenv
@@ -129,6 +130,7 @@ def create_app(config_class=Config):
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(blog_bp)
+    app.register_blueprint(credits_bp)
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader
@@ -442,48 +444,10 @@ def create_app(config_class=Config):
                                 
                                 # Enviar correo de notificación
                                 try:
-                                    subject = "Nueva suscripción activada en Doctorfy"
-                                    body = f"""
-                                    <html>
-                                    <head>
-                                        <style>
-                                            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                                            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                                            h1 {{ color: #7c4dff; }}
-                                            .info {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; }}
-                                            .footer {{ margin-top: 20px; font-size: 12px; color: #777; }}
-                                            .button {{ display: inline-block; background-color: #7c4dff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin-top: 15px; }}
-                                        </style>
-                                    </head>
-                                    <body>
-                                        <div class="container">
-                                            <h1>Nueva suscripción activada</h1>
-                                            <p>Un usuario ha activado su suscripción a través de Stripe:</p>
-                                            
-                                            <div class="info">
-                                                <p><strong>Email:</strong> {user.email}</p>
-                                                <p><strong>ID:</strong> {user.id}</p>
-                                                <p><strong>Tipo:</strong> {"Médico" if user.is_doctor else "Paciente"}</p>
-                                                <p><strong>Fecha:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}</p>
-                                                <p><strong>Customer ID de Stripe:</strong> {customer_id}</p>
-                                            </div>
-                                            
-                                            <p>Si necesitas verificar o modificar esta suscripción, puedes hacerlo desde el panel de administración:</p>
-                                            
-                                            <a href="https://doctorfy.onrender.com/admin/users" class="button">Ir al Panel de Administración</a>
-                                            
-                                            <div class="footer">
-                                                <p>Este es un mensaje automático del sistema Doctorfy.</p>
-                                            </div>
-                                        </div>
-                                    </body>
-                                    </html>
-                                    """
-                                    
-                                    send_email(subject, body, to_email="info@marketeapy.com", html=True)
-                                    app.logger.info(f"Correo de notificación enviado para la nueva suscripción")
+                                    send_welcome_email(user)
+                                    app.logger.info(f"Correo de bienvenida enviado para el nuevo usuario")
                                 except Exception as e:
-                                    app.logger.error(f"Error al enviar correo de notificación: {str(e)}")
+                                    app.logger.error(f"Error al enviar correo de bienvenida: {str(e)}")
             
             elif event_type == 'customer.subscription.updated':
                 subscription_object = event['data']['object']
@@ -723,3 +687,30 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True) 
+
+def send_welcome_email(user):
+    subject = "¡Bienvenido a Doctorfy!"
+    body = f"""
+    <html>
+    <body>
+        <h1>¡Bienvenido a Doctorfy!</h1>
+        <p>Hola {user.first_name or user.email},</p>
+        <p>¡Gracias por registrarte! Te hemos otorgado <strong>15 créditos</strong> para que pruebes nuestro sistema:</p>
+        <ul>
+            <li>Análisis Médico: 5 créditos por análisis</li>
+            <li>Análisis Nutricional: 1 crédito por análisis</li>
+        </ul>
+        <p>Puedes ver tu balance de créditos en cualquier momento en la barra superior de la aplicación.</p>
+        <p><a href="https://doctorfy.onrender.com/credits-info">Más información sobre los créditos</a></p>
+    </body>
+    </html>
+    """
+    
+    send_email(subject, body, to_email=user.email, html=True) 
+
+def init_admin_credits():
+    with app.app_context():
+        admin = User.query.filter_by(email='alemart87@gmail.com').first()
+        if admin and admin.credits < 10000000:
+            admin.credits = 10000000
+            db.session.commit() 

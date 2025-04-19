@@ -43,6 +43,8 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import WelcomePage from './components/WelcomePage';
+import CreditsInfo from './pages/CreditsInfo';
+import AdminCredits from './pages/AdminCredits';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -171,6 +173,15 @@ function App() {
                       } />
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
+                      <Route path="/credits-info" element={<CreditsInfo />} />
+                      <Route 
+                        path="/admin/credits" 
+                        element={
+                          <ProtectedRoute>
+                            <AdminCredits />
+                          </ProtectedRoute>
+                        } 
+                      />
                     </Routes>
                   </Suspense>
                   <FloatingChatButton />

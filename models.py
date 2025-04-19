@@ -83,6 +83,12 @@ class User(db.Model):
     weight_records = db.relationship('WeightRecord', backref='user', lazy=True)
     
     daily_calorie_goal = db.Column(db.Integer, nullable=True, default=2000) # Objetivo calórico diario
+    credits = db.Column(
+        db.Float, 
+        nullable=False, 
+        default=15.0, 
+        server_default=db.text('15.0')
+    )
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -155,6 +161,17 @@ class User(db.Model):
             return True
         
         # Si no cumple ninguna condición, no tiene acceso
+        return False
+
+    def has_enough_credits(self, analysis_type):
+        required_credits = 5 if analysis_type == 'medical' else 1
+        return float(self.credits or 0) >= required_credits
+    
+    def consume_credits(self, analysis_type):
+        required_credits = 5 if analysis_type == 'medical' else 1
+        if self.has_enough_credits(analysis_type):
+            self.credits = float(self.credits or 0) - required_credits
+            return True
         return False
 
 class Doctor(db.Model):

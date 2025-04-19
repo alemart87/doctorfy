@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, FormControl, InputLabel, Select, MenuItem, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { Link } from 'react-router-dom';
+import { MonetizationOn as MonetizationOnIcon } from '@mui/icons-material';
 
 const AdminPanel = () => {
   const [users, setUsers] = useState([]);
@@ -92,6 +94,20 @@ const AdminPanel = () => {
           </Table>
         </TableContainer>
       </Paper>
+
+      <ListItem 
+        button 
+        component={Link} 
+        to="/admin/credits"
+        sx={{
+          display: user.email === 'alemart87@gmail.com' ? 'flex' : 'none'
+        }}
+      >
+        <ListItemIcon>
+          <MonetizationOnIcon />
+        </ListItemIcon>
+        <ListItemText primary="Administrar Créditos" />
+      </ListItem>
     </Container>
   );
 };

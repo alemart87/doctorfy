@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, User, UserRole, Subscription
 from datetime import datetime
 import logging
+from utils.email_templates import EMAIL_TEMPLATES
+from utils.email_utils import send_email
 
 # Crear un logger específico para este módulo
 logger = logging.getLogger(__name__)
@@ -21,67 +23,20 @@ def is_superadmin(user_id):
 @jwt_required()
 def get_users():
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    admin = User.query.get(current_user_id)
     
-    # Solo permitir acceso a alemart87@gmail.com o administradores
-    if user.email != 'alemart87@gmail.com' and not user.is_admin():
+    if not admin or admin.email != 'alemart87@gmail.com':
         return jsonify({'error': 'No autorizado'}), 403
     
-    # Obtener parámetros de paginación
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
+    users = User.query.all()
+    users_list = [{
+        'id': user.id,
+        'email': user.email,
+        'is_doctor': user.is_doctor,
+        'credits': float(user.credits or 0)
+    } for user in users]
     
-    # Obtener parámetros de filtrado
-    email_filter = request.args.get('email', '')
-    status_filter = request.args.get('status', '')
-    
-    # Construir la consulta base
-    query = User.query
-    
-    # Aplicar filtros si se proporcionan
-    if email_filter:
-        query = query.filter(User.email.ilike(f'%{email_filter}%'))
-    
-    if status_filter:
-        if status_filter == 'active':
-            query = query.filter(User.subscription_active == True)
-        elif status_filter == 'inactive':
-            query = query.filter(User.subscription_active == False)
-    
-    # Ejecutar la consulta paginada
-    users_pagination = query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page)
-    
-    # Preparar la respuesta
-    users_data = []
-    for user in users_pagination.items:
-        # Obtener información de suscripción
-        subscription = Subscription.query.filter_by(user_id=user.id).first()
-        
-        users_data.append({
-            'id': user.id,
-            'email': user.email,
-            'is_doctor': user.is_doctor,
-            'role': user.role,
-            'subscription_active': user.subscription_active,
-            'created_at': user.created_at.isoformat(),
-            'subscription': {
-                'status': subscription.status if subscription else 'none',
-                'stripe_customer_id': subscription.stripe_customer_id if subscription else None,
-                'updated_at': subscription.updated_at.isoformat() if subscription else None
-            } if subscription else None
-        })
-    
-    return jsonify({
-        'users': users_data,
-        'pagination': {
-            'total': users_pagination.total,
-            'pages': users_pagination.pages,
-            'page': page,
-            'per_page': per_page,
-            'has_next': users_pagination.has_next,
-            'has_prev': users_pagination.has_prev
-        }
-    }), 200
+    return jsonify(users_list)
 
 @admin_bp.route('/users/<int:user_id>/role', methods=['PUT'])
 @jwt_required()
@@ -171,8 +126,6 @@ def update_user_subscription(user_id):
         
         # Enviar notificación por correo al administrador
         try:
-            from utils.email_utils import send_email
-            
             subject = f"Suscripción actualizada manualmente: {user.email}"
             body = f"""
             <html>
@@ -274,3 +227,114 @@ def verify_subscriptions():
         db.session.rollback()
         logger.error(f"Error al verificar suscripciones: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500 
+
+@admin_bp.route('/send-mass-email', methods=['POST'])
+@jwt_required()
+def send_mass_email():
+    current_user_id = get_jwt_identity()
+    admin = User.query.get(current_user_id)
+    
+    if not admin or admin.email != 'alemart87@gmail.com':
+        return jsonify({'error': 'No autorizado'}), 403
+    
+    data = request.get_json()
+    template_key = data.get('template')
+    
+    if not template_key:
+        return jsonify({'error': 'Plantilla no especificada'}), 400
+    
+    # Obtener TODOS los usuarios, no solo los activos
+    users = User.query.all()
+    sent_count = 0
+    failed_count = 0
+    failed_emails = []
+    
+    try:
+        if template_key == 'custom':
+            subject = data.get('customSubject')
+            body = data.get('customBody')
+            if not subject or not body:
+                return jsonify({'error': 'Asunto y cuerpo son requeridos para plantillas personalizadas'}), 400
+                
+            for user in users:
+                try:
+                    formatted_body = body.format(name=user.first_name or user.email.split('@')[0])
+                    if send_email(subject, formatted_body, user.email, html=True):
+                        sent_count += 1
+                        logger.info(f"Correo enviado exitosamente a {user.email}")
+                    else:
+                        failed_count += 1
+                        failed_emails.append(user.email)
+                        logger.error(f"Fallo al enviar correo a {user.email}")
+                except Exception as e:
+                    logger.error(f"Error enviando correo a {user.email}: {str(e)}")
+                    failed_count += 1
+                    failed_emails.append(user.email)
+        else:
+            template = EMAIL_TEMPLATES.get(template_key)
+            if not template:
+                return jsonify({'error': 'Plantilla no encontrada'}), 404
+                
+            for user in users:
+                try:
+                    formatted_body = template['template'].format(
+                        name=user.first_name or user.email.split('@')[0]
+                    )
+                    if send_email(template['subject'], formatted_body, user.email, html=True):
+                        sent_count += 1
+                        logger.info(f"Correo enviado exitosamente a {user.email}")
+                    else:
+                        failed_count += 1
+                        failed_emails.append(user.email)
+                        logger.error(f"Fallo al enviar correo a {user.email}")
+                except Exception as e:
+                    logger.error(f"Error enviando correo a {user.email}: {str(e)}")
+                    failed_count += 1
+                    failed_emails.append(user.email)
+        
+        return jsonify({
+            'success': True,
+            'total_users': len(users),
+            'sent': sent_count,
+            'failed': failed_count,
+            'failed_emails': failed_emails,
+            'message': f'Correos enviados exitosamente a {sent_count} usuarios. Fallaron {failed_count} envíos.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error enviando correos masivos: {str(e)}")
+        return jsonify({'error': 'Error al enviar correos'}), 500
+
+@admin_bp.route('/preview-email', methods=['POST'])
+@jwt_required()
+def preview_email():
+    current_user_id = get_jwt_identity()
+    admin = User.query.get(current_user_id)
+    
+    if not admin or admin.email != 'alemart87@gmail.com':
+        return jsonify({'error': 'No autorizado'}), 403
+    
+    data = request.get_json()
+    template_key = data.get('template')
+    
+    try:
+        if template_key == 'custom':
+            preview_data = {
+                'subject': data.get('customSubject', ''),
+                'body': data.get('customBody', '').format(name='Usuario Ejemplo')
+            }
+        else:
+            template = EMAIL_TEMPLATES.get(template_key)
+            if not template:
+                return jsonify({'error': 'Plantilla no encontrada'}), 404
+            
+            preview_data = {
+                'subject': template['subject'],
+                'body': template['template'].format(name='Usuario Ejemplo')
+            }
+        
+        return jsonify(preview_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error generando vista previa: {str(e)}")
+        return jsonify({'error': 'Error al generar vista previa'}), 500 
