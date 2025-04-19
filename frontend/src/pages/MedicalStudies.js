@@ -604,7 +604,16 @@ const MedicalStudies = () => {
     </Paper>
   );
 
-  studies.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+  const sortedStudies = useMemo(() => {
+    if (!studies) return [];
+    return [...studies].sort((a, b) => {
+      // Convertir las fechas a objetos Date para comparación
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      // Ordenar descendente (b - a para más reciente primero)
+      return dateB - dateA;
+    });
+  }, [studies]);
 
   /* Redirigir automáticamente cuando el informe esté listo */
   useEffect(() => {
@@ -733,11 +742,11 @@ const MedicalStudies = () => {
           <div className="loading-spinner"></div>
           <p>Cargando estudios...</p>
         </div>
-      ) : filteredStudies.length > 0 ? (
+      ) : sortedStudies.length > 0 ? (
         <>
           {(searchTerm || filterType !== 'all' || dateRange.from || dateRange.to) && (
             <div className="search-results-info">
-              Mostrando {filteredStudies.length} de {studies.length} estudios
+              Mostrando {sortedStudies.length} de {studies.length} estudios
               {searchTerm && <span> que contienen "{searchTerm}"</span>}
               {filterType !== 'all' && (
                 <span> de tipo "{getStudyTypeName(filterType)}"</span>
@@ -764,7 +773,7 @@ const MedicalStudies = () => {
               </TableHead>
 
               <TableBody>
-                {filteredStudies.map((study, idx) => (
+                {sortedStudies.map((study, idx) => (
                   <TableRow key={study.id} hover
                     sx={{ '&:hover': { backgroundColor:'#111' } }}
                   >

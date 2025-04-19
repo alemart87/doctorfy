@@ -79,7 +79,11 @@ const TixaeChatbot = () => {
         />
       </Box>
       
-      <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="xl" sx={{ 
+        position: 'relative', 
+        zIndex: 1,
+        px: { xs: 0, md: 3 }  // Sin padding horizontal en móviles
+      }}>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -118,8 +122,13 @@ const TixaeChatbot = () => {
           </Typography>
         </motion.div>
         
-        <Grid container spacing={4} sx={{ mb: 6 }}>
-          <Grid item xs={12} md={5}>
+        <Grid container spacing={4} sx={{ mb: 0 }}>
+          <Grid item xs={12} md={5} sx={{ 
+            order: { 
+              xs: 2,  // En móvil va después del chat
+              md: 1   // En desktop va primero
+            }
+          }}>
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -257,7 +266,12 @@ const TixaeChatbot = () => {
             </motion.div>
           </Grid>
           
-          <Grid item xs={12} md={7}>
+          <Grid item xs={12} md={7} sx={{ 
+            order: { 
+              xs: 1,  // En móvil va primero
+              md: 2   // En desktop va después
+            }
+          }}>
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -266,24 +280,53 @@ const TixaeChatbot = () => {
               <Paper 
                 elevation={8} 
                 sx={{ 
-                  p: 4, 
-                  borderRadius: 4,
-                  backgroundColor: alpha('#121212', 0.7),
+                  p: { xs: 0, md: 4 },
+                  borderRadius: { xs: 0, md: 4 },
+                  backgroundColor: alpha('#121212', 0.85),
                   backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  boxShadow: '0 20px 80px rgba(0,0,0,0.3), 0 0 20px rgba(233, 30, 99, 0.3)',
-                  height: '700px', // Altura aumentada para el chatbot
+                  border: { xs: 'none', md: '1px solid rgba(255,255,255,0.1)' },
+                  boxShadow: '0 20px 80px rgba(0,0,0,0.4), 0 0 20px rgba(233, 30, 99, 0.3)',
+                  height: {
+                    xs: 'calc(100vh - 120px)',  // Reducida la altura para dejar espacio al botón
+                    md: '800px'
+                  },
+                  width: '100%',
+                  position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
-                  color: 'white'
+                  color: 'white',
+                  overflow: 'hidden',
+                  marginBottom: { xs: '60px', md: 0 }  // Margen inferior para el botón en móviles
                 }}
               >
-                <Typography variant="h3" sx={{ mb: 3, fontWeight: 700, color: alpha(theme.palette.secondary.main, 0.9) }}>
-                  Chatbot Médico
-                </Typography>
-                
-                <Divider sx={{ mb: 4, borderColor: alpha(theme.palette.secondary.main, 0.3), opacity: 0.5 }} />
-                
+                <Box sx={{ 
+                  p: { xs: 2, md: 0 },
+                  background: {
+                    xs: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+                    md: 'none'
+                  }
+                }}>
+                  <Typography variant="h3" sx={{ 
+                    mb: 2, 
+                    fontWeight: 700, 
+                    color: alpha(theme.palette.secondary.main, 0.9),
+                    fontSize: {
+                      xs: '1.8rem',
+                      md: '2.5rem'
+                    },
+                    textAlign: { xs: 'center', md: 'left' }
+                  }}>
+                    Chatbot Médico
+                  </Typography>
+                  
+                  <Divider sx={{ 
+                    mb: 2,
+                    borderColor: alpha(theme.palette.secondary.main, 0.3),
+                    opacity: 0.5,
+                    display: { xs: 'none', md: 'block' }
+                  }} />
+                </Box>
+
                 {/* Contenedor del chatbot TIXAE */}
                 <Box 
                   ref={chatContainerRef}
@@ -291,11 +334,13 @@ const TixaeChatbot = () => {
                   sx={{ 
                     flex: 1,
                     width: '100%',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    borderRadius: 3,
                     overflow: 'hidden',
                     backgroundColor: alpha('#000', 0.3),
                     position: 'relative',
+                    minHeight: {
+                      xs: '100%',
+                      md: '600px'
+                    },
                     '&::before': {
                       content: '""',
                       position: 'absolute',
@@ -316,59 +361,49 @@ const TixaeChatbot = () => {
           </Grid>
         </Grid>
         
+        {/* Botón minimalista ajustado */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.8 }}
+          style={{
+            position: 'fixed',
+            bottom: { xs: 10, md: 20 },  // Más cerca del borde en móviles
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+            width: '100%',               // Ancho completo en móviles
+            maxWidth: '200px',           // Limitar el ancho máximo
+            textAlign: 'center'
+          }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
-            <Button 
-              variant="outlined" 
-              size="large"
-              onClick={() => navigate('/dashboard')}
-              sx={{ 
-                py: 1.5, 
-                px: 4, 
-                borderRadius: 3,
-                borderWidth: 2,
-                borderColor: alpha(theme.palette.primary.main, 0.5),
+          <Button 
+            variant="text"
+            size="small"                 // Tamaño más pequeño
+            onClick={() => navigate('/dashboard')}
+            sx={{ 
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              padding: '6px 12px',
+              borderRadius: 1.5,
+              backdropFilter: 'blur(10px)',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              width: '100%',             // Ocupar todo el ancho disponible
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.7)',
                 color: 'white',
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                '&:hover': {
-                  borderWidth: 2,
-                  borderColor: theme.palette.primary.main,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  transform: 'translateY(-3px)',
-                  boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.3)}`
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Volver al Dashboard
-            </Button>
-            
-            <Button 
-              variant="contained" 
-              size="large"
-              onClick={() => navigate('/medical-chat')}
-              sx={{ 
-                py: 1.5, 
-                px: 4, 
-                borderRadius: 3,
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
-                '&:hover': {
-                  transform: 'translateY(-3px)',
-                  boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.5)}`
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Ir al Chat Médico IA
-            </Button>
-          </Box>
+                transform: 'translateY(-2px)'
+              },
+              '&:active': {
+                transform: 'translateY(0px)'
+              }
+            }}
+          >
+            ← Volver al Dashboard
+          </Button>
         </motion.div>
       </Container>
     </Box>
