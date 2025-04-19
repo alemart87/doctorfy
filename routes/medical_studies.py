@@ -252,7 +252,10 @@ def analyze_study(study_id):
 
         final_report_parts = []
         for idx, pth in enumerate(valid_paths, start=1):
-            current_app.logger.info(f"↳ Analizando archivo {idx}/{len(valid_paths)}: {pth}")
+            # Evitar caracteres fuera de CP‑1252 (Windows) ─ usar ASCII
+            current_app.logger.info(
+                f"-> Analizando archivo {idx}/{len(valid_paths)}: {pth}"
+            )
             report = asyncio.run(
                 analyze_medical_study_with_anthropic(
                     pth,

@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Container, Typography, Button, Box, Paper, CircularProgress,
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
-  IconButton, useTheme, useMediaQuery
+  IconButton, useTheme, useMediaQuery, Alert,
+  TextField, InputAdornment, FormControl, InputLabel,
+  Select, MenuItem, Stack, Chip, Backdrop, LinearProgress
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaFilter, FaTimes, FaFileAlt } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaTimes, FaFileAlt } from 'react-icons/fa';
 import '../components/AnimatedList.css';
+
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDateFns }                          from '@mui/x-date-pickers/AdapterDateFns';
+import { es }                                      from 'date-fns/locale';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';   // ✔️ icono éxito
 
 // Añadir esta función fuera del componente para que esté disponible en todo el archivo
 const getStudyTypeName = (type) => {
@@ -39,10 +46,14 @@ const MedicalStudies = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
+  const [analysisModal, setAnalysisModal] = useState({
+    open:   false,        // overlay visible
+    status: 'idle',       // 'idle' | 'loading' | 'done'
+    studyId: null
+  });
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   
   const navigate = useNavigate();
@@ -266,24 +277,97 @@ const MedicalStudies = () => {
 
   const handleAnalyzeStudy = async (study) => {
     try {
-      setLoading(true);
-      showNotification('Analizando estudio con IA...', 'info');
-      
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/medical-studies/studies/${study.id}/analyze`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
+      // 1. Mostrar modal de confirmación
+      setAnalysisModal({ 
+        open: true, 
+        status: 'confirm',  // nuevo estado: 'confirm' | 'loading' | 'done' | 'error'
+        studyId: study.id 
       });
-      
-      await fetchStudies();
-      showNotification('Estudio analizado correctamente', 'success');
-      
-      navigate(`/medical-studies/${study.id}`);
     } catch (err) {
-      console.error('Error al analizar estudio:', err);
-      setError('Error al analizar el estudio. El servicio puede estar ocupado, por favor intenta más tarde.');
-      showNotification('Error al analizar el estudio', 'error');
-    } finally {
-      setLoading(false);
+      console.error('Error al preparar análisis:', err);
+      showNotification('Error al preparar el análisis', 'error');
+    }
+  };
+
+  // Nueva función para ejecutar el análisis cuando el usuario confirma
+  const executeAnalysis = async () => {
+    try {
+      const studyId = analysisModal.studyId;
+      setAnalysisModal({ open: true, status: 'loading', studyId });
+      const token = localStorage.getItem('token');
+
+      // 1. Iniciar el análisis con timeout aumentado
+      await axios.post(
+        `/api/medical-studies/studies/${studyId}/analyze`,
+        {},
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000 // 30 segundos para la llamada inicial
+        }
+      );
+
+      // 2. Esperar 15 segundos antes del primer intento
+      console.log("⏳ Esperando 15 segundos para el primer intento...");
+      await new Promise(r => setTimeout(r, 15000));
+
+      // 3. Verificar estado cada 10 segundos por hasta 5 minutos
+      const MAX_ATTEMPTS = 30;
+      let attempts = 0;
+      
+      while (attempts < MAX_ATTEMPTS) {
+        console.log(`Verificando resultado (intento ${attempts + 1}/${MAX_ATTEMPTS})...`);
+        
+        const checkResponse = await axios.get(
+          `/api/medical-studies/studies/${studyId}`,
+          { 
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 15000 // 15 segundos para cada verificación
+          }
+        );
+
+        // Si encontramos la interpretación o el estado "completed", terminamos
+        if (checkResponse.data.interpretation || 
+            checkResponse.data.status === 'completed' ||
+            checkResponse.data.analysis_status === 'completed') {
+          console.log("✅ Interpretación encontrada");
+          await fetchStudies();
+          setAnalysisModal({ open: true, status: 'done', studyId });
+          return;
+        }
+
+        // Si hay un error específico del análisis, lo mostramos
+        if (checkResponse.data.analysis_error) {
+          throw new Error(checkResponse.data.analysis_error);
+        }
+
+        // Esperar 10 segundos antes del siguiente intento
+        console.log("⏳ Esperando 10 segundos para el siguiente intento...");
+        await new Promise(r => setTimeout(r, 10000));
+        attempts++;
+      }
+
+      throw new Error("El análisis ha excedido el tiempo máximo de espera (5 minutos)");
+
+    } catch (err) {
+      console.error('Error en análisis:', err);
+      let errorMessage = "Ha ocurrido un problema durante el análisis.";
+      
+      // Mejorar el mensaje de error para timeouts
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = "La conexión tardó demasiado tiempo. Por favor, inténtalo de nuevo.";
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      showNotification(errorMessage, 'error');
+      setAnalysisModal({ 
+        open: true, 
+        status: 'error', 
+        studyId: analysisModal.studyId, 
+        errorMessage 
+      });
     }
   };
 
@@ -401,88 +485,142 @@ const MedicalStudies = () => {
   };
 
   const renderSearchBar = () => (
-    <div className="search-container">
-      <div className="search-input-container">
-        <FaSearch className="search-icon" />
-        <input
-          type="text"
-          placeholder="Buscar estudios..."
+    <Paper elevation={3}
+           sx={{ p: 2, backgroundColor: '#1e1e1e', borderRadius: 2, width: '100%' }}>
+      {/* Fila principal */}
+      <Stack direction={{ xs: 'column', md: 'row' }}
+             spacing={2}
+             alignItems="center">
+        {/* ── Búsqueda por texto ───────────────────────── */}
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder="Buscar nombre o interpretación…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <FaSearch color="#888" />
+              </InputAdornment>
+            ),
+            endAdornment: !!searchTerm && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchTerm('')}>
+                  <FaTimes color="#888" />
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
+          sx={{
+            flexGrow: 1,
+            bgcolor: '#0d0d0d',
+            '& .MuiInputBase-input': { color: 'white' },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' }
+          }}
         />
-        {searchTerm && (
-          <button 
-            className="search-clear-button" 
-            onClick={() => setSearchTerm('')}
-            title="Limpiar búsqueda"
+
+        {/* ── Tipo de estudio ──────────────────────────── */}
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="type-select-label" sx={{ color: 'white' }}>
+            Tipo
+          </InputLabel>
+          <Select
+            labelId="type-select-label"
+            value={filterType}
+            label="Tipo"
+            onChange={(e) => setFilterType(e.target.value)}
+            sx={{
+              color: 'white',
+              bgcolor: '#0d0d0d',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' }
+            }}
           >
-            <FaTimes />
-          </button>
-        )}
-      </div>
-      
-      <button 
-        className={`filter-toggle-button ${showFilters ? 'active' : ''}`} 
-        onClick={() => setShowFilters(!showFilters)}
-        title="Mostrar/ocultar filtros"
-      >
-        <FaFilter />
-        {filterType !== 'all' || dateRange.from || dateRange.to ? <span className="filter-badge"></span> : null}
-      </button>
-      
-      {showFilters && (
-        <div className="filters-panel">
-          <div className="filter-group">
-            <label>Tipo de estudio:</label>
-            <select 
-              value={filterType} 
-              onChange={(e) => setFilterType(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Todos</option>
-              <option value="general">General</option>
-              <option value="xray">Radiografía</option>
-              <option value="mri">Resonancia Magnética</option>
-              <option value="ct">Tomografía Computarizada</option>
-              <option value="ultrasound">Ecografía</option>
-              <option value="bloodwork">Análisis de Sangre</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>Rango de fechas:</label>
-            <div className="date-range-inputs">
-              <input
-                type="date"
-                value={dateRange.from}
-                onChange={(e) => setDateRange({...dateRange, from: e.target.value})}
-                className="date-input"
-                placeholder="Desde"
-              />
-              <span>hasta</span>
-              <input
-                type="date"
-                value={dateRange.to}
-                onChange={(e) => setDateRange({...dateRange, to: e.target.value})}
-                className="date-input"
-                placeholder="Hasta"
-              />
-            </div>
-          </div>
-          
-          <button 
-            className="clear-filters-button" 
-            onClick={clearFilters}
-          >
-            Limpiar filtros
-          </button>
-        </div>
+            <MenuItem value="all">Todos</MenuItem>
+            <MenuItem value="general">General</MenuItem>
+            <MenuItem value="xray">Radiografía</MenuItem>
+            <MenuItem value="mri">Resonancia Magnética</MenuItem>
+            <MenuItem value="ct">Tomografía Computarizada</MenuItem>
+            <MenuItem value="ultrasound">Ecografía</MenuItem>
+            <MenuItem value="bloodwork">Análisis de Sangre</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* ── Fechas ───────────────────────────────────── */}
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+          <DatePicker
+            label="Desde"
+            value={dateRange.from ? new Date(dateRange.from) : null}
+            onChange={(newVal) => {
+              const v = newVal ? newVal.toISOString().split('T')[0] : '';
+              setDateRange({ ...dateRange, from: v });
+            }}
+            renderInput={(params) => (
+              <TextField {...params} size="small" sx={{
+                width: 130,
+                bgcolor: '#0d0d0d',
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' }
+              }} />
+            )}
+          />
+          <DatePicker
+            label="Hasta"
+            value={dateRange.to ? new Date(dateRange.to) : null}
+            onChange={(newVal) => {
+              const v = newVal ? newVal.toISOString().split('T')[0] : '';
+              setDateRange({ ...dateRange, to: v });
+            }}
+            renderInput={(params) => (
+              <TextField {...params} size="small" sx={{
+                width: 130,
+                bgcolor: '#0d0d0d',
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' }
+              }} />
+            )}
+          />
+        </LocalizationProvider>
+
+        {/* ── Limpiar ──────────────────────────────────── */}
+        <Button variant="outlined"
+                color="error"
+                size="small"
+                onClick={clearFilters}>
+          Limpiar
+        </Button>
+      </Stack>
+
+      {/* Chips que muestran filtros activos */}
+      {(filterType !== 'all' || dateRange.from || dateRange.to) && (
+        <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+          {filterType !== 'all' && (
+            <Chip label={getStudyTypeName(filterType)} color="primary" size="small" />
+          )}
+          {dateRange.from && <Chip label={`Desde ${dateRange.from}`} size="small" />}
+          {dateRange.to   && <Chip label={`Hasta ${dateRange.to}`}  size="small" />}
+        </Stack>
       )}
-    </div>
+    </Paper>
   );
 
   studies.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+
+  /* Redirigir automáticamente cuando el informe esté listo */
+  useEffect(() => {
+    if (analysisModal.status === 'done') {
+      const t = setTimeout(() => {
+        navigate(`/medical-studies/${analysisModal.studyId}`);
+        setAnalysisModal({ open: false, status: 'idle', studyId: null });
+      }, 1500);                 // 1,5 s de pausa
+      return () => clearTimeout(t);
+    }
+  }, [analysisModal, navigate]);
+
+  useEffect(() => {
+    // Configurar timeout global de axios
+    axios.defaults.timeout = 15000; // 15 segundos por defecto
+  }, []);
 
   return (
     <div className="medical-studies-container">
@@ -508,7 +646,22 @@ const MedicalStudies = () => {
           <FaCloudUploadAlt />
         </div>
         <h3 className="upload-text">Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo</h3>
-        <p className="upload-formats">Formatos aceptados: JPG, PNG, TXT, PDF</p>
+        <p className="upload-formats">
+          Formatos aceptados: JPG, PNG, TXT, PDF
+        </p>
+        
+        <Alert 
+          severity="info" 
+          sx={{ 
+            bgcolor: 'rgba(33, 150, 243, 0.15)',        // color acorde al tema
+            color:  'white',
+            border: '1px solid #2196f3',
+            backdropFilter: 'blur(6px)',
+            mb: 2
+          }}
+        >
+          Puedes seleccionar hasta 4 fotos al mismo tiempo, esto es útil para estudios de sangre.
+        </Alert>
         
         <input
           type="file"
@@ -688,6 +841,114 @@ const MedicalStudies = () => {
           <button onClick={handleCloseNotification} className="notification-close">×</button>
         </div>
       )}
+
+      <Backdrop
+        open={analysisModal.open}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          color: '#fff',
+          flexDirection: 'column',
+          backgroundColor: 'rgba(0,0,0,0.85)'  // más oscuro para mejor contraste
+        }}
+      >
+        {analysisModal.status === 'confirm' && (
+          <>
+            <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+              ¿Deseas analizar este estudio con IA?
+            </Typography>
+            <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
+              El primer resultado puede tardar hasta 15 segundos en aparecer. 
+              El análisis completo puede tomar hasta 5 minutos.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={executeAnalysis}
+              >
+                Analizar ahora
+              </Button>
+            </Box>
+          </>
+        )}
+        
+        {analysisModal.status === 'loading' && (
+          <>
+            <CircularProgress color="inherit" />
+            <Typography sx={{ mt: 2 }}>
+              Analizando estudio con IA...
+            </Typography>
+            <Typography variant="caption" sx={{ mt: 1, color: 'gray' }}>
+              Este proceso puede tardar hasta 5 minutos
+            </Typography>
+            <LinearProgress 
+              sx={{ 
+                mt: 2, 
+                width: '200px',
+                borderRadius: 1
+              }} 
+            />
+          </>
+        )}
+        
+        {analysisModal.status === 'done' && (
+          <>
+            <CheckCircleIcon sx={{ fontSize: 60, color: '#4caf50' }} />
+            <Typography variant="h5" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+              ¡Análisis completado!
+            </Typography>
+            <Typography sx={{ mb: 3, textAlign: 'center' }}>
+              El informe está listo para ser consultado
+            </Typography>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={() => {
+                navigate(`/medical-studies/${analysisModal.studyId}`);
+                setAnalysisModal({ open: false, status: 'idle', studyId: null });
+              }}
+            >
+              Ver informe
+            </Button>
+          </>
+        )}
+        
+        {analysisModal.status === 'error' && (
+          <>
+            <Typography variant="h5" color="error" sx={{ mb: 2 }}>
+              Error al analizar el estudio
+            </Typography>
+            <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
+              {analysisModal.errorMessage || "Ha ocurrido un problema durante el análisis. Por favor, inténtalo más tarde."}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  // Intentar ver el estudio de todos modos
+                  navigate(`/medical-studies/${analysisModal.studyId}`);
+                  setAnalysisModal({ open: false, status: 'idle', studyId: null });
+                }}
+              >
+                Ver estudio de todos modos
+              </Button>
+            </Box>
+          </>
+        )}
+      </Backdrop>
     </div>
   );
 };
