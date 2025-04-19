@@ -70,7 +70,8 @@ import {
   Line,
   AreaChart,
   Area,
-  LabelList
+  LabelList,
+  ReferenceLine
 } from 'recharts';
 import Aurora from '../components/Aurora';
 import { useAuth } from '../context/AuthContext';
@@ -286,133 +287,164 @@ const extractNutritionData = (analysisText) => {
 };
 
 // Añadir selector de fechas
-const DateRangeSelector = ({
-  dateRange, setDateRange, rangePreset, setRangePreset
-}) => {
-  const theme = useTheme();
-  
-  const handlePreviousWeek = () => {
-    setDateRange({
-      startDate: subDays(dateRange.startDate, 7),
-      endDate: subDays(dateRange.endDate, 7)
-    });
-  };
-  
-  const handleNextWeek = () => {
+const DateRangeSelector = ({ dateRange, setDateRange, rangePreset, setRangePreset }) => {
+  const [showCustom, setShowCustom] = useState(false);
+
+  const handleRangeChange = (preset) => {
     const today = new Date();
-    const newEndDate = addDays(dateRange.endDate, 7);
+    today.setHours(23, 59, 59, 999);
     
-    // No permitir fechas futuras
-    if (newEndDate > today) {
-      setDateRange({
-        startDate: subDays(today, 6),
-        endDate: today
-      });
-    } else {
-      setDateRange({
-        startDate: addDays(dateRange.startDate, 7),
-        endDate: newEndDate
-      });
+    if (preset === 'custom') {
+      setShowCustom(true);
+      setRangePreset(preset);
+      return;
     }
-  };
-  
-  const handleToday = () => {
-    const today = new Date();
+
+    setShowCustom(false);
+    let startDate = new Date();
+    switch (preset) {
+      case 'today':
+        startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startDate = subDays(today, 6);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        startDate = subDays(today, 29);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      default:
+        startDate = subDays(today, 6);
+        startDate.setHours(0, 0, 0, 0);
+    }
+
     setDateRange({
-      startDate: subDays(today, 6),
+      startDate,
       endDate: today
     });
-  };
-  
-  const applyPreset = (preset)=>{
-    const today = new Date();
-    switch(preset){
-      case 'day':
-        setDateRange({startDate:today,endDate:today});break;
-      case 'month':
-        setDateRange({
-          startDate:new Date(today.getFullYear(),today.getMonth(),1),
-          endDate:today
-        });break;
-      case 'week':
-        setDateRange({startDate:subDays(today,6),endDate:today});
-        break;
-      case 'custom':
-      default:
-        // no tocamos las fechas; el usuario las elegirá
-        break;
-    }
     setRangePreset(preset);
   };
 
   return (
-    <Paper
-      elevation={2}
-      sx={{
-        p: 2,
-        mb: 3,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderRadius: 2,
-        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
-        backdropFilter: 'blur(10px)',
-        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
-      }}
-    >
-      <IconButton onClick={handlePreviousWeek}>
-        <ArrowBackIcon />
-      </IconButton>
-      
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <CalendarIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-          {format(dateRange.startDate, 'dd MMM', { locale: es })} - {format(dateRange.endDate, 'dd MMM yyyy', { locale: es })}
-        </Typography>
-      </Box>
-      
-      <Box>
-        <FormControl size="small" sx={{mr:1,minWidth:120}}>
-          <InputLabel>Rango</InputLabel>
-          <Select value={rangePreset} label="Rango"
-                  onChange={e=>applyPreset(e.target.value)}>
-            <MenuItem value="day">Hoy</MenuItem>
-            <MenuItem value="week">Esta semana</MenuItem>
-            <MenuItem value="month">Este mes</MenuItem>
-            <MenuItem value="custom">Personalizado</MenuItem>
-          </Select>
-        </FormControl>
-        <Button 
-          size="small" 
-          variant="outlined" 
-          onClick={handleToday}
-          sx={{ mr: 1 }}
+    <>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        gap: 2,
+        mb: showCustom ? 2 : 4 
+      }}>
+        <IconButton 
+          onClick={() => {
+            const prevStart = subDays(dateRange.startDate, 1);
+            const prevEnd = subDays(dateRange.endDate, 1);
+            setDateRange({ startDate: prevStart, endDate: prevEnd });
+          }}
         >
-          Hoy
-        </Button>
-        <IconButton onClick={handleNextWeek} disabled={dateRange.endDate >= new Date()}>
+          <ArrowBackIcon />
+        </IconButton>
+
+        <Box sx={{ 
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          bgcolor: 'rgba(0,0,0,0.3)',
+          borderRadius: '20px',
+          p: 1
+        }}>
+          <Button
+            size="small"
+            variant={rangePreset === 'today' ? 'contained' : 'text'}
+            onClick={() => handleRangeChange('today')}
+            sx={{ minWidth: '80px' }}
+          >
+            Hoy
+          </Button>
+          <Button
+            size="small"
+            variant={rangePreset === 'week' ? 'contained' : 'text'}
+            onClick={() => handleRangeChange('week')}
+            sx={{ minWidth: '80px' }}
+          >
+            Semana
+          </Button>
+          <Button
+            size="small"
+            variant={rangePreset === 'month' ? 'contained' : 'text'}
+            onClick={() => handleRangeChange('month')}
+            sx={{ minWidth: '80px' }}
+          >
+            Mes
+          </Button>
+          <Button
+            size="small"
+            variant={rangePreset === 'custom' ? 'contained' : 'text'}
+            onClick={() => handleRangeChange('custom')}
+            sx={{ minWidth: '80px' }}
+          >
+            Personalizado
+          </Button>
+        </Box>
+
+        <IconButton 
+          onClick={() => {
+            const nextStart = addDays(dateRange.startDate, 1);
+            const nextEnd = addDays(dateRange.endDate, 1);
+            const today = new Date();
+            if (nextEnd <= today) {
+              setDateRange({ startDate: nextStart, endDate: nextEnd });
+            }
+          }}
+          disabled={dateRange.endDate >= new Date()}
+        >
           <ArrowForwardIcon />
         </IconButton>
+
+        <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
+          {format(dateRange.startDate, 'dd MMM', { locale: es })} - {format(dateRange.endDate, 'dd MMM', { locale: es })}
+        </Typography>
       </Box>
 
-      {/* Cuando el usuario elige "Personalizado" mostramos las cajas de fecha */}
-      {rangePreset==='custom' && (
-        <Box sx={{ ml: 2, display:'flex', gap:1 }}>
+      {/* Selector de fechas personalizado */}
+      {showCustom && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: 2,
+          mb: 4,
+          px: 2
+        }}>
           <TextField
             type="date"
-            size="small"
-            value={format(dateRange.startDate,'yyyy-MM-dd')}
-            onChange={e=>setDateRange({...dateRange, startDate:new Date(e.target.value)})}
+            label="Fecha inicio"
+            value={format(dateRange.startDate, 'yyyy-MM-dd')}
+            onChange={(e) => {
+              const newDate = new Date(e.target.value);
+              newDate.setHours(0, 0, 0, 0);
+              setDateRange(prev => ({ ...prev, startDate: newDate }));
+            }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1 }}
           />
           <TextField
             type="date"
-            size="small"
-            value={format(dateRange.endDate,'yyyy-MM-dd')}
-            onChange={e=>setDateRange({...dateRange, endDate:new Date(e.target.value)})}
+            label="Fecha fin"
+            value={format(dateRange.endDate, 'yyyy-MM-dd')}
+            onChange={(e) => {
+              const newDate = new Date(e.target.value);
+              newDate.setHours(23, 59, 59, 999);
+              if (newDate <= new Date()) {
+                setDateRange(prev => ({ ...prev, endDate: newDate }));
+              }
+            }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1 }}
           />
         </Box>
       )}
-    </Paper>
+    </>
   );
 };
 
@@ -474,6 +506,41 @@ const NutritionDashboard = () => {
     protein_g : '#4a90e2',   // azul
     carbs_g   : '#f5a623',   // naranja
     fat_g     : '#e74c3c'    // rojo
+  };
+
+  // Estilos para el efecto glassmorphism
+  const glassmorphismStyle = {
+    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.1)} 0%, ${alpha(theme.palette.background.paper, 0.2)} 100%)`,
+    backdropFilter: 'blur(10px)',
+    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`,
+    '&:hover': {
+      background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.15)} 0%, ${alpha(theme.palette.background.paper, 0.25)} 100%)`,
+      boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.3)}`,
+    }
+  };
+
+  // Estilos para los gráficos
+  const chartStyles = {
+    tooltip: {
+      contentStyle: {
+        backgroundColor: alpha(theme.palette.background.paper, 0.9),
+        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        borderRadius: '8px',
+        boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.2)}`,
+      },
+      itemStyle: { 
+        color: theme.palette.text.primary 
+      }
+    },
+    colors: {
+      proteins: '#4a90e2',
+      carbs: '#f39c12',
+      fats: '#e74c3c',
+      calories: '#2ecc71',
+      fiber: '#9b59b6',
+      sodium: '#e67e22'
+    }
   };
 
   // Cargar los análisis nutricionales
@@ -717,6 +784,394 @@ const NutritionDashboard = () => {
     window.open(`/api/nutrition/analyses/${analysisId}/image`, '_blank');
   };
 
+  const processNutritionData = (data) => {
+    return data.map(analysis => {
+      let nutritionalData;
+      try {
+        nutritionalData = JSON.parse(analysis.analysis);
+      } catch (e) {
+        try {
+          const jsonMatch = analysis.analysis.match(/\{[\s\S]*\}/);
+          nutritionalData = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          nutritionalData = {};
+        }
+      }
+      
+      return {
+        id: analysis.id,
+        date: format(new Date(analysis.created_at), 'yyyy-MM-dd'),
+        calories: nutritionalData.calories || 0,
+        proteins: nutritionalData.protein_g || 0,
+        carbs: nutritionalData.carbs_g || 0,
+        fats: nutritionalData.fat_g || 0,
+        fiber: nutritionalData.fiber_g || 0,
+        sugars: nutritionalData.sugars_g || 0,
+        sodium: nutritionalData.sodium_mg || 0,
+        foods: nutritionalData.food || [],
+        quality: nutritionalData.quality || 'N/A',
+        recommendations: nutritionalData.recommendations || ''
+      };
+    });
+  };
+
+  const renderNutrientTrends = () => {
+    const processedData = processNutritionData(analyses)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return (
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4, ...glassmorphismStyle }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+          Tendencias Nutricionales
+        </Typography>
+        <Box sx={{ height: 400 }}>
+          <ResponsiveContainer>
+            <LineChart data={processedData}>
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
+              <XAxis 
+                dataKey="date" 
+                stroke={alpha(theme.palette.text.primary, 0.7)}
+                tick={{ fill: theme.palette.text.primary }}
+              />
+              <YAxis 
+                stroke={alpha(theme.palette.text.primary, 0.7)}
+                tick={{ fill: theme.palette.text.primary }}
+              />
+              <Tooltip {...chartStyles.tooltip} />
+              <Legend 
+                wrapperStyle={{ 
+                  paddingTop: '20px',
+                  color: theme.palette.text.primary 
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="proteins" 
+                stroke={chartStyles.colors.proteins}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 2 }}
+                name="Proteínas"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="carbs" 
+                stroke={chartStyles.colors.carbs}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 2 }}
+                name="Carbohidratos"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="fats" 
+                stroke={chartStyles.colors.fats}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 2 }}
+                name="Grasas"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      </Paper>
+    );
+  };
+
+  const renderCalorieDistribution = () => {
+    const processedData = processNutritionData(analyses);
+    const calorieRanges = {
+      bajo: { range: '< 1500', count: 0, color: '#2ecc71' },
+      normal: { range: '1500-2500', count: 0, color: '#3498db' },
+      alto: { range: '> 2500', count: 0, color: '#e74c3c' }
+    };
+
+    processedData.forEach(item => {
+      if (item.calories < 1500) calorieRanges.bajo.count++;
+      else if (item.calories <= 2500) calorieRanges.normal.count++;
+      else calorieRanges.alto.count++;
+    });
+
+    const data = Object.entries(calorieRanges).map(([key, value]) => ({
+      name: `${key.charAt(0).toUpperCase() + key.slice(1)} (${value.range} kcal)`,
+      value: value.count,
+      color: value.color
+    }));
+
+    return (
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4, ...glassmorphismStyle }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+          Distribución Calórica
+        </Typography>
+        <Box sx={{ height: 300 }}>
+          <ResponsiveContainer>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.color}
+                    stroke={alpha(theme.palette.common.white, 0.1)}
+                    strokeWidth={2}
+                  />
+                ))}
+              </Pie>
+              <Tooltip {...chartStyles.tooltip} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Box>
+      </Paper>
+    );
+  };
+
+  const renderCaloriesChart = () => {
+    const totalCalories = dailyCalories.reduce((sum, day) => sum + day.calories, 0);
+    const avgCalories = Math.round(totalCalories / dailyCalories.length);
+    const deviation = Math.round(((avgCalories - calorieGoal) / calorieGoal) * 100);
+    const deviationColor = Math.abs(deviation) > 20 ? '#e74c3c' : 
+                          Math.abs(deviation) > 10 ? '#f39c12' : '#2ecc71';
+
+    return (
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4, ...glassmorphismStyle }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Calorías Consumidas
+          </Typography>
+          
+          {/* Control de objetivo calórico */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {editingGoal ? (
+              <>
+                <TextField
+                  size="small"
+                  type="number"
+                  value={tempCalorieGoal}
+                  onChange={(e) => setTempCalorieGoal(Number(e.target.value))}
+                  sx={{ width: 100 }}
+                  InputProps={{
+                    endAdornment: <Typography variant="caption">kcal</Typography>
+                  }}
+                />
+                <IconButton 
+                  onClick={handleGoalUpdate}
+                  color="primary"
+                  size="small"
+                >
+                  <CheckCircleIcon />
+                </IconButton>
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography>
+                  Meta: {calorieGoal} kcal
+                </Typography>
+                <IconButton 
+                  onClick={() => setEditingGoal(true)}
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* Estadísticas resumen */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ 
+              p: 2, 
+              bgcolor: alpha(theme.palette.background.paper, 0.1),
+              textAlign: 'center'
+            }}>
+              <Typography variant="overline">Promedio</Typography>
+              <Typography variant="h4" sx={{ color: '#2ecc71', fontWeight: 700 }}>
+                {avgCalories}
+              </Typography>
+              <Typography variant="caption">kcal/día</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ 
+              p: 2, 
+              bgcolor: alpha(theme.palette.background.paper, 0.1),
+              textAlign: 'center'
+            }}>
+              <Typography variant="overline">Desviación</Typography>
+              <Typography variant="h4" sx={{ color: deviationColor, fontWeight: 700 }}>
+                {deviation > 0 ? '+' : ''}{deviation}%
+              </Typography>
+              <Typography variant="caption">del objetivo</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Paper sx={{ 
+              p: 2, 
+              bgcolor: alpha(theme.palette.background.paper, 0.1),
+              textAlign: 'center'
+            }}>
+              <Typography variant="overline">Hoy</Typography>
+              <Typography variant="h4" sx={{ 
+                color: dailyCalories[dailyCalories.length - 1]?.calories > calorieGoal ? '#e74c3c' : '#2ecc71',
+                fontWeight: 700 
+              }}>
+                {dailyCalories[dailyCalories.length - 1]?.calories || 0}
+              </Typography>
+              <Typography variant="caption">kcal consumidas</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Box sx={{ height: 300 }}>
+          <ResponsiveContainer>
+            <AreaChart data={dailyCalories}>
+              <defs>
+                <linearGradient id="colorCalories" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2ecc71" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#2ecc71" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
+              <XAxis 
+                dataKey="day" 
+                stroke={alpha(theme.palette.text.primary, 0.7)}
+                tick={{ fill: theme.palette.text.primary }}
+              />
+              <YAxis 
+                stroke={alpha(theme.palette.text.primary, 0.7)}
+                tick={{ fill: theme.palette.text.primary }}
+              />
+              <Tooltip {...chartStyles.tooltip} />
+              <Area
+                type="monotone"
+                dataKey="calories"
+                stroke="#2ecc71"
+                fillOpacity={1}
+                fill="url(#colorCalories)"
+                name="Calorías"
+              >
+                <LabelList
+                  dataKey="calories"
+                  position="top"
+                  content={({ x, y, value }) => (
+                    <text
+                      x={x}
+                      y={y - 10}
+                      fill="#fff"
+                      textAnchor="middle"
+                      fontSize="12"
+                    >
+                      {value}
+                    </text>
+                  )}
+                />
+              </Area>
+              <ReferenceLine
+                y={calorieGoal}
+                stroke="#e74c3c"
+                strokeDasharray="3 3"
+                label={{
+                  value: 'Meta diaria',
+                  fill: '#e74c3c',
+                  position: 'right'
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Box>
+      </Paper>
+    );
+  };
+
+  const renderDetailedTable = () => {
+    const processedData = processNutritionData(analyses);
+    
+    return (
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4, ...glassmorphismStyle }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+          Análisis Nutricionales Recientes
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Calorías</TableCell>
+                <TableCell>Proteínas</TableCell>
+                <TableCell>Grasas</TableCell>
+                <TableCell>Azúcares</TableCell>
+                <TableCell align="center">Resumen</TableCell>
+                <TableCell align="center">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {processedData.slice(0, 8).map((row) => {
+                const resumen = 
+                  row.fats > RDI.fat_g * 1.2 ? 'Alto en grasa' :
+                  row.sugars > RDI.sugars_g * 1.2 ? 'Alto en azúcares' :
+                  'Saludable';
+                
+                return (
+                  <TableRow key={row.id} hover>
+                    <TableCell>{format(new Date(row.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{row.calories}</TableCell>
+                    <TableCell>{row.proteins}g</TableCell>
+                    <TableCell>{row.fats}g</TableCell>
+                    <TableCell>{row.sugars}g</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={resumen}
+                        size="small"
+                        sx={{
+                          bgcolor: resumen === 'Saludable' ? '#2ecc7120' : '#e74c3c20',
+                          color: resumen === 'Saludable' ? '#2ecc71' : '#e74c3c',
+                          fontWeight: 600
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          title="Descargar imagen"
+                          onClick={() => handleDownloadImage(row.id)}
+                          sx={{ 
+                            bgcolor: '#4caf5030',
+                            '&:hover': { bgcolor: '#4caf5050' }
+                          }}
+                        >
+                          <DownloadIcon fontSize="small" sx={{ color: '#4caf50' }}/>
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Ver detalles"
+                          onClick={() => navigate(`/nutrition/analysis/${row.id}`)}
+                          sx={{ 
+                            bgcolor: '#2196f322',
+                            '&:hover': { bgcolor: '#2196f344' }
+                          }}
+                        >
+                          <ArrowForwardIcon fontSize="small" sx={{ color: '#2196f3' }}/>
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    );
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative', bgcolor: '#000' }}>
       <Aurora />
@@ -815,315 +1270,73 @@ const NutritionDashboard = () => {
             </Box>
           ) : (
             <>
-              {/* Gráficos y estadísticas */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                {/* Calorías diarias */}
-                <Grid item xs={12} md={8}>
-                    <Paper
-                      elevation={3}
-                      sx={{
-                        p: 3,
-                        borderRadius: 3,
-                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                        Calorías Diarias
-                        </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ mr: 1 }}>
-                          Objetivo diario:
-                        </Typography>
-                        
-                        {editingGoal ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-             <TextField
-                              size="small"
-               type="number"
-                              value={tempCalorieGoal}
-                              onChange={(e) => setTempCalorieGoal(parseInt(e.target.value) || 0)}
-                              sx={{ width: 100, mr: 1 }}
-             />
-             <Button
-                              size="small" 
-               variant="contained"
-               onClick={handleGoalUpdate}
-             >
-                              Guardar
-             </Button>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                              {calorieGoal} kcal
-                            </Typography>
-                            <IconButton 
-                              size="small" 
-                              onClick={() => {
-                                setTempCalorieGoal(calorieGoal);
-                              setEditingGoal(true);
-                              }}
-                              sx={{ ml: 1 }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        )}
-                      </Box>
-                      </Box>
-                      
-                    <Box sx={{ height: 300 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={dailyCalories}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="day" />
-                          <YAxis />
-                            <RechartsTooltip 
-                              formatter={(value, name) => [
-                                `${value} kcal`, 
-                                name === 'calories' ? 'Consumidas' : 'Objetivo'
-                              ]} 
-                            />
-                            <Bar 
-                              dataKey="calories" 
-                              name="Consumidas" 
-                          >
-                            {dailyCalories.map((d,i)=>(
-                              <Cell key={i} fill={d.barColor}/>
-                            ))}
-                            <LabelList dataKey="calories" position="top" formatter={(v)=>`${v} kcal`} />
-                          </Bar>
-                            <Bar 
-                              dataKey="goal" 
-                              name="Objetivo" 
-                            fill="#455a64" 
-                              radius={[4, 4, 0, 0]} 
-                            />
-                          <Legend />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                  
-                  {/* Distribución de macronutrientes */}
-                  <Grid item xs={12} md={4}>
-                    <Paper
-                      elevation={3}
-                      sx={{
-                        p: 3,
-                        height: '100%',
-                        borderRadius: 3,
-                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      }}
-                    >
-                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                        Macronutrientes
-                      </Typography>
-                      
-                      <Box sx={{ height: 220, mb: 2 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                            data={nutrients.filter(n=>['protein_g','carbs_g','fat_g'].includes(n.key))}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                            paddingAngle={3}
-                              dataKey="value"
-                            >
-                            {nutrients.filter(n=>['protein_g','carbs_g','fat_g'].includes(n.key))
-                                      .map((entry,idx)=>(<Cell key={idx} fill={COLOR_MAP[entry.key]} />))}
-                            </Pie>
-                            <RechartsTooltip
-                              formatter={(v,n)=>[`${v} g`, n]}/>
-                            <Legend verticalAlign="bottom" height={24}/>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                  </Grid>
+              {/* Gráfico de calorías primero */}
+              {renderCaloriesChart()}
               
-              {/* Análisis nutricionales recientes */}
-              <motion.div variants={itemVariants}>
-                  <Paper
-                    elevation={3}
-                    sx={{
-                      p: 3,
-                      borderRadius: 3,
-                      background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
-                      backdropFilter: 'blur(10px)',
-                      border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    mb: 4
-                    }}
-                  >
-                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-                    Análisis Nutricionales Recientes
-                    </Typography>
-                    
-                    <TableContainer component={Paper}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Fecha</TableCell>
-                            <TableCell>Calorías</TableCell>
-                            <TableCell>Proteínas</TableCell>
-                            <TableCell>Grasas</TableCell>
-                            <TableCell>Azúcares</TableCell>
-                            <TableCell align="center">Resumen</TableCell>
-                            <TableCell align="center">Acciones</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {analyses.slice(0,8).map(a=>{
-                            const n = extractNutritionData(a.analysis);
-                            const resumen =
-                              n.fat_g>RDI.fat_g*1.2 ? 'Alto en grasa' :
-                              n.sugars_g>RDI.sugars_g*1.2 ? 'Alto en azúcares' :
-                              'Saludable';
-                            return (
-                              <TableRow key={a.id} hover>
-                                <TableCell>{new Date(a.created_at).toLocaleDateString()}</TableCell>
-                                <TableCell>{n.calories||0}</TableCell>
-                                <TableCell>{n.proteins||0}g</TableCell>
-                                <TableCell>{n.fats||0}g</TableCell>
-                                <TableCell>{n.sugars||0}g</TableCell>
-                                <TableCell align="center">{resumen}</TableCell>
-                                <TableCell align="center">
-                                  <IconButton
-                                    size="small"
-                                    title="Descargar imagen"
-                                    onClick={()=>handleDownloadImage(a.id)}>
-                                    <DownloadIcon fontSize="small"/>
-                                  </IconButton>
-                                  <IconButton
-                                    size="small"
-                                    title="Ver detalles"
-                                    onClick={()=>navigate(`/nutrition/analysis/${a.id}`)}>
-                                    <ArrowForwardIcon fontSize="small"/>
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>);
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Paper>
-              </motion.div>
+              {/* Gráfico de tendencias nutricionales */}
+              {renderNutrientTrends()}
               
-              {/* Botón para añadir comida */}
-              <motion.div 
-                variants={itemVariants}
-                style={{ 
-                  position: 'fixed', 
-                  bottom: 30, 
-                  right: 30, 
-                  zIndex: 10 
-                }}
-              >
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="large"
-                    onClick={() => navigate('/nutrition')}
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      boxShadow: `0 4px 20px ${alpha(theme.palette.secondary.main, 0.5)}`,
-                      '&:hover': {
-                        transform: 'scale(1.1)',
-                      },
-                    }}
-                  >
-                    <RestaurantIcon fontSize="large" />
-                  </Button>
-              </motion.div>
-
-              {/* Tarjetas de nutrientes */}
-              <Grid container spacing={3} sx={{ mb:4 }}>
-                {nutrients.map((n,idx)=>(
-                  <Grid item xs={12} sm={6} md={4} key={n.key}>
-                    <NutrientCard
-                      title={n.name} value={n.value} unit={n.unit}
-                      icon={
-                        n.name==='Proteínas'?<FitnessCenterIcon/>:
-                        n.name==='Grasas'?<OpacityIcon/>:
-                        n.name==='Carbohidratos'?<FastfoodIcon/>:
-                        n.name==='Fibra'?<LocalDiningIcon/>:
-                        n.name==='Azúcares'?<TrendingUpIcon/>:
-                        <WarningIcon/>
-                      }
-                      color={n.color}
-                      rdi={n.rdi}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-
-              {/* Recomendaciones */}
-              {advices.length>0 && (
-                <Paper
-                  elevation={3}
-                  sx={{
-                    p:3, borderRadius:3, mb:4,
-                    background:`linear-gradient(135deg, ${alpha('#009688',0.1)} 0%, ${alpha('#009688',0.2)} 100%)`,
-                    border:`1px solid ${alpha('#009688',0.3)}`
-                  }}
-                >
-                  <Typography variant="h5" sx={{ fontWeight:700, mb:2 }}>
-                    Recomendaciones
-                  </Typography>
-                  <ul style={{ margin:0, paddingLeft:'1.2rem' }}>
-                    {advices.map((msg,i)=>(<li key={i}><Typography variant="body2">{msg}</Typography></li>))}
-                  </ul>
-                </Paper>
-              )}
+              {/* Gráfico de distribución calórica */}
+              {renderCalorieDistribution()}
 
               {/* Streak y puntos */}
-              <Grid container spacing={3} sx={{ mb:1 }} id="nutri-share-block">
+              <Grid container spacing={3} sx={{ mb: 4 }} id="nutri-share-block">
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{p:2,bgcolor:'#1e88e5'}}>
+                  <Paper sx={{p:2, bgcolor:'#1e88e5'}}>
                     <Typography variant="h6" color="white">🔥 Streak</Typography>
                     <Typography variant="h3" color="white" sx={{fontWeight:700}}>
-                       {streak}
+                      {streak}
                     </Typography>
                     <Typography variant="body2" color="white">días seguidos</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{p:2,bgcolor:'#43a047'}}>
+                  <Paper sx={{p:2, bgcolor:'#43a047'}}>
                     <Typography variant="h6" color="white">⭐ Puntos</Typography>
                     <Typography variant="h3" color="white" sx={{fontWeight:700}}>
-                       {points}
+                      {points}
                     </Typography>
                   </Paper>
                 </Grid>
               </Grid>
-              <Typography variant="caption" sx={{mb:3,display:'block',opacity:0.7}}>
-                Streak = nº de días seguidos cumpliendo entre 80 y 120 % de tu meta calórica.
-                Ganas 10 puntos por día en rango y 2 puntos si te sales. ¡Comparte tu progreso!
-              </Typography>
 
-              <Typography variant="caption" sx={{mb:3,display:'block',opacity:0.7}}>
-                {motivation}
-              </Typography>
+              {/* Recomendaciones */}
+              {advices.length > 0 && (
+                <Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    borderRadius: 3,
+                    mb: 4,
+                    background: `linear-gradient(135deg, ${alpha('#009688',0.1)} 0%, ${alpha('#009688',0.2)} 100%)`,
+                    border: `1px solid ${alpha('#009688',0.3)}`
+                  }}
+                >
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                    Recomendaciones
+                  </Typography>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                    {advices.map((msg,i) => (
+                      <li key={i}><Typography variant="body2">{msg}</Typography></li>
+                    ))}
+                  </ul>
+                </Paper>
+              )}
 
-              <Button variant="outlined" startIcon={<ShareIcon/>}
-                      onClick={handleShare} sx={{mb:4}}>
-                Compartir dashboard
-              </Button>
+              {/* Tabla de análisis recientes */}
+              {renderDetailedTable()}
+
+              {/* Botón de compartir */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<ShareIcon/>}
+                  onClick={handleShare} 
+                  sx={{ mb: 4 }}
+                >
+                  Compartir dashboard
+                </Button>
+              </Box>
             </>
           )}
         </motion.div>

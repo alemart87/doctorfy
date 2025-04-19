@@ -3,12 +3,12 @@ import { Container, Typography, Button, Box, Paper, CircularProgress,
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
   IconButton, useTheme, useMediaQuery, Alert,
   TextField, InputAdornment, FormControl, InputLabel,
-  Select, MenuItem, Stack, Chip, Backdrop, LinearProgress
+  Select, MenuItem, Stack, Chip, Backdrop, LinearProgress, Grid
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaTimes, FaFileAlt } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaTimes, FaFileAlt, FaArrowLeft } from 'react-icons/fa';
 import '../components/AnimatedList.css';
 
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -55,6 +55,8 @@ const MedicalStudies = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  
+  const [selectedStudy, setSelectedStudy] = useState(null);
   
   const navigate = useNavigate();
   const theme     = useTheme();
@@ -272,7 +274,7 @@ const MedicalStudies = () => {
   };
 
   const handleViewStudy = (study) => {
-    navigate(`/medical-studies/${study.id}`);
+    setSelectedStudy(study);
   };
 
   const handleAnalyzeStudy = async (study) => {
@@ -631,333 +633,495 @@ const MedicalStudies = () => {
     axios.defaults.timeout = 15000; // 15 segundos por defecto
   }, []);
 
+  const renderStudyDetail = (study) => {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Button 
+          onClick={() => setSelectedStudy(null)}
+          startIcon={<FaArrowLeft />}
+          sx={{ mb: 3, color: 'white' }}
+        >
+          Volver a la lista
+        </Button>
+
+        <Typography variant="h4" sx={{ 
+          color: '#00bfff',
+          mb: 4,
+          fontWeight: 700 
+        }}>
+          {getStudyTypeName(study.study_type)} - {formatDate(study.created_at)}
+        </Typography>
+
+        <Box sx={{
+          bgcolor: 'rgba(0,0,0,0.3)',
+          borderRadius: '16px',
+          p: 4,
+          border: '1px solid rgba(255,255,255,0.1)',
+          minHeight: '500px'
+        }}>
+          {/* Detalles del estudio */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {[
+              { 
+                label: 'Tipo de estudio', 
+                value: getStudyTypeName(study.study_type),
+                color: '#00bfff',
+                icon: '🔍'
+              },
+              { 
+                label: 'Estado actual', 
+                value: study.interpretation ? 'Interpretado' : 'Pendiente',
+                color: study.interpretation ? '#2ecc71' : '#f1c40f',
+                icon: study.interpretation ? '✅' : '⏳'
+              },
+              { 
+                label: 'Fecha de carga', 
+                value: formatDate(study.created_at),
+                color: '#9b59b6',
+                icon: '📅'
+              }
+            ].map((item, idx) => (
+              <Grid item xs={12} md={4} key={idx}>
+                <Box sx={{
+                  bgcolor: `${item.color}15`,
+                  border: `1px solid ${item.color}30`,
+                  borderRadius: '12px',
+                  p: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2
+                }}>
+                  <Typography sx={{ fontSize: '1.5rem' }}>{item.icon}</Typography>
+                  <Box>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                      {item.label}
+                    </Typography>
+                    <Typography sx={{ color: item.color, fontSize: '1.2rem', fontWeight: 600 }}>
+                      {item.value}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Interpretación */}
+          {study.interpretation ? (
+            <>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2, 
+                mb: 3,
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                pb: 2
+              }}>
+                <FaRobot style={{ fontSize: 24, color: '#00bfff' }} />
+                <Typography variant="h5" sx={{ color: '#00bfff', fontWeight: 600 }}>
+                  Interpretación IA
+                </Typography>
+              </Box>
+
+              <Box sx={{ 
+                color: 'white',
+                bgcolor: 'rgba(0,0,0,0.2)',
+                borderRadius: '12px',
+                p: 4,
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'system-ui',
+                fontSize: '1.1rem',
+                lineHeight: 1.8,
+                '& h1, & h2, & h3': {
+                  color: '#00bfff',
+                  marginBottom: '1rem',
+                  marginTop: '2rem'
+                },
+                '& ul, & ol': {
+                  paddingLeft: '1.5rem',
+                  marginBottom: '1rem'
+                },
+                '& li': {
+                  marginBottom: '0.5rem'
+                },
+                '& strong': {
+                  color: '#2ecc71',
+                  fontWeight: 600
+                }
+              }}>
+                {study.interpretation.split('\n').map((line, idx) => (
+                  <Typography key={idx} paragraph>
+                    {line}
+                  </Typography>
+                ))}
+              </Box>
+            </>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 3,
+              py: 8
+            }}>
+              <Typography sx={{ color: '#f39c12', fontSize: '1.2rem' }}>
+                Este estudio aún no ha sido interpretado
+              </Typography>
+              <Button
+                startIcon={<FaRobot />}
+                onClick={() => handleAnalyzeStudy(study)}
+                variant="contained"
+                sx={{
+                  bgcolor: 'rgba(156, 39, 176, 0.2)',
+                  color: '#9c27b0',
+                  '&:hover': { bgcolor: 'rgba(156, 39, 176, 0.3)' },
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem'
+                }}
+              >
+                Analizar con IA
+              </Button>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <div className="medical-studies-container">
-      <div className="medical-studies-header">
-        <h1 className="medical-studies-title">Estudios Médicos</h1>
-        <p className="medical-studies-subtitle">
-          Sube, visualiza y analiza tus estudios médicos
-        </p>
-      </div>
-      
-      {error && (
-        <div className="error-alert">
-          <p>{error}</p>
-        </div>
-      )}
-      
-      <div 
-        className="upload-area"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        <div className="upload-icon">
-          <FaCloudUploadAlt />
-        </div>
-        <h3 className="upload-text">Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo</h3>
-        <p className="upload-formats">
-          Formatos aceptados: JPG, PNG, TXT, PDF
-        </p>
-        
-        <Alert 
-          severity="info" 
-          sx={{ 
-            bgcolor: 'rgba(33, 150, 243, 0.15)',        // color acorde al tema
-            color:  'white',
-            border: '1px solid #2196f3',
-            backdropFilter: 'blur(6px)',
-            mb: 2
-          }}
-        >
-          Puedes seleccionar hasta 4 fotos al mismo tiempo, esto es útil para estudios de sangre.
-        </Alert>
-        
-        <input
-          type="file"
-          id="file-upload"
-          multiple
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          accept=".jpg,.jpeg,.png"
-        />
-        
-        <label htmlFor="file-upload" className="upload-button">
-          Seleccionar archivo
-        </label>
-        
-        {selectedFiles.length > 0 && (
-          <div className="selected-file-container">
-             <p className="selected-file-name">
-                {selectedFiles.length} archivo(s) seleccionado(s)
-                {selectedFiles.length > 1 && ' (máx. 4)'}
-             </p>
-            
-            <div className="study-type-selector">
-              <label htmlFor="study-type">
-                Tipo de estudio:
-              </label>
-              <select 
-                id="study-type" 
-                value={studyType} 
-                onChange={(e) => setStudyType(e.target.value)}
-                className="study-type-select"
-              >
-                <option value="general">General</option>
-                <option value="xray">Radiografía</option>
-                <option value="mri">Resonancia Magnética</option>
-                <option value="ct">Tomografía Computarizada</option>
-                <option value="ultrasound">Ecografía</option>
-                <option value="bloodwork">Análisis de Sangre</option>
-              </select>
-            </div>
-            
-            <button 
-              onClick={handleUpload} 
-              className="upload-submit-button"
-              disabled={uploading}
-            >
-              {uploading ? (
-                <div className="upload-progress">
-                  <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
-                  <span className="upload-progress-text">{uploadProgress}%</span>
-                </div>
-            ) : (
-              <>
-                  <FaUpload className="button-icon" />
-                  <span>Subir estudio</span>
-              </>
-            )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="studies-section-header">
-        <h2 className="studies-section-title">Mis Estudios</h2>
-        {renderSearchBar()}
-      </div>
-        
-        {loading ? (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Cargando estudios...</p>
-        </div>
-      ) : sortedStudies.length > 0 ? (
+      {selectedStudy ? (
+        renderStudyDetail(selectedStudy)
+      ) : (
         <>
-          {(searchTerm || filterType !== 'all' || dateRange.from || dateRange.to) && (
-            <div className="search-results-info">
-              Mostrando {sortedStudies.length} de {studies.length} estudios
-              {searchTerm && <span> que contienen "{searchTerm}"</span>}
-              {filterType !== 'all' && (
-                <span> de tipo "{getStudyTypeName(filterType)}"</span>
-              )}
-              {(dateRange.from || dateRange.to) && (
-                <span> en el rango de fechas seleccionado</span>
-              )}
+          <div className="medical-studies-header">
+            <h1 className="medical-studies-title">Estudios Médicos</h1>
+            <p className="medical-studies-subtitle">
+              Sube, visualiza y analiza tus estudios médicos
+            </p>
+          </div>
+          
+          {error && (
+            <div className="error-alert">
+              <p>{error}</p>
             </div>
           )}
           
-          <TableContainer component={Paper}
-            sx={{ bgcolor:'#0a0a0a', borderRadius:2, px:1, overflowX:'auto' }}
+          <div 
+            className="upload-area"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
           >
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ '& th': { color:'#00bfff', fontWeight:700 }}}>
-                  <TableCell align="center">#</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Fecha</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Interpretación</TableCell>
-                  <TableCell align="center">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {sortedStudies.map((study, idx) => (
-                  <TableRow key={study.id} hover
-                    sx={{ '&:hover': { backgroundColor:'#111' } }}
-                  >
-                    <TableCell align="center">{idx + 1}</TableCell>
-                    <TableCell>{getStudyTypeName(study.study_type)}</TableCell>
-                    <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>
-                      {formatDate(study.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      {study.interpretation ? (
-                        <span style={{ color:'#2ecc71', fontWeight:600 }}>Interpretado</span>
-                      ) : (
-                        <span style={{ color:'#f39c12', fontWeight:600 }}>Pendiente</span>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ maxWidth:250, display:{ xs:'none', sm:'table-cell' }}}>
-                      {study.interpretation
-                        ? study.interpretation.slice(0, 60) + '…'
-                        : '—'}
-                    </TableCell>
-
-                    {/* Acciones */}
-                    <TableCell align="center">
-                      <Box sx={{ display:'flex', justifyContent:'center', gap:1 }}>
-                        <IconButton size="small" color="primary"
-                          onClick={(e)=>{e.stopPropagation(); handleViewStudy(study);} }
-                          sx={{ bgcolor:'#2196f322' }} title="Ver estudio">
-                          <FaEye style={{ color:'#2196f3' }}/>
-                        </IconButton>
-
-                        <IconButton size="small" color="success"
-                          onClick={(e)=>handleDownloadStudy(study,e)}
-                          sx={{ bgcolor:'#4caf5030' }} title="Descargar estudio">
-                          <FaDownload style={{ color:'#4caf50' }}/>
-                        </IconButton>
-
-                        <IconButton size="small"
-                          onClick={(e)=>{e.stopPropagation(); handleAnalyzeStudy(study);} }
-                          sx={{ bgcolor:'#9c27b030' }} title="Analizar con IA">
-                          <FaRobot style={{ color:'#9c27b0' }}/>
-                        </IconButton>
-
-                        {study.interpretation && (
-                          <IconButton size="small"
-                            onClick={(e)=>handleDownloadInterpretation(study,e)}
-                            sx={{ bgcolor:'#ffc10733' }} title="Descargar interpretación">
-                            <FaFileAlt style={{ color:'#ffc107' }}/>
-                          </IconButton>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
-      ) : studies.length > 0 ? (
-        <div className="no-results-message">
-          <p>No se encontraron estudios que coincidan con los criterios de búsqueda.</p>
-          <button className="clear-search-button" onClick={clearFilters}>
-            Limpiar búsqueda
-          </button>
-        </div>
-      ) : (
-        <div className="no-studies-message">
-          <p>No hay estudios médicos disponibles. Sube tu primer estudio.</p>
-        </div>
-      )}
-      
-      {notification.open && (
-        <div className={`notification ${notification.type}`}>
-          <p>{notification.message}</p>
-          <button onClick={handleCloseNotification} className="notification-close">×</button>
-        </div>
-      )}
-
-      <Backdrop
-        open={analysisModal.open}
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          color: '#fff',
-          flexDirection: 'column',
-          backgroundColor: 'rgba(0,0,0,0.85)'  // más oscuro para mejor contraste
-        }}
-      >
-        {analysisModal.status === 'confirm' && (
-          <>
-            <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
-              ¿Deseas analizar este estudio con IA?
-            </Typography>
-            <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
-              El primer resultado puede tardar hasta 15 segundos en aparecer. 
-              El análisis completo puede tomar hasta 5 minutos.
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={executeAnalysis}
-              >
-                Analizar ahora
-              </Button>
-            </Box>
-          </>
-        )}
-        
-        {analysisModal.status === 'loading' && (
-          <>
-            <CircularProgress color="inherit" />
-            <Typography sx={{ mt: 2 }}>
-              Analizando estudio con IA...
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 1, color: 'gray' }}>
-              Este proceso puede tardar hasta 5 minutos
-            </Typography>
-            <LinearProgress 
+            <div className="upload-icon">
+              <FaCloudUploadAlt />
+            </div>
+            <h3 className="upload-text">Arrastra y suelta un archivo aquí, o haz clic para seleccionar un archivo</h3>
+            <p className="upload-formats">
+              Formatos aceptados: JPG, PNG, TXT, PDF
+            </p>
+            
+            <Alert 
+              severity="info" 
               sx={{ 
-                mt: 2, 
-                width: '200px',
-                borderRadius: 1
-              }} 
-            />
-          </>
-        )}
-        
-        {analysisModal.status === 'done' && (
-          <>
-            <CheckCircleIcon sx={{ fontSize: 60, color: '#4caf50' }} />
-            <Typography variant="h5" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
-              ¡Análisis completado!
-            </Typography>
-            <Typography sx={{ mb: 3, textAlign: 'center' }}>
-              El informe está listo para ser consultado
-            </Typography>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={() => {
-                navigate(`/medical-studies/${analysisModal.studyId}`);
-                setAnalysisModal({ open: false, status: 'idle', studyId: null });
+                bgcolor: 'rgba(33, 150, 243, 0.15)',        // color acorde al tema
+                color:  'white',
+                border: '1px solid #2196f3',
+                backdropFilter: 'blur(6px)',
+                mb: 2
               }}
             >
-              Ver informe
-            </Button>
-          </>
-        )}
-        
-        {analysisModal.status === 'error' && (
-          <>
-            <Typography variant="h5" color="error" sx={{ mb: 2 }}>
-              Error al analizar el estudio
-            </Typography>
-            <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
-              {analysisModal.errorMessage || "Ha ocurrido un problema durante el análisis. Por favor, inténtalo más tarde."}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
+              Puedes seleccionar hasta 4 fotos al mismo tiempo, esto es útil para estudios de sangre.
+            </Alert>
+            
+            <input
+              type="file"
+              id="file-upload"
+              multiple
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              accept=".jpg,.jpeg,.png"
+            />
+            
+            <label htmlFor="file-upload" className="upload-button">
+              Seleccionar archivo
+            </label>
+            
+            {selectedFiles.length > 0 && (
+              <div className="selected-file-container">
+                 <p className="selected-file-name">
+                    {selectedFiles.length} archivo(s) seleccionado(s)
+                    {selectedFiles.length > 1 && ' (máx. 4)'}
+                 </p>
+                
+                <div className="study-type-selector">
+                  <label htmlFor="study-type">
+                    Tipo de estudio:
+                  </label>
+                  <select 
+                    id="study-type" 
+                    value={studyType} 
+                    onChange={(e) => setStudyType(e.target.value)}
+                    className="study-type-select"
+                  >
+                    <option value="general">General</option>
+                    <option value="xray">Radiografía</option>
+                    <option value="mri">Resonancia Magnética</option>
+                    <option value="ct">Tomografía Computarizada</option>
+                    <option value="ultrasound">Ecografía</option>
+                    <option value="bloodwork">Análisis de Sangre</option>
+                  </select>
+                </div>
+                
+                <button 
+                  onClick={handleUpload} 
+                  className="upload-submit-button"
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <div className="upload-progress">
+                      <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+                      <span className="upload-progress-text">{uploadProgress}%</span>
+                    </div>
+                ) : (
+                  <>
+                      <FaUpload className="button-icon" />
+                      <span>Subir estudio</span>
+                  </>
+                )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="studies-section-header">
+            <h2 className="studies-section-title">Mis Estudios</h2>
+            {renderSearchBar()}
+          </div>
+            
+            {loading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Cargando estudios...</p>
+            </div>
+          ) : sortedStudies.length > 0 ? (
+            <>
+              {(searchTerm || filterType !== 'all' || dateRange.from || dateRange.to) && (
+                <div className="search-results-info">
+                  Mostrando {sortedStudies.length} de {studies.length} estudios
+                  {searchTerm && <span> que contienen "{searchTerm}"</span>}
+                  {filterType !== 'all' && (
+                    <span> de tipo "{getStudyTypeName(filterType)}"</span>
+                  )}
+                  {(dateRange.from || dateRange.to) && (
+                    <span> en el rango de fechas seleccionado</span>
+                  )}
+                </div>
+              )}
+              
+              <TableContainer component={Paper}
+                sx={{ bgcolor:'#0a0a0a', borderRadius:2, px:1, overflowX:'auto' }}
               >
-                Cerrar
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => {
-                  // Intentar ver el estudio de todos modos
-                  navigate(`/medical-studies/${analysisModal.studyId}`);
-                  setAnalysisModal({ open: false, status: 'idle', studyId: null });
-                }}
-              >
-                Ver estudio de todos modos
-              </Button>
-            </Box>
-          </>
-        )}
-      </Backdrop>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ '& th': { color:'#00bfff', fontWeight:700 }}}>
+                      <TableCell align="center">#</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Fecha</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Interpretación</TableCell>
+                      <TableCell align="center">Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {sortedStudies.map((study, idx) => (
+                      <TableRow key={study.id} hover
+                        sx={{ '&:hover': { backgroundColor:'#111' } }}
+                      >
+                        <TableCell align="center">{idx + 1}</TableCell>
+                        <TableCell>{getStudyTypeName(study.study_type)}</TableCell>
+                        <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>
+                          {formatDate(study.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {study.interpretation ? (
+                            <span style={{ color:'#2ecc71', fontWeight:600 }}>Interpretado</span>
+                          ) : (
+                            <span style={{ color:'#f39c12', fontWeight:600 }}>Pendiente</span>
+                          )}
+                        </TableCell>
+                        <TableCell sx={{ maxWidth:250, display:{ xs:'none', sm:'table-cell' }}}>
+                          {study.interpretation
+                            ? study.interpretation.slice(0, 60) + '…'
+                            : '—'}
+                        </TableCell>
+
+                        {/* Acciones */}
+                        <TableCell align="center">
+                          <Box sx={{ display:'flex', justifyContent:'center', gap:1 }}>
+                            <IconButton size="small" color="primary"
+                              onClick={(e)=>{e.stopPropagation(); handleViewStudy(study);} }
+                              sx={{ bgcolor:'#2196f322' }} title="Ver estudio">
+                              <FaEye style={{ color:'#2196f3' }}/>
+                            </IconButton>
+
+                            <IconButton size="small" color="success"
+                              onClick={(e)=>handleDownloadStudy(study,e)}
+                              sx={{ bgcolor:'#4caf5030' }} title="Descargar estudio">
+                              <FaDownload style={{ color:'#4caf50' }}/>
+                            </IconButton>
+
+                            <IconButton size="small"
+                              onClick={(e)=>{e.stopPropagation(); handleAnalyzeStudy(study);} }
+                              sx={{ bgcolor:'#9c27b030' }} title="Analizar con IA">
+                              <FaRobot style={{ color:'#9c27b0' }}/>
+                            </IconButton>
+
+                            {study.interpretation && (
+                              <IconButton size="small"
+                                onClick={(e)=>handleDownloadInterpretation(study,e)}
+                                sx={{ bgcolor:'#ffc10733' }} title="Descargar interpretación">
+                                <FaFileAlt style={{ color:'#ffc107' }}/>
+                              </IconButton>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          ) : studies.length > 0 ? (
+            <div className="no-results-message">
+              <p>No se encontraron estudios que coincidan con los criterios de búsqueda.</p>
+              <button className="clear-search-button" onClick={clearFilters}>
+                Limpiar búsqueda
+              </button>
+            </div>
+          ) : (
+            <div className="no-studies-message">
+              <p>No hay estudios médicos disponibles. Sube tu primer estudio.</p>
+            </div>
+          )}
+          
+          {notification.open && (
+            <div className={`notification ${notification.type}`}>
+              <p>{notification.message}</p>
+              <button onClick={handleCloseNotification} className="notification-close">×</button>
+            </div>
+          )}
+
+          <Backdrop
+            open={analysisModal.open}
+            sx={{
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              color: '#fff',
+              flexDirection: 'column',
+              backgroundColor: 'rgba(0,0,0,0.85)'  // más oscuro para mejor contraste
+            }}
+          >
+            {analysisModal.status === 'confirm' && (
+              <>
+                <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
+                  ¿Deseas analizar este estudio con IA?
+                </Typography>
+                <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
+                  El primer resultado puede tardar hasta 15 segundos en aparecer. 
+                  El análisis completo puede tomar hasta 5 minutos.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={executeAnalysis}
+                  >
+                    Analizar ahora
+                  </Button>
+                </Box>
+              </>
+            )}
+            
+            {analysisModal.status === 'loading' && (
+              <>
+                <CircularProgress color="inherit" />
+                <Typography sx={{ mt: 2 }}>
+                  Analizando estudio con IA...
+                </Typography>
+                <Typography variant="caption" sx={{ mt: 1, color: 'gray' }}>
+                  Este proceso puede tardar hasta 5 minutos
+                </Typography>
+                <LinearProgress 
+                  sx={{ 
+                    mt: 2, 
+                    width: '200px',
+                    borderRadius: 1
+                  }} 
+                />
+              </>
+            )}
+            
+            {analysisModal.status === 'done' && (
+              <>
+                <CheckCircleIcon sx={{ fontSize: 60, color: '#4caf50' }} />
+                <Typography variant="h5" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                  ¡Análisis completado!
+                </Typography>
+                <Typography sx={{ mb: 3, textAlign: 'center' }}>
+                  El informe está listo para ser consultado
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => {
+                    navigate(`/medical-studies/${analysisModal.studyId}`);
+                    setAnalysisModal({ open: false, status: 'idle', studyId: null });
+                  }}
+                >
+                  Ver informe
+                </Button>
+              </>
+            )}
+            
+            {analysisModal.status === 'error' && (
+              <>
+                <Typography variant="h5" color="error" sx={{ mb: 2 }}>
+                  Error al analizar el estudio
+                </Typography>
+                <Typography sx={{ mb: 3, textAlign: 'center', maxWidth: 500 }}>
+                  {analysisModal.errorMessage || "Ha ocurrido un problema durante el análisis. Por favor, inténtalo más tarde."}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setAnalysisModal({ open: false, status: 'idle', studyId: null })}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      // Intentar ver el estudio de todos modos
+                      navigate(`/medical-studies/${analysisModal.studyId}`);
+                      setAnalysisModal({ open: false, status: 'idle', studyId: null });
+                    }}
+                  >
+                    Ver estudio de todos modos
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Backdrop>
+        </>
+      )}
     </div>
   );
 };

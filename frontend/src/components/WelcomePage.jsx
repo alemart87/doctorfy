@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Typography, Box } from '@mui/material';
-import Ballpit from './Ballpit';
+import Waves from './Waves';
 
 const WelcomePage = ({ onComplete }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -10,21 +10,22 @@ const WelcomePage = ({ onComplete }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Mostrar el mensaje de "Toca para continuar" después de 3 segundos
     const timer = setTimeout(() => {
       setShowContinue(true);
-    }, 3000);
+    }, 2000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    const completeTimer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        onComplete();
+      }, 500);
+    }, 4000);
 
-  const handleContinue = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onComplete();
-      navigate('/');
-    }, 1000);
-  };
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(completeTimer);
+    };
+  }, [onComplete]);
 
   return (
     <AnimatePresence>
@@ -33,7 +34,7 @@ const WelcomePage = ({ onComplete }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
+          transition={{ duration: 0.5 }}
           style={{
             position: 'fixed',
             top: 0,
@@ -45,27 +46,22 @@ const WelcomePage = ({ onComplete }) => {
             overflow: 'hidden',
             cursor: showContinue ? 'pointer' : 'default'
           }}
-          onClick={showContinue ? handleContinue : undefined}
+          onClick={showContinue ? () => {
+            setIsVisible(false);
+            setTimeout(onComplete, 500);
+          } : undefined}
         >
-          {/* Configuración ajustada para que se vea como en la imagen */}
-          <Ballpit
-            config={{
-              count: 170,              // Ball Count: 170
-              gravity: 0.7,            // Gravity: 0.7
-              friction: 0.9975,        // Friction: 0.9975
-              wallBounce: 0.95,        // Wall Bounce: 0.95
-              followCursor: false,     // Display Cursor: false
-              colors: ['#ffffff'],     // Color blanco/gris
-              maxVelocity: 0.15,
-              velocityScale: 0.1,
-              minSize: 0.5,
-              maxSize: 2,
-              opacity: 0.2,
-              damping: 0.98
-            }}
+          <Waves
+            lineColor="rgba(255, 255, 255, 0.15)"
+            backgroundColor="transparent"
+            waveSpeedX={0.015}
+            waveSpeedY={0.01}
+            waveAmpX={25}
+            waveAmpY={15}
+            xGap={8}
+            yGap={48}
           />
 
-          {/* Contenido centrado con mejor espaciado */}
           <Box
             sx={{
               position: 'absolute',
@@ -79,50 +75,82 @@ const WelcomePage = ({ onComplete }) => {
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ duration: 0.5 }}
             >
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: '4rem',
-                  fontWeight: 700,
-                  background: 'linear-gradient(to right, #2ecc71, #3498db)',
+                  fontSize: { xs: '3rem', md: '4.5rem' },
+                  fontWeight: 800,
+                  background: 'linear-gradient(to right, #00ffff, #40E0D0)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  textShadow: '0 0 40px rgba(0, 255, 255, 0.5)',
+                  letterSpacing: '2px'
                 }}
               >
                 MARKET LABS
               </Typography>
+
               <Typography
                 variant="h2"
                 sx={{
-                  fontSize: '3rem',
-                  color: '#3498db',
-                  marginTop: 2
+                  fontSize: { xs: '2rem', md: '3.5rem' },
+                  color: '#ffffff',
+                  marginTop: 2,
+                  textShadow: '0 0 30px rgba(0, 255, 255, 0.6)',
+                  letterSpacing: '4px',
+                  fontWeight: 600
                 }}
               >
                 PARAGUAY
               </Typography>
+
               <motion.div
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ delay: 1 }}
+                transition={{ duration: 0.5 }}
                 style={{
-                  height: '2px',
-                  background: 'linear-gradient(90deg, #2ecc71, #3498db)',
+                  height: '3px',
+                  background: 'linear-gradient(90deg, #00ffff, #ffffff)',
                   margin: '20px auto',
-                  width: '300px',
+                  width: '250px',
+                  boxShadow: '0 0 20px rgba(0, 255, 255, 0.4)'
                 }}
               />
+
               <Typography
                 variant="h6"
                 sx={{
-                  color: 'rgba(255,255,255,0.7)',
-                  marginTop: 2
+                  color: '#ffffff',
+                  marginTop: 2,
+                  fontSize: { xs: '1rem', md: '1.5rem' },
+                  letterSpacing: '1px',
+                  textShadow: '0 0 15px rgba(0, 255, 255, 0.5)',
+                  fontWeight: 400
                 }}
               >
                 Innovación en Tecnología Médica
               </Typography>
+
+              {showContinue && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Typography
+                    sx={{
+                      color: 'rgba(255,255,255,0.7)',
+                      mt: 4,
+                      fontSize: '0.9rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Toca para continuar
+                  </Typography>
+                </motion.div>
+              )}
             </motion.div>
           </Box>
         </motion.div>

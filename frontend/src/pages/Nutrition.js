@@ -10,7 +10,7 @@ import Aurora from '../components/Aurora';
 import { 
   CircularProgress, Typography, LinearProgress, Backdrop, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Box, IconButton
+  Paper, Box, IconButton, Grid, Chip
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
@@ -159,11 +159,11 @@ const Nutrition = () => {
         status: 'loading',
         message: 'Subiendo imagen y analizando...' 
       });
-
+      
       const formData = new FormData();
       formData.append('file', selectedFile);
       const token = localStorage.getItem('token');
-
+      
       // Subir y analizar
       const response = await axios.post('/api/nutrition/analyze', formData, {
         headers: {
@@ -175,7 +175,7 @@ const Nutrition = () => {
           setUploadProgress(percentCompleted);
         }
       });
-
+      
       console.log("✅ Análisis completado:", response.data);
 
       // Actualizar estados
@@ -189,7 +189,7 @@ const Nutrition = () => {
         status: 'idle' 
       });
       showNotification('Análisis completado con éxito', 'success');
-
+      
     } catch (err) {
       console.error('❌ Error:', err);
       setError("Error al analizar la imagen. Por favor, intenta de nuevo.");
@@ -244,53 +244,173 @@ const Nutrition = () => {
   const renderAnalysisItem = (analysis, index, isSelected) => {
     const date = formatDate(analysis.created_at);
     
-    // Extraer información nutricional del análisis si está disponible
     const extractNutritionalInfo = (analysisText) => {
-      if (!analysisText) return null;
-      
-      const caloriesMatch = analysisText.match(/calorías:?\s*(\d+)/i);
-      const proteinsMatch = analysisText.match(/proteínas:?\s*(\d+)/i);
-      const carbsMatch = analysisText.match(/carbohidratos:?\s*(\d+)/i);
-      const fatsMatch = analysisText.match(/grasas:?\s*(\d+)/i);
-      
+      try {
+        // Primero intentar parsear directamente el texto como JSON
+        const data = JSON.parse(analysisText);
       return {
-        calories: caloriesMatch ? caloriesMatch[1] : 'N/A',
-        proteins: proteinsMatch ? proteinsMatch[1] : 'N/A',
-        carbs: carbsMatch ? carbsMatch[1] : 'N/A',
-        fats: fatsMatch ? fatsMatch[1] : 'N/A'
+          calories: data.calories || 0,
+          proteins: data.protein_g || 0,
+          carbs: data.carbs_g || 0,
+          fats: data.fat_g || 0,
+          quality: data.quality || 'N/A',
+          foods: data.food || []
+        };
+      } catch (e) {
+        // Si falla, buscar el JSON dentro del texto
+        try {
+          const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[0]);
+            return {
+              calories: data.calories || 0,
+              proteins: data.protein_g || 0,
+              carbs: data.carbs_g || 0,
+              fats: data.fat_g || 0,
+              quality: data.quality || 'N/A',
+              foods: data.food || []
+            };
+          }
+        } catch (e) {
+          console.error('Error parsing JSON:', e);
+        }
+      }
+      return {
+        calories: 0,
+        proteins: 0,
+        carbs: 0,
+        fats: 0,
+        quality: 'N/A',
+        foods: []
       };
     };
     
     const nutritionalInfo = extractNutritionalInfo(analysis.analysis);
 
     return (
-      <div className={`analysis-item ${isSelected ? 'selected' : ''}`}>
-        <div className="analysis-item-header">
-          <div className="analysis-item-icon">
-            <img src="/images/nutrition-icon.png" alt="Nutrition" />
-          </div>
-          <div className="analysis-item-title">
-            <h3>ANÁLISIS NUTRICIONAL</h3>
-            <p className="analysis-date">{date}</p>
-          </div>
-        </div>
-        
-        <div className="analysis-item-content">
-          <div className="nutrition-info-grid">
-            <div className="nutrition-info-row">
-              <div className="nutrition-info-label">Calorías:</div>
-              <div className="nutrition-info-value">{nutritionalInfo?.calories || 'N/A'} kcal</div>
-              <div className="nutrition-info-label">Proteínas:</div>
-              <div className="nutrition-info-value">{nutritionalInfo?.proteins || 'N/A'} g</div>
-            </div>
-            <div className="nutrition-info-row">
-              <div className="nutrition-info-label">Carbohidratos:</div>
-              <div className="nutrition-info-value">{nutritionalInfo?.carbs || 'N/A'} g</div>
-              <div className="nutrition-info-label">Grasas:</div>
-              <div className="nutrition-info-value">{nutritionalInfo?.fats || 'N/A'} g</div>
-            </div>
-          </div>
-        </div>
+      <Box 
+        className={`analysis-item ${isSelected ? 'selected' : ''}`}
+        sx={{
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderRadius: '16px',
+          padding: '24px',
+          color: '#fff',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          margin: '20px 0'
+        }}
+      >
+        <Typography variant="h4" sx={{ 
+          color: '#fff',
+          fontWeight: 700,
+          mb: 3,
+          fontSize: { xs: '1.5rem', md: '2rem' }
+        }}>
+          Análisis Nutricional
+        </Typography>
+
+        {/* Grid de información nutricional */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={6} sm={3}>
+            <Box sx={{
+              backgroundColor: 'rgba(0, 191, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '20px',
+              textAlign: 'center',
+              border: '1px solid rgba(0, 191, 255, 0.2)'
+            }}>
+              <Typography sx={{ 
+                color: '#00bfff',
+                fontSize: { xs: '1.8rem', md: '2.2rem' },
+                fontWeight: 800,
+                lineHeight: 1
+              }}>
+                {nutritionalInfo?.calories || 0}
+              </Typography>
+              <Typography sx={{ color: '#888', mt: 1 }}>Calorías</Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Box sx={{
+              backgroundColor: 'rgba(46, 213, 115, 0.1)',
+              borderRadius: '16px',
+              padding: '20px',
+              textAlign: 'center',
+              border: '1px solid rgba(46, 213, 115, 0.2)'
+            }}>
+              <Typography sx={{ 
+                color: '#2ed573',
+                fontSize: { xs: '1.8rem', md: '2.2rem' },
+                fontWeight: 800,
+                lineHeight: 1
+              }}>
+                {nutritionalInfo?.proteins || 0}g
+              </Typography>
+              <Typography sx={{ color: '#888', mt: 1 }}>Proteínas</Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Box sx={{
+              backgroundColor: 'rgba(255, 159, 67, 0.1)',
+              borderRadius: '16px',
+              padding: '20px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 159, 67, 0.2)'
+            }}>
+              <Typography sx={{ 
+                color: '#ff9f43',
+                fontSize: { xs: '1.8rem', md: '2.2rem' },
+                fontWeight: 800,
+                lineHeight: 1
+              }}>
+                {nutritionalInfo?.carbs || 0}g
+              </Typography>
+              <Typography sx={{ color: '#888', mt: 1 }}>Carbohidratos</Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={6} sm={3}>
+            <Box sx={{
+              backgroundColor: 'rgba(255, 71, 87, 0.1)',
+              borderRadius: '16px',
+              padding: '20px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 71, 87, 0.2)'
+            }}>
+              <Typography sx={{ 
+                color: '#ff4757',
+                fontSize: { xs: '1.8rem', md: '2.2rem' },
+                fontWeight: 800,
+                lineHeight: 1
+              }}>
+                {nutritionalInfo?.fats || 0}g
+              </Typography>
+              <Typography sx={{ color: '#888', mt: 1 }}>Grasas</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+
+        {/* Calidad nutricional */}
+        <Box sx={{ 
+          mt: 3, 
+          p: 2, 
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <Typography sx={{ 
+            color: nutritionalInfo?.quality === 'Muy mala' ? '#ff4757' : 
+                   nutritionalInfo?.quality === 'Regular' ? '#ff9f43' : '#2ed573',
+            fontSize: '1.2rem',
+            fontWeight: 600,
+            textAlign: 'center'
+          }}>
+            Calidad nutricional: {nutritionalInfo?.quality || 'N/A'}
+          </Typography>
+        </Box>
         
         {/* BOTONES RESPONSIVOS */}
         <div className="analysis-item-actions" style={{
@@ -356,7 +476,7 @@ const Nutrition = () => {
             <FaDownload style={{ fontSize: '16px' }} />
           </button>
         </div>
-      </div>
+      </Box>
     );
   };
 
@@ -434,74 +554,143 @@ const Nutrition = () => {
   // Renderizar la vista de detalle de un análisis
   const renderAnalysisDetail = () => {
     if (!selectedAnalysis) return null;
+
+    // Extraer datos del JSON
+    let nutritionalData;
+    try {
+      nutritionalData = JSON.parse(selectedAnalysis.analysis);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      // Intentar extraer el JSON del texto
+      try {
+        const jsonMatch = selectedAnalysis.analysis.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          nutritionalData = JSON.parse(jsonMatch[0]);
+        }
+      } catch (e) {
+        console.error('Error extracting JSON:', e);
+        nutritionalData = {};
+      }
+    }
     
     return (
-      <div className="analysis-result-container">
-        <button 
-          className="study-detail-back-button mobile-visible-button"
+      <Box sx={{ p: 3 }}>
+        <Button 
           onClick={() => setSelectedAnalysis(null)}
-          style={{
-            visibility: 'visible',
-            opacity: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer',
-            marginBottom: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-          }}
+          startIcon={<FaArrowLeft />}
+          sx={{ mb: 3, color: 'white' }}
         >
-          <FaArrowLeft /> Volver a la lista
-        </button>
-        
-        <h2 className="analysis-result-title">
+          Volver a la lista
+        </Button>
+
+        <Typography variant="h4" sx={{ 
+          color: '#00bfff',
+          mb: 4,
+          fontWeight: 700 
+        }}>
           Análisis Nutricional - {formatDate(selectedAnalysis.created_at)}
-        </h2>
-        
-        <div className="analysis-result-content">
-          <div className="analysis-image">
+        </Typography>
+
+        <Grid container spacing={4}>
+          {/* Imagen */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              mb: 2
+            }}>
             <img 
               src={`/api/nutrition/analyses/${selectedAnalysis.id}/image`} 
               alt="Alimento analizado" 
+                style={{ width: '100%', display: 'block' }}
             />
-            <button 
-              className="download-image-button mobile-visible-button"
+            </Box>
+            <Button
+              startIcon={<FaDownload />}
               onClick={() => handleDownloadImage(selectedAnalysis)}
-              title="Descargar imagen"
-              style={{
-                visibility: 'visible',
-                opacity: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                background: 'rgba(46, 204, 113, 0.8)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                marginTop: '16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              sx={{
+                mt: 2,
+                bgcolor: 'rgba(46, 204, 113, 0.2)',
+                color: '#2ecc71',
+                '&:hover': { bgcolor: 'rgba(46, 204, 113, 0.3)' }
               }}
             >
-              <FaDownload /> Descargar imagen
-            </button>
-          </div>
-          
-          <div className="analysis-details">
-            <div className="analysis-markdown">
-              <ReactMarkdown>
-                {selectedAnalysis.analysis}
-              </ReactMarkdown>
-            </div>
-          </div>
-        </div>
-      </div>
+              Descargar imagen
+            </Button>
+          </Grid>
+
+          {/* Análisis */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{
+              bgcolor: 'rgba(0,0,0,0.3)',
+              borderRadius: '16px',
+              p: 3,
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <Typography variant="h6" sx={{ color: '#00bfff', mb: 2 }}>
+                Alimentos detectados:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 4 }}>
+                {nutritionalData.food?.map((food, idx) => (
+                  <Chip
+                    key={idx}
+                    label={food}
+                    sx={{
+                      bgcolor: 'rgba(0, 191, 255, 0.1)',
+                      color: 'white',
+                      border: '1px solid rgba(0, 191, 255, 0.2)'
+                    }}
+                  />
+                ))}
+              </Box>
+
+              <Typography variant="h6" sx={{ color: '#00bfff', mb: 2 }}>
+                Información nutricional:
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 4 }}>
+                {[
+                  { label: 'Calorías', value: `${nutritionalData.calories || 0} kcal`, color: '#00bfff' },
+                  { label: 'Proteínas', value: `${nutritionalData.protein_g || 0}g`, color: '#2ecc71' },
+                  { label: 'Carbohidratos', value: `${nutritionalData.carbs_g || 0}g`, color: '#f1c40f' },
+                  { label: 'Grasas', value: `${nutritionalData.fat_g || 0}g`, color: '#e74c3c' }
+                ].map((item, idx) => (
+                  <Grid item xs={6} key={idx}>
+                    <Box sx={{
+                      bgcolor: `${item.color}15`,
+                      border: `1px solid ${item.color}30`,
+                      borderRadius: '12px',
+                      p: 2,
+                      textAlign: 'center'
+                    }}>
+                      <Typography sx={{ color: item.color, fontSize: '1.5rem', fontWeight: 700 }}>
+                        {item.value}
+                      </Typography>
+                      <Typography sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                        {item.label}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Typography variant="h6" sx={{ color: '#00bfff', mb: 2 }}>
+                Recomendaciones:
+              </Typography>
+              <Typography sx={{ 
+                color: 'white',
+                lineHeight: 1.6,
+                bgcolor: 'rgba(0,0,0,0.2)',
+                borderRadius: '8px',
+                p: 2
+              }}>
+                {nutritionalData.recommendations || 'No hay recomendaciones disponibles'}
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
     );
   };
 
