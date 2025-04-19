@@ -45,6 +45,7 @@ import BlogPost from './pages/BlogPost';
 import WelcomePage from './components/WelcomePage';
 import CreditsInfo from './pages/CreditsInfo';
 import AdminCredits from './pages/AdminCredits';
+import NewWelcomePage from './components/NewWelcomePage';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -82,7 +83,7 @@ function App() {
           <Router>
             <ErrorBoundary>
               {showWelcome ? (
-                <SplashScreen onComplete={() => setShowWelcome(false)} />
+                <NewWelcomePage onComplete={() => setShowWelcome(false)} />
               ) : (
                 <NavbarWrapper>
                   <Suspense fallback={<LoadingScreen />}>
