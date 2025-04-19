@@ -7,6 +7,12 @@ import '../components/NutritionStyles.css';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 import Aurora from '../components/Aurora';
+import { 
+  CircularProgress, Typography, LinearProgress, Backdrop, Button,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Box, IconButton
+} from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const Nutrition = () => {
   const navigate = useNavigate();
@@ -25,6 +31,14 @@ const Nutrition = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+
+  // Añadir nuevo estado para el modal de análisis
+  const [analysisModal, setAnalysisModal] = useState({
+    open: false,
+    status: 'idle', // 'idle' | 'confirm' | 'loading' | 'done' | 'error'
+    analysisId: null,
+    errorMessage: null
+  });
 
   // Función para formatear fechas
   const formatDate = (dateString) => {
@@ -123,26 +137,34 @@ const Nutrition = () => {
     e.preventDefault();
   };
 
-  // Función para analizar la imagen
+  // Primero añadimos el timeout global de axios
+  useEffect(() => {
+    // Configurar timeout global de axios
+    axios.defaults.timeout = 15000; // 15 segundos por defecto
+  }, []);
+
+  // Modificar la función handleAnalyzeFood
   const handleAnalyzeFood = async () => {
     if (!selectedFile) return;
 
     try {
-      console.log("Iniciando análisis de alimentos");
-      console.log("Archivo seleccionado:", selectedFile.name, selectedFile.type, selectedFile.size);
-      
+      console.log("🚀 Iniciando análisis...");
       setUploading(true);
       setUploadProgress(0);
       setError(null);
-      setAnalysisResult(null);
       
+      // Mostrar modal de análisis
+      setAnalysisModal({ 
+        open: true, 
+        status: 'loading',
+        message: 'Subiendo imagen y analizando...' 
+      });
+
       const formData = new FormData();
       formData.append('file', selectedFile);
-      
       const token = localStorage.getItem('token');
-      console.log("Token obtenido:", token ? "Sí" : "No");
-      
-      console.log("Enviando solicitud a /api/nutrition/analyze");
+
+      // Subir y analizar
       const response = await axios.post('/api/nutrition/analyze', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -151,24 +173,31 @@ const Nutrition = () => {
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(percentCompleted);
-          console.log("Progreso de carga:", percentCompleted, "%");
         }
       });
-      
-      console.log("Respuesta recibida:", response.data);
+
+      console.log("✅ Análisis completado:", response.data);
+
+      // Actualizar estados
       setAnalysisResult(response.data);
+      setSelectedAnalysis(response.data);
+      await fetchNutritionAnalyses();
+
+      // Mostrar éxito
+      setAnalysisModal({ 
+        open: false, 
+        status: 'idle' 
+      });
       showNotification('Análisis completado con éxito', 'success');
-      
-      // Actualizar la lista de análisis
-      fetchNutritionAnalyses();
+
     } catch (err) {
-      console.error('Error al analizar alimentos:', err);
-      console.error('Detalles del error:', err.response?.data || err.message);
-      setError('Error al analizar la imagen. Por favor, intenta con otra imagen o más tarde.');
+      console.error('❌ Error:', err);
+      setError("Error al analizar la imagen. Por favor, intenta de nuevo.");
       showNotification('Error al analizar la imagen', 'error');
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setSelectedFile(null);
     }
   };
 
@@ -476,6 +505,155 @@ const Nutrition = () => {
     );
   };
 
+  // Añadir el Backdrop para el modal de análisis
+  <Backdrop
+    open={analysisModal.open}
+    sx={{
+      zIndex: (theme) => theme.zIndex.drawer + 1,
+      color: '#fff',
+      flexDirection: 'column',
+      backgroundColor: 'rgba(0,0,0,0.85)'
+    }}
+  >
+    <CircularProgress color="inherit" />
+    <Typography sx={{ mt: 2 }}>
+      {analysisModal.message || 'Analizando...'}
+    </Typography>
+    {uploadProgress > 0 && (
+      <Box sx={{ width: '200px', mt: 2 }}>
+        <LinearProgress variant="determinate" value={uploadProgress} />
+        <Typography variant="caption" sx={{ mt: 1, color: 'gray' }}>
+          {uploadProgress}%
+        </Typography>
+      </Box>
+    )}
+  </Backdrop>
+
+  // NUEVA función de extracción copiada de NutritionDashboard
+  const extractNutritionData = (analysisText) => {
+    if (!analysisText) return { 
+      calories: 0, proteins: 0, carbs: 0, fats: 0, 
+      fiber: 0, sugars: 0, sodium: 0, quality: 'N/A' 
+    };
+
+    // Debug
+    console.log('Texto a analizar:', analysisText);
+
+    // 1. Intentar encontrar y parsear JSON dentro de bloques markdown
+    try {
+      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        const data = JSON.parse(jsonMatch[1].trim());
+        console.log('JSON encontrado en bloque markdown:', data);
+        return {
+          calories: data.calories || 0,
+          proteins: data.protein_g || 0,
+          carbs: data.carbs_g || 0,
+          fats: data.fat_g || 0,
+          fiber: data.fiber_g || 0,
+          sugars: data.sugars_g || 0,
+          sodium: data.sodium_mg || 0,
+          quality: data.quality || 'N/A'
+        };
+      }
+    } catch (e) {
+      console.log('Error al parsear JSON en bloque markdown:', e);
+    }
+
+    // 2. Intentar encontrar JSON en cualquier parte del texto
+    try {
+      const jsonStart = analysisText.indexOf('{');
+      const jsonEnd = analysisText.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const jsonStr = analysisText.substring(jsonStart, jsonEnd + 1);
+        const data = JSON.parse(jsonStr);
+        console.log('JSON encontrado en texto:', data);
+        return {
+          calories: data.calories || 0,
+          proteins: data.protein_g || 0,
+          carbs: data.carbs_g || 0,
+          fats: data.fat_g || 0,
+          fiber: data.fiber_g || 0,
+          sugars: data.sugars_g || 0,
+          sodium: data.sodium_mg || 0,
+          quality: data.quality || 'N/A'
+        };
+      }
+    } catch (e) {
+      console.log('Error al parsear JSON en texto:', e);
+    }
+
+    // 3. Modo regex mejorado como fallback
+    console.log('Usando regex como fallback');
+    const extractNumber = (patterns) => {
+      for (const pattern of patterns) {
+        const match = analysisText.match(pattern);
+        if (match && match[1]) {
+          return parseInt(match[1], 10);
+        }
+      }
+      return 0;
+    };
+
+    // Patrones múltiples para cada nutriente
+    const patterns = {
+      calories: [
+        /(?:calor[ií]as|kcal)[^\d]*(\d+)/i,
+        /"calories":\s*(\d+)/i,
+        /(\d+)\s*(?:calor[ií]as|kcal)/i
+      ],
+      proteins: [
+        /(?:prote[ií]nas?|protein_g)[^\d]*(\d+)/i,
+        /"protein_g":\s*(\d+)/i,
+        /(\d+)\s*(?:g\s+de\s+)?prote[ií]nas?/i
+      ],
+      carbs: [
+        /(?:carbohidratos?|carbs_g|hidratos?)[^\d]*(\d+)/i,
+        /"carbs_g":\s*(\d+)/i,
+        /(\d+)\s*(?:g\s+de\s+)?(?:carbohidratos?|hidratos?)/i
+      ],
+      fats: [
+        /(?:grasas?|l[ií]pidos?|fat_g)[^\d]*(\d+)/i,
+        /"fat_g":\s*(\d+)/i,
+        /(\d+)\s*(?:g\s+de\s+)?grasas?/i
+      ]
+    };
+
+    // Extraer calidad nutricional del texto
+    const getQuality = (text) => {
+      if (text.match(/(?:calidad|quality)[\s:]*buena/i)) return 'Buena';
+      if (text.match(/(?:calidad|quality)[\s:]*regular/i)) return 'Regular';
+      if (text.match(/(?:calidad|quality)[\s:]*mala/i)) return 'Mala';
+      return 'N/A';
+    };
+
+    const result = {
+      calories: extractNumber(patterns.calories),
+      proteins: extractNumber(patterns.proteins),
+      carbs: extractNumber(patterns.carbs),
+      fats: extractNumber(patterns.fats),
+      fiber: extractNumber([
+        /fibra[^\d]*(\d+)/i,
+        /"fiber_g":\s*(\d+)/i,
+        /(\d+)\s*(?:g\s+de\s+)?fibra/i
+      ]),
+      sugars: extractNumber([
+        /az[úu]cares?[^\d]*(\d+)/i,
+        /"sugars_g":\s*(\d+)/i,
+        /(\d+)\s*(?:g\s+de\s+)?az[úu]cares?/i
+      ]),
+      sodium: extractNumber([
+        /sodio[^\d]*(\d+)/i,
+        /"sodium_mg":\s*(\d+)/i,
+        /(\d+)\s*(?:mg\s+de\s+)?sodio/i
+      ]),
+      quality: getQuality(analysisText)
+    };
+
+    console.log('Resultado final:', result);
+    return result;
+  };
+
   return (
     <div className="medical-studies-container nutrition-container">
       <Aurora
@@ -533,9 +711,22 @@ const Nutrition = () => {
                   disabled={uploading}
                 >
                   {uploading ? (
-                    <div className="upload-progress">
-                      <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
-                      <span className="upload-progress-text">{uploadProgress}%</span>
+                    <div className="upload-progress-container">
+                      <CircularProgress size={24} color="inherit" />
+                      <Typography sx={{ mt: 2 }}>
+                        Analizando imagen con IA...
+                      </Typography>
+                      <Typography variant="caption" sx={{ mt: 1, color: 'gray' }}>
+                        Este proceso puede tardar hasta 5 minutos
+                      </Typography>
+                      <LinearProgress 
+                        sx={{ 
+                          mt: 2, 
+                          width: '200px',
+                          borderRadius: 1
+                        }} 
+                        variant="indeterminate"
+                      />
                     </div>
                   ) : (
                     <>
@@ -592,15 +783,78 @@ const Nutrition = () => {
                 </div>
               )}
               
-              <AnimatedList
-                items={filteredAnalyses}
-                onItemSelect={handleViewAnalysis}
-                showGradients={true}
-                enableArrowNavigation={true}
-                displayScrollbar={true}
-                renderItem={renderAnalysisItem}
-                className="studies-list"
-              />
+              <TableContainer component={Paper}
+                sx={{ bgcolor:'#0a0a0a', borderRadius:2, px:1, overflowX:'auto', mt: 4 }}
+              >
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ '& th': { color:'#2ecc71', fontWeight:700 }}}>
+                      <TableCell align="center">#</TableCell>
+                      <TableCell>Fecha</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Calorías</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>Proteínas</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', md:'table-cell' }}}>Carbos</TableCell>
+                      <TableCell sx={{ display:{ xs:'none', md:'table-cell' }}}>Grasas</TableCell>
+                      <TableCell>Calidad</TableCell>
+                      <TableCell align="center">Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {filteredAnalyses.map((analysis, idx) => {
+                      const nutritionalInfo = extractNutritionData(analysis.analysis);
+                      console.log('Info extraída:', nutritionalInfo); // Para debug
+                      
+                      return (
+                        <TableRow key={analysis.id} hover sx={{ '&:hover': { backgroundColor:'#111' } }}>
+                          <TableCell align="center">{idx + 1}</TableCell>
+                          <TableCell>{formatDate(analysis.created_at)}</TableCell>
+                          <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>
+                            {nutritionalInfo.calories > 0 ? `${nutritionalInfo.calories} kcal` : 'N/A'}
+                          </TableCell>
+                          <TableCell sx={{ display:{ xs:'none', sm:'table-cell' }}}>
+                            {nutritionalInfo.proteins > 0 ? `${nutritionalInfo.proteins} g` : 'N/A'}
+                          </TableCell>
+                          <TableCell sx={{ display:{ xs:'none', md:'table-cell' }}}>
+                            {nutritionalInfo.carbs > 0 ? `${nutritionalInfo.carbs} g` : 'N/A'}
+                          </TableCell>
+                          <TableCell sx={{ display:{ xs:'none', md:'table-cell' }}}>
+                            {nutritionalInfo.fats > 0 ? `${nutritionalInfo.fats} g` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <span style={{ 
+                              color: nutritionalInfo.quality === 'Buena' ? '#2ecc71' : 
+                                     nutritionalInfo.quality === 'Regular' ? '#f39c12' : '#e74c3c'
+                            }}>
+                              {nutritionalInfo.quality || 'N/A'}
+                            </span>
+                          </TableCell>
+                          {/* Acciones */}
+                          <TableCell align="center">
+                            <Box sx={{ display:'flex', justifyContent:'center', gap:1 }}>
+                              <IconButton size="small" color="primary"
+                                onClick={() => handleViewAnalysis(analysis)}
+                                sx={{ bgcolor:'#2196f322' }} 
+                                title="Ver análisis"
+                              >
+                                <FaEye style={{ color:'#2196f3' }}/>
+                              </IconButton>
+
+                              <IconButton size="small" color="success"
+                                onClick={(e) => handleDownloadImage(analysis, e)}
+                                sx={{ bgcolor:'#2ecc7130' }} 
+                                title="Descargar imagen"
+                              >
+                                <FaDownload style={{ color:'#2ecc71' }}/>
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </>
           ) : nutritionAnalyses.length > 0 ? (
             <div className="no-results-message">
