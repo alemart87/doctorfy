@@ -127,39 +127,50 @@ def stripe_webhook():
                 print(f"Cantidad de créditos: {quantity}")
                 print(f"Monto total: ${amount_total}")
                 
-                # Si es un email de prueba, no procesamos la transacción
-                if customer_email == 'stripe@example.com':
-                    print("✅ Evento de prueba detectado, ignorando...")
-                    return jsonify({'status': 'success - test event'})
-                
-                user = User.query.filter_by(email=customer_email).first()
-                if user:
-                    # Procesar transacción
-                    transaction = CreditTransaction(
-                        user_id=user.id,
-                        amount=int(quantity),
-                        stripe_session_id=session.id,
-                        status='completed'
+                # Enviar notificación al admin siempre, incluso para pruebas
+                try:
+                    print("Enviando notificación al admin...")
+                    send_purchase_notification(
+                        user={'email': customer_email, 'credits': quantity},
+                        credits=quantity,
+                        session_id=session.id,
+                        amount_eur=amount_total
                     )
-                    
-                    user.credits = float(user.credits or 0) + int(quantity)
-                    db.session.add(transaction)
-                    db.session.commit()
-                    
-                    print(f"✅ {quantity} créditos asignados a {user.email}")
-                    
-                    # Intentar enviar emails
-                    try:
-                        print(f"Enviando emails... Configuración SMTP: {os.getenv('MAIL_SERVER')}:{os.getenv('MAIL_PORT')}")
-                        send_purchase_notification(user, quantity, session.id, amount_total)
-                        send_purchase_thank_you(user, quantity)
-                        print("✅ Emails enviados correctamente")
-                    except Exception as email_error:
-                        print(f"❌ Error enviando emails: {str(email_error)}")
-                        traceback.print_exc()
+                except Exception as email_error:
+                    print(f"❌ Error enviando notificación al admin: {str(email_error)}")
+                    traceback.print_exc()
+                
+                # Si no es un email de prueba, procesamos la transacción
+                if customer_email != 'stripe@example.com':
+                    user = User.query.filter_by(email=customer_email).first()
+                    if user:
+                        # Procesar transacción
+                        transaction = CreditTransaction(
+                            user_id=user.id,
+                            amount=int(quantity),
+                            stripe_session_id=session.id,
+                            status='completed'
+                        )
+                        
+                        user.credits = float(user.credits or 0) + int(quantity)
+                        db.session.add(transaction)
+                        db.session.commit()
+                        
+                        print(f"✅ {quantity} créditos asignados a {user.email}")
+                        
+                        # Enviar email de agradecimiento al usuario
+                        try:
+                            print(f"Enviando email de agradecimiento a {user.email}...")
+                            send_purchase_thank_you(user, quantity)
+                            print("✅ Email de agradecimiento enviado")
+                        except Exception as email_error:
+                            print(f"❌ Error enviando email de agradecimiento: {str(email_error)}")
+                            traceback.print_exc()
+                    else:
+                        print(f"❌ Usuario no encontrado: {customer_email}")
+                        return jsonify({'error': 'User not found'}), 404
                 else:
-                    print(f"❌ Usuario no encontrado: {customer_email}")
-                    return jsonify({'error': 'User not found'}), 404
+                    print("✅ Evento de prueba procesado")
                     
             except Exception as e:
                 print(f"❌ Error procesando la compra: {str(e)}")
