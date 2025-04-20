@@ -42,7 +42,7 @@ import MedicalChat from './pages/MedicalChat';
 import TixaeChatbot from './pages/TixaeChatbot';
 import SubscriptionPage from './pages/SubscriptionPage';
 import AdminUsersPage from './pages/AdminUsersPage';
-import Blog from './pages/Blog';
+import BlogPage from './pages/BlogPage';
 import BlogPost from './pages/BlogPost';
 import WelcomePage from './components/WelcomePage';
 import CreditsInfo from './pages/CreditsInfo';
@@ -174,7 +174,7 @@ function App() {
                           <AdminUsersPage />
                         </ProtectedRoute>
                       } />
-                      <Route path="/blog" element={<Blog />} />
+                      <Route path="/blog" element={<BlogPage />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/credits-info" element={<CreditsInfo />} />
                       <Route 
