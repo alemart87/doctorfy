@@ -97,14 +97,19 @@ def stripe_webhook():
     print("\n=== WEBHOOK RECIBIDO ===")
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
-    
+    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+
+    print(f"Signature Header: {sig_header}")
+    print(f"Webhook Secret configurado: {webhook_secret[:10]}...")  # Solo mostrar primeros caracteres
+
     try:
         # Verificar firma
         event = stripe.Webhook.construct_event(
-            payload, sig_header, os.getenv('STRIPE_WEBHOOK_SECRET')
+            payload, sig_header, webhook_secret
         )
         
         print(f"Tipo de evento: {event.type}")
+        print(f"Evento verificado correctamente")
         
         if event.type == 'checkout.session.completed':
             session = event.data.object
@@ -162,7 +167,10 @@ def stripe_webhook():
         
         return jsonify({'status': 'success'})
         
+    except stripe.error.SignatureVerificationError as e:
+        print(f"❌ Error de verificación de firma: {str(e)}")
+        return jsonify({'error': 'Invalid signature'}), 400
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"❌ Error general: {str(e)}")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 400 
