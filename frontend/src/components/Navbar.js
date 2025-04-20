@@ -73,6 +73,12 @@ const Navbar = () => {
       requireAuth: false
     },
     {
+      text: 'Chat Médico IA',
+      path: '/medical-chat',
+      icon: <ChatIcon />,
+      requireAuth: true
+    },
+    {
       text: 'Psicólogo Virtual',
       path: '/tixae-chatbot',
       icon: <PsychologyIcon />,
@@ -181,7 +187,7 @@ const Navbar = () => {
       title: "Principal",
       items: navItems.filter(item => 
         !item.adminOnly && !item.doctorOnly && 
-        ['/tixae-chatbot'].includes(item.path)
+        ['/medical-chat', '/tixae-chatbot'].includes(item.path)
       )
     },
     {
@@ -472,17 +478,17 @@ const Navbar = () => {
           {/* Botones de Acción Rápida para Móvil */}
           {isMobile && user && (
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {/* Reemplazar Chat Médico por Guía */}
-              <Tooltip title="Guía de Salud">
+              {/* Botón de Chat Médico */}
+              <Tooltip title="Chat Médico">
                 <IconButton
                   component={RouterLink}
-                  to="/guide"
+                  to="/medical-chat"
                   sx={{
                     color: '#00ffff',
                     '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
                   }}
                 >
-                  <MenuBookIcon />
+                  <ChatIcon />
                 </IconButton>
               </Tooltip>
 
@@ -596,37 +602,29 @@ const Navbar = () => {
       <Toolbar />
 
       {/* Drawer mejorado */}
-      <Box
-        component="nav"
-        sx={{
-          position: 'fixed',
-          top: 0,
-          right: drawerOpen ? 0 : '-100%',
-          width: '320px',
-          height: '100%',
-          bgcolor: '#000000',
-          transition: 'right 0.3s ease',
-          zIndex: theme.zIndex.appBar + 1,
-          boxShadow: '-4px 0 10px rgba(0,0,0,0.5)',
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: '100%',
+            bgcolor: '#121212',
+            backgroundImage: 'none',
+            '@media (min-width: 600px)': {
+              maxWidth: '320px',
+            },
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          }
         }}
       >
         {drawer}
-      </Box>
-
-      {/* Overlay para cerrar el drawer al hacer click fuera */}
-      {drawerOpen && (
-        <Box
-          onClick={() => setDrawerOpen(false)}
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: theme.zIndex.appBar,
-          }}
-        />
-      )}
+      </Drawer>
     </>
   );
 };

@@ -356,37 +356,19 @@ const LandingNavbar = () => {
       </HideOnScroll>
 
       {/* Drawer para navegación móvil */}
-      <Box
-        component="nav"
-        sx={{
-          position: 'fixed',
-          top: 0,
-          right: drawerOpen ? 0 : '-100%',
-          width: '320px',
-          height: '100%',
-          bgcolor: '#000000',
-          transition: 'right 0.3s ease',
-          zIndex: theme.zIndex.appBar + 1,
-          boxShadow: '-4px 0 10px rgba(0,0,0,0.5)',
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Mejor rendimiento en dispositivos móviles
         }}
       >
         {drawer}
-      </Box>
-
-      {/* Overlay para cerrar el drawer al hacer click fuera */}
-      {drawerOpen && (
-        <Box
-          onClick={handleDrawerToggle}
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: theme.zIndex.appBar,
-          }}
-        />
-      )}
+      </Drawer>
+      
+      {/* Espacio para compensar la altura del navbar fijo */}
+      <Toolbar />
     </>
   );
 };
