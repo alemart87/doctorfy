@@ -90,6 +90,10 @@ class User(db.Model):
         server_default=db.text('15.0')
     )
     
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    profile_picture = db.Column(db.String(500), nullable=True)
+    is_google_user = db.Column(db.Boolean, default=False)
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
         

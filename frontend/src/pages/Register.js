@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, Paper, Alert, FormControlLabel, Checkbox, Grid } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Paper, Alert, FormControlLabel, Checkbox, Grid, Divider } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 const Register = () => {
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
 
@@ -61,6 +63,21 @@ const Register = () => {
       }
     },
   });
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const response = await axios.post('/api/auth/google', {
+        credential: credentialResponse.credential
+      });
+      
+      const { token, user } = response.data;
+      login(token, user);
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Error al registrarse con Google');
+      console.error('Error en registro con Google:', err);
+    }
+  };
 
   return (
     <Container maxWidth="sm">
@@ -162,6 +179,21 @@ const Register = () => {
               {formik.isSubmitting ? 'Registrando...' : 'Registrarse'}
             </Button>
           </form>
+          
+          <Divider sx={{ my: 3 }}>O</Divider>
+
+          {/* Botón de Google */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Error al registrarse con Google')}
+              useOneTap
+              theme="filled_black"
+              shape="pill"
+              text="continue_with"
+              locale="es"
+            />
+          </Box>
           
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="body2">

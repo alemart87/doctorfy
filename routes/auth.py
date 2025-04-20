@@ -6,6 +6,10 @@ from datetime import timedelta, datetime
 import secrets
 from flask import current_app, url_for
 from utils.email_utils import send_password_reset_email, send_registration_notification, send_welcome_email
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
+import jwt
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -93,35 +97,28 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    try:
-        data = request.get_json()
-        
-        if not data or not data.get('email') or not data.get('password'):
-            return jsonify({'error': 'Se requieren email y contraseña'}), 400
-        
-        user = User.query.filter_by(email=data['email']).first()
-        
-        if not user or not user.check_password(data['password']):
-            return jsonify({'error': 'Credenciales inválidas'}), 401
-        
-        # Generar token con expiración de 1 día
-        access_token = create_access_token(
-            identity=str(user.id),
-            expires_delta=timedelta(days=1)
-        )
+    data = request.get_json()
+    
+    # Verificar client_id y client_secret
+    if data.get('client_id') != os.getenv('CLIENT_ID') or \
+       data.get('client_secret') != os.getenv('CLIENT_SECRET'):
+        return jsonify({'error': 'Cliente inválido'}), 401
+
+    user = User.query.filter_by(email=data.get('email')).first()
+    
+    if user and user.check_password(data.get('password')):
+        token = jwt.encode({
+            'user_id': user.id,
+            'exp': datetime.utcnow() + timedelta(hours=24)
+        }, os.getenv('SECRET_KEY'))
         
         return jsonify({
-            'token': access_token,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'is_doctor': user.is_doctor,
-                'role': user.role
-            }
-        }), 200
-    except Exception as e:
-        print(f"Error en login: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+            'token': token,
+            'user_id': user.id,
+            'email': user.email
+        })
+    
+    return jsonify({'error': 'Credenciales inválidas'}), 401
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
@@ -276,3 +273,45 @@ def reset_password(token):
         db.session.rollback()
         print(f"Error en reset_password: {str(e)}")
         return jsonify({'error': str(e)}), 500 
+
+@auth_bp.route('/google', methods=['POST'])
+def google_auth():
+    try:
+        # Verificar el token de Google
+        token = request.json['credential']
+        idinfo = id_token.verify_oauth2_token(
+            token, 
+            requests.Request(), 
+            os.getenv('GOOGLE_CLIENT_ID')
+        )
+
+        # Obtener datos del usuario
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+        picture = idinfo.get('picture', '')
+
+        # Buscar o crear usuario
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                first_name=name,
+                profile_picture=picture,
+                is_verified=True,  # Los usuarios de Google ya están verificados
+                credits=15  # Créditos de bienvenida
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        # Generar token JWT
+        token = create_access_token(identity=user.id)
+        
+        return jsonify({
+            'token': token,
+            'user': user.to_dict()
+        })
+
+    except ValueError:
+        return jsonify({'error': 'Token de Google inválido'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

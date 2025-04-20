@@ -69,18 +69,40 @@ const WelcomePage = ({ onComplete }) => {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               textAlign: 'center',
-              zIndex: 2
+              zIndex: 2,
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: 'center',
+              gap: 4
             }}
           >
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Box
+                component="img"
+                src="/Doctor.png"
+                alt="Doctor Doctorfy"
+                sx={{
+                  width: { xs: '200px', md: '300px' },
+                  height: 'auto',
+                  borderRadius: '15px',
+                  boxShadow: '0 0 30px rgba(0, 255, 255, 0.3)'
+                }}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
             >
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: { xs: '3rem', md: '4.5rem' },
+                  fontSize: { xs: '2.5rem', md: '4rem' },
                   fontWeight: 800,
                   background: 'linear-gradient(to right, #00ffff, #40E0D0)',
                   WebkitBackgroundClip: 'text',
@@ -95,7 +117,7 @@ const WelcomePage = ({ onComplete }) => {
               <Typography
                 variant="h2"
                 sx={{
-                  fontSize: { xs: '2rem', md: '3.5rem' },
+                  fontSize: { xs: '1.8rem', md: '3rem' },
                   color: '#ffffff',
                   marginTop: 2,
                   textShadow: '0 0 30px rgba(0, 255, 255, 0.6)',
