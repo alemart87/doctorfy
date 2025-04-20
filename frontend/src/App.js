@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import { Button, Box, Typography, Tooltip } from '@mui/material';
 import { CreditCard as CreditIcon } from '@mui/icons-material';
+import NotFound from './components/NotFound';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -48,6 +49,8 @@ import WelcomePage from './components/WelcomePage';
 import CreditsInfo from './pages/CreditsInfo';
 import AdminCredits from './pages/AdminCredits';
 import NewWelcomePage from './components/NewWelcomePage';
+import PWAPrompt from './components/PWAPrompt';
+import InstallBanner from './components/InstallBanner';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -69,13 +72,42 @@ const NavbarWrapper = ({ children }) => {
 
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Mostrar el banner después de 5 segundos
+      setTimeout(() => setShowBanner(true), 5000);
+    });
+
+    // Verificar si la app ya está instalada
+    window.addEventListener('appinstalled', () => {
+      setShowBanner(false);
+      setDeferredPrompt(null);
+      console.log('PWA instalada exitosamente');
+    });
   }, []);
+
+  const handleInstall = () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Usuario instaló la PWA');
+      }
+      setDeferredPrompt(null);
+      setShowBanner(false);
+    });
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -147,7 +179,7 @@ function App() {
                       <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
                       
                       {/* Ruta para manejar URLs no encontradas */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
+                      <Route path="*" element={<NotFound />} />
 
                       <Route path="/dashboard" element={
                         <ProtectedRoute>
@@ -189,6 +221,14 @@ function App() {
                   </Suspense>
                   <FloatingChatButton />
                 </NavbarWrapper>
+              )}
+              {/* PWA Installation Components */}
+              <PWAPrompt />
+              {showBanner && (
+                <InstallBanner 
+                  onInstall={handleInstall}
+                  onClose={() => setShowBanner(false)}
+                />
               )}
             </ErrorBoundary>
           </Router>

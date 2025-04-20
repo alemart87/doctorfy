@@ -14,7 +14,8 @@ import {
   Button,
   Tooltip,
   Menu,
-  MenuItem
+  MenuItem,
+  Badge
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -28,7 +29,7 @@ import { Link } from 'react-router-dom';
 import ChatIcon from '@mui/icons-material/Chat';
 import { alpha } from '@mui/material/styles';
 import axios from 'axios';
-import { CreditCard as CreditIcon } from '@mui/icons-material';
+import { CreditCard as CreditIcon, GetApp } from '@mui/icons-material';
 
 // Navbar con efecto glassmorphism
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -75,6 +76,7 @@ const Navbar = () => {
   const [credits, setCredits] = useState(null);
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   // Detectar scroll
   useEffect(() => {
@@ -117,7 +119,6 @@ const Navbar = () => {
       ];
     }
     return [
-      { label: "Inicio", href: "/" },
       { label: "Estudios Médicos", href: "/medical-studies" },
       { label: "Nutrición", href: "/nutrition" },
       { label: "Doctores", href: "/doctors" },
@@ -143,13 +144,17 @@ const Navbar = () => {
       <GlassNavbar position="fixed" scrolled={scrolled}>
         <Container maxWidth="lg">
           <Toolbar sx={{ justifyContent: 'space-between' }}>
-            {/* Logo */}
+            {/* Logo como botón de inicio */}
             <Box 
               onClick={() => navigate('/')} 
               sx={{ 
                 display: 'flex', 
                 alignItems: 'center',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 0.8
+                },
+                transition: 'opacity 0.2s'
               }}
             >
               <LocalHospitalIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
@@ -242,6 +247,26 @@ const Navbar = () => {
             <Box sx={{ flexGrow: 0 }}>
               {/* ... resto del código ... */}
             </Box>
+
+            {/* Botón para instalar la aplicación */}
+            <Tooltip title="Instalar App">
+              <IconButton 
+                color="inherit" 
+                onClick={() => setShowInstallButton(true)}
+                sx={{ 
+                  animation: showInstallButton ? 'pulse 1.5s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': { transform: 'scale(1)' },
+                    '50%': { transform: 'scale(1.1)' },
+                    '100%': { transform: 'scale(1)' }
+                  }
+                }}
+              >
+                <Badge color="error" variant="dot">
+                  <GetApp />
+                </Badge>
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </Container>
       </GlassNavbar>

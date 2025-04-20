@@ -6,10 +6,10 @@ import {
   Button, 
   Box, 
   IconButton, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemText, 
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
   ListItemButton,
   Divider,
   useMediaQuery,
@@ -20,17 +20,26 @@ import {
   Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import PersonIcon from '@mui/icons-material/Person';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import ChatIcon from '@mui/icons-material/Chat';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import { CreditCard as CreditIcon } from '@mui/icons-material';
+import { 
+  Person as PersonIcon,
+  LocalHospital as LocalHospitalIcon,
+  MedicalServices as MedicalServicesIcon,
+  RestaurantMenu as RestaurantMenuIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  Chat as ChatIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  CreditCard as CreditIcon,
+  Dashboard as DashboardIcon,
+  Psychology as PsychologyIcon,
+  MonitorWeight as MonitorWeightIcon,
+  Article as ArticleIcon,
+  MenuBook as MenuBookIcon,
+  Group as GroupIcon,
+  ExitToApp as ExitToAppIcon,
+  Login as LoginIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -39,57 +48,118 @@ const Navbar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const location = useLocation();
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [credits, setCredits] = useState(null);
 
-  const toggleDrawer = (open) => (event) => {
-    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
-      return;
-    }
-    setDrawerOpen(open);
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    setDrawerOpen(false);
-    logout();
-    handleClose();
-    navigate('/login');
-  };
-
-  const handleProfile = () => {
-    handleClose();
-    if (user?.is_doctor) {
-      navigate('/doctor/profile');
-    } else {
-      navigate('/profile');
-    }
-  };
-
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
+  // Definir items de navegación según el estado de autenticación
   const navItems = [
-    ...(isAdmin() ? [{ text: 'Panel de Admin', path: '/admin/dashboard' }] : []),
-    ...(user?.is_doctor ? [{ text: 'Panel de Doctor', path: '/doctor/dashboard' }] : []),
-    { text: 'Estudios Médicos', path: '/medical-studies' },
-    { text: 'Nutrición', path: '/nutrition' },
-    { text: 'Dashboard Nutrición', path: '/nutrition-dashboard' },
-    { text: 'Directorio de Médicos', path: '/doctors' },
-    { text: 'Chat Médico IA', path: '/medical-chat' },
-    { text: 'Psicólogo y Doctor Virtual', path: '/tixae-chatbot' },
+    // Sección Principal
+    { 
+      text: 'Dashboard', 
+      path: '/dashboard',
+      icon: <DashboardIcon />,
+      requireAuth: true
+    },
+
+    // Sección Médica
+    { 
+      text: 'Estudios Médicos', 
+      path: '/medical-studies',
+      icon: <MedicalServicesIcon />,
+      requireAuth: true
+    },
+    { 
+      text: 'Directorio Médico', 
+      path: '/doctors',
+      icon: <LocalHospitalIcon />,
+      requireAuth: false
+    },
+    {
+      text: 'Chat Médico IA',
+      path: '/medical-chat',
+      icon: <ChatIcon />,
+      requireAuth: true
+    },
+    {
+      text: 'Psicólogo Virtual',
+      path: '/tixae-chatbot',
+      icon: <PsychologyIcon />,
+      requireAuth: true
+    },
+
+    // Sección Nutrición
+    { 
+      text: 'Nutrición', 
+      path: '/nutrition',
+      icon: <RestaurantMenuIcon />,
+      requireAuth: true
+    },
+    {
+      text: 'Dashboard Nutrición',
+      path: '/nutrition-dashboard',
+      icon: <MonitorWeightIcon />,
+      requireAuth: true
+    },
+
+    // Sección Blog y Guías
+    {
+      text: 'Blog',
+      path: '/blog',
+      icon: <ArticleIcon />,
+      requireAuth: false
+    },
+    {
+      text: 'Guía',
+      path: '/guide',
+      icon: <MenuBookIcon />,
+      requireAuth: false
+    },
+
+    // Paneles Administrativos
+    ...(isAdmin() ? [{
+      text: 'Panel Admin',
+      path: '/admin/dashboard',
+      icon: <AdminPanelSettingsIcon />,
+      requireAuth: true,
+      adminOnly: true
+    },
+    {
+      text: 'Gestión Usuarios',
+      path: '/admin/users',
+      icon: <GroupIcon />,
+      requireAuth: true,
+      adminOnly: true
+    },
+    {
+      text: 'Gestión Créditos',
+      path: '/admin/credits',
+      icon: <AccountBalanceWalletIcon />,
+      requireAuth: true,
+      adminOnly: true
+    }] : []),
+
+    // Panel Doctor
+    ...(user?.is_doctor ? [{
+      text: 'Panel Doctor',
+      path: '/doctor/dashboard',
+      icon: <LocalHospitalIcon />,
+      requireAuth: true,
+      doctorOnly: true
+    }] : [])
   ];
 
-  const authItems = user 
-    ? [{ text: 'Cerrar Sesión', action: handleLogout }]
-    : [
-        { text: 'Iniciar Sesión', path: '/login' },
-        { text: 'Registrarse', path: '/register' }
-      ];
+  // Filtrar items según autenticación
+  const filteredNavItems = navItems.filter(item => {
+    if (!user && item.requireAuth) return false;
+    if (!isAdmin() && item.adminOnly) return false;
+    if (!user?.is_doctor && item.doctorOnly) return false;
+    return true;
+  });
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -106,211 +176,376 @@ const Navbar = () => {
     fetchCredits();
   }, [user]);
 
+  const handleLogout = () => {
+    setDrawerOpen(false);
+    logout();
+    handleMenuClose();
+    navigate('/login');
+  };
+
+  const handleProfile = () => {
+    handleMenuClose();
+    navigate(user?.is_doctor ? '/doctor/profile' : '/profile');
+  };
+
+  // Agrupar items por categorías para móvil
+  const menuCategories = [
+    {
+      title: "Principal",
+      items: navItems.filter(item => 
+        !item.adminOnly && !item.doctorOnly && 
+        ['/dashboard', '/medical-chat', '/tixae-chatbot'].includes(item.path)
+      )
+    },
+    {
+      title: "Servicios Médicos",
+      items: navItems.filter(item => 
+        ['/medical-studies', '/doctors', '/nutrition', '/nutrition-dashboard'].includes(item.path)
+      )
+    },
+    {
+      title: "Información",
+      items: navItems.filter(item => 
+        ['/blog', '/guide'].includes(item.path)
+      )
+    },
+    ...(isAdmin() ? [{
+      title: "Administración",
+      items: navItems.filter(item => item.adminOnly)
+    }] : []),
+    ...(user?.is_doctor ? [{
+      title: "Panel Médico",
+      items: navItems.filter(item => item.doctorOnly)
+    }] : [])
+  ];
+
+  // Drawer content optimizado para móvil
   const drawer = (
-    <Box onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h6" component={RouterLink} to="/" sx={{ textDecoration: 'none', color: 'inherit' }}>
+    <Box sx={{ width: 280 }}>
+      {/* Header del Drawer */}
+      <Box 
+        sx={{ 
+          p: 2, 
+          display: 'flex', 
+          alignItems: 'center',
+          bgcolor: 'primary.main',
+          color: 'white'
+        }}
+      >
+        <LocalHospitalIcon sx={{ mr: 1 }} />
+        <Typography variant="h6">
           Doctorfy
         </Typography>
       </Box>
+
+      {/* Información del Usuario */}
+      {user && (
+        <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            {user.name || user.email}
+          </Typography>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => navigate('/credits-info')}
+            startIcon={<AccountBalanceWalletIcon />}
+            sx={{
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              justifyContent: 'flex-start',
+              mb: 1
+            }}
+          >
+            {credits?.toFixed(1) || '0'} créditos
+          </Button>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={handleProfile}
+            startIcon={<PersonIcon />}
+            sx={{
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              justifyContent: 'flex-start'
+            }}
+          >
+            Mi Perfil
+          </Button>
+        </Box>
+      )}
+
       <Divider />
-      <List>
-        {user && navItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton component={RouterLink} to={item.path}>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
+
+      {/* Menú Categorizado */}
+      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+        {menuCategories.map((category, index) => (
+          category.items.length > 0 && (
+            <React.Fragment key={category.title}>
+              <Typography
+                variant="overline"
+                sx={{
+                  px: 2,
+                  py: 1,
+                  display: 'block',
+                  color: 'text.secondary',
+                  bgcolor: 'background.paper'
+                }}
+              >
+                {category.title}
+              </Typography>
+              <List dense>
+                {category.items.map((item) => (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton 
+                      component={RouterLink} 
+                      to={item.path}
+                      selected={location.pathname === item.path}
+                      onClick={() => setDrawerOpen(false)}
+                      sx={{
+                        pl: 3,
+                        '&.Mui-selected': {
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: 'primary.dark',
+                          },
+                          '& .MuiListItemIcon-root': {
+                            color: 'white',
+                          }
+                        }
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={item.text}
+                        primaryTypographyProps={{
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+              {index < menuCategories.length - 1 && <Divider />}
+            </React.Fragment>
+          )
         ))}
-      </List>
-      <Divider />
-      <List>
-        {authItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              component={item.path ? RouterLink : 'button'} 
-              to={item.path} 
-              onClick={item.action}
-            >
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        {user && (
-          <MenuItem onClick={handleProfile}>
-            <ListItemIcon>
-              <PersonIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Mi Perfil" />
-          </MenuItem>
+      </Box>
+
+      {/* Footer del Drawer */}
+      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        {user ? (
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            onClick={handleLogout}
+            startIcon={<ExitToAppIcon />}
+          >
+            Cerrar Sesión
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            component={RouterLink}
+            to="/login"
+            startIcon={<LoginIcon />}
+            onClick={() => setDrawerOpen(false)}
+          >
+            Iniciar Sesión
+          </Button>
         )}
-        {user && user.is_doctor && (
-          <MenuItem onClick={() => { handleLogout(); navigate('/doctor/profile'); }}>
-            <ListItemIcon>
-              <LocalHospitalIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Mi Perfil Médico" />
-          </MenuItem>
-        )}
-      </List>
+      </Box>
     </Box>
   );
 
   return (
     <>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography 
-            variant="h6" 
-            component={RouterLink} 
-            to="/" 
-            sx={{ 
-              flexGrow: 1, 
-              textDecoration: 'none', 
-              color: 'white',
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          background: 'rgba(18, 18, 18, 0.8)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          {/* Logo */}
+          <Box
+            component={RouterLink}
+            to="/"
+            sx={{
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: 'white',
+              '&:hover': { opacity: 0.9 }
             }}
           >
-            Doctorfy
-          </Typography>
-          
-          {user && (
-            <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-              <Tooltip title="Ver planes y precios">
+            <LocalHospitalIcon 
+              sx={{ 
+                mr: 1,
+                color: '#00ffff',
+                filter: 'drop-shadow(0 0 2px #00ffff)'
+              }} 
+            />
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 700,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              Doctorfy
+            </Typography>
+          </Box>
+
+          {/* Botones de Acción Rápida para Móvil */}
+          {isMobile && user && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* Botón de Chat Médico */}
+              <Tooltip title="Chat Médico">
+                <IconButton
+                  component={RouterLink}
+                  to="/medical-chat"
+                  sx={{
+                    color: '#00ffff',
+                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
+                  }}
+                >
+                  <ChatIcon />
+                </IconButton>
+              </Tooltip>
+
+              {/* Botón de Créditos */}
+              <Tooltip title="Mis Créditos">
+                <Button
+                  onClick={() => navigate('/credits-info')}
+                  sx={{
+                    minWidth: 'auto',
+                    px: 2,
+                    border: '1px solid rgba(0, 255, 255, 0.5)',
+                    borderRadius: '20px',
+                    color: '#00ffff',
+                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {credits?.toFixed(1) || '0'}
+                  </Typography>
+                </Button>
+              </Tooltip>
+
+              {/* Menú Hamburguesa */}
+              <IconButton
+                color="inherit"
+                onClick={() => setDrawerOpen(true)}
+                sx={{ 
+                  ml: 1,
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Box>
+          )}
+
+          {/* Navegación Desktop */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Créditos para Desktop */}
+              {user && (
                 <Button
                   variant="outlined"
                   onClick={() => navigate('/credits-info')}
-                  startIcon={<AccountBalanceWalletIcon sx={{ 
-                    color: '#00ffff',
-                    filter: 'drop-shadow(0 0 3px #00ffff)'
-                  }} />}
+                  startIcon={<AccountBalanceWalletIcon sx={{ color: '#00ffff' }} />}
                   sx={{
-                    borderColor: '#00ffff',
+                    borderColor: 'rgba(0, 255, 255, 0.5)',
                     color: '#00ffff',
-                    background: 'rgba(0, 255, 255, 0.1)',
-                    backdropFilter: 'blur(8px)',
-                    textShadow: '0 0 10px #00ffff',
-                    boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)',
+                    px: 2,
                     '&:hover': {
                       borderColor: '#00ffff',
-                      background: 'rgba(0, 255, 255, 0.2)',
-                      boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
+                      bgcolor: 'rgba(0, 255, 255, 0.1)'
                     }
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
-                        fontWeight: 'bold',
-                        mr: 1,
-                        textShadow: '0 0 10px #00ffff'
-                      }}
-                    >
-                      {credits?.toFixed(1) || '0'}
-                    </Typography>
-                    <Typography 
-                      variant="body2"
-                      sx={{ 
-                        opacity: 0.9,
-                        textTransform: 'none'
-                      }}
-                    >
-                      créditos
-                    </Typography>
-                  </Box>
+                  {credits?.toFixed(1) || '0'} créditos
                 </Button>
-              </Tooltip>
-            </Box>
-          )}
-          
-          {isMobile ? (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="end"
-              onClick={toggleDrawer(true)}
-            >
-              <MenuIcon />
-            </IconButton>
-          ) : (
-            <Box sx={{ display: 'flex' }}>
-              {user && navItems.map((item) => (
-                <Button 
-                  key={item.text}
-                  color="inherit" 
-                  component={RouterLink} 
-                  to={item.path}
-                  sx={{ mx: 0.5 }}
+              )}
+
+              {/* Botones de Navegación */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {filteredNavItems.map((item) => (
+                  <Button
+                    key={item.text}
+                    component={RouterLink}
+                    to={item.path}
+                    startIcon={item.icon}
+                    sx={{
+                      color: 'white',
+                      px: 2,
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
+                      ...(location.pathname === item.path && {
+                        bgcolor: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.dark' }
+                      })
+                    }}
+                  >
+                    {item.text}
+                  </Button>
+                ))}
+              </Box>
+
+              {/* Perfil/Login */}
+              {user ? (
+                <IconButton
+                  onClick={handleProfile}
+                  sx={{ 
+                    ml: 1,
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
                 >
-                  {item.text}
-                </Button>
-              ))}
-              
-              {authItems.map((item) => (
-                <Button 
-                  key={item.text}
-                  color="inherit" 
-                  component={item.path ? RouterLink : 'button'} 
-                  to={item.path}
-                  onClick={item.action}
-                  sx={{ mx: 0.5 }}
+                  <PersonIcon />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  component={RouterLink}
+                  to="/login"
+                  sx={{ ml: 1 }}
                 >
-                  {item.text}
+                  Iniciar Sesión
                 </Button>
-              ))}
+              )}
             </Box>
           )}
         </Toolbar>
       </AppBar>
-      
+
+      {/* Espaciador para compensar el AppBar fixed */}
+      <Toolbar />
+
+      {/* Drawer mejorado */}
       <Drawer
         anchor="right"
         open={drawerOpen}
-        onClose={toggleDrawer(false)}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: 320,
+            bgcolor: 'background.default',
+            backgroundImage: 'none'
+          }
+        }}
       >
-        <Box onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
-          {user && (
-            <ListItem 
-              component={RouterLink} 
-              to="/credits-info"
-              sx={{
-                bgcolor: 'rgba(0, 191, 255, 0.1)',
-                my: 1
-              }}
-            >
-              <ListItemIcon>
-                <AccountBalanceWalletIcon />
-              </ListItemIcon>
-              <ListItemText 
-                primary={`${credits?.toFixed(1) || '0'} créditos`}
-                secondary="Click para más info"
-              />
-            </ListItem>
-          )}
-          {drawer}
-        </Box>
+        {drawer}
       </Drawer>
-
-      <Menu
-        id="menu-appbar"
-        anchorEl={anchorEl}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        keepMounted
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-      >
-        <MenuItem onClick={handleProfile}>Perfil</MenuItem>
-        <MenuItem onClick={handleLogout}>Cerrar Sesión</MenuItem>
-      </Menu>
     </>
   );
 };
