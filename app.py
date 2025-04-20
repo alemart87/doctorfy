@@ -16,6 +16,7 @@ from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
 from routes.blog import blog_bp
 from routes.credits import credits_bp
+from routes.payments import payments_bp
 import os
 from datetime import timedelta, datetime, timezone, date
 from dotenv import load_dotenv
@@ -131,6 +132,7 @@ def create_app(config_class=Config):
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(blog_bp)
     app.register_blueprint(credits_bp)
+    app.register_blueprint(payments_bp, url_prefix='/api/payments')
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader

@@ -16,7 +16,8 @@ import {
   useTheme,
   MenuItem,
   ListItemIcon,
-  Menu
+  Menu,
+  Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ChatIcon from '@mui/icons-material/Chat';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import { CreditCard as CreditIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -174,56 +176,52 @@ const Navbar = () => {
           </Typography>
           
           {user && (
-            <Box 
-              component={RouterLink}
-              to="/credits-info"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mr: 3,
-                px: 2,
-                py: 0.5,
-                borderRadius: 2,
-                textDecoration: 'none',
-                color: 'inherit',
-                background: 'rgba(0, 255, 255, 0.1)',
-                border: '1px solid rgba(0, 255, 255, 0.2)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  background: 'rgba(0, 255, 255, 0.2)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 2px 8px rgba(0, 255, 255, 0.2)'
-                }
-              }}
-            >
-              <AccountBalanceWalletIcon 
-                sx={{ 
-                  mr: 1,
-                  color: '#00ffff',
-                  filter: 'drop-shadow(0 0 2px rgba(0, 255, 255, 0.5))'
-                }} 
-              />
-              <Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 'bold',
+            <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+              <Tooltip title="Ver planes y precios">
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate('/credits-info')}
+                  startIcon={<AccountBalanceWalletIcon sx={{ 
                     color: '#00ffff',
-                    textShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+                    filter: 'drop-shadow(0 0 3px #00ffff)'
+                  }} />}
+                  sx={{
+                    borderColor: '#00ffff',
+                    color: '#00ffff',
+                    background: 'rgba(0, 255, 255, 0.1)',
+                    backdropFilter: 'blur(8px)',
+                    textShadow: '0 0 10px #00ffff',
+                    boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)',
+                    '&:hover': {
+                      borderColor: '#00ffff',
+                      background: 'rgba(0, 255, 255, 0.2)',
+                      boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
+                    }
                   }}
                 >
-                  {credits?.toFixed(1) || '0'}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    opacity: 0.9,
-                    fontSize: '0.7rem'
-                  }}
-                >
-                  créditos
-                </Typography>
-              </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 'bold',
+                        mr: 1,
+                        textShadow: '0 0 10px #00ffff'
+                      }}
+                    >
+                      {credits?.toFixed(1) || '0'}
+                    </Typography>
+                    <Typography 
+                      variant="body2"
+                      sx={{ 
+                        opacity: 0.9,
+                        textTransform: 'none'
+                      }}
+                    >
+                      créditos
+                    </Typography>
+                  </Box>
+                </Button>
+              </Tooltip>
             </Box>
           )}
           

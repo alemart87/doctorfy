@@ -2,7 +2,7 @@ import React, { useEffect, lazy, Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import theme from './theme';
 import axios from 'axios';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,6 +11,8 @@ import FloatingChatButton from './components/FloatingChatButton';
 import IntroModal from './components/IntroModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
+import { Button, Box, Typography, Tooltip } from '@mui/material';
+import { CreditCard as CreditIcon } from '@mui/icons-material';
 
 // Componentes
 import Navbar from './components/Navbar';

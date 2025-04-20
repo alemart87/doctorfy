@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Grid, useTheme, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Alert } from '@mui/material';
+import { Box, Container, Typography, Grid, useTheme, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Alert, Card, CardContent } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -25,7 +25,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 const DashboardPage = () => {
   const theme = useTheme();
-  const { user, token: ctxToken } = useAuth();
+  const { user, token: ctxToken, credits } = useAuth();
   const navigate = useNavigate();
 
   // Aumentar el tamaño de los iconos
@@ -200,6 +200,64 @@ const DashboardPage = () => {
               />
             </motion.div>
 
+            {/* Sección de Créditos - Fuera del condicional de admin */}
+            <Grid container spacing={3} sx={{ mt: 4 }}>
+              <Grid item xs={12} md={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: 'linear-gradient(45deg, #00E5FF 30%, #00B8D4 90%)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 20px rgba(0, 229, 255, 0.3)',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 0 30px rgba(0, 229, 255, 0.5)',
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                  onClick={() => navigate('/credits-info')}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h5" sx={{ textShadow: '0 0 10px rgba(0, 229, 255, 0.5)' }}>
+                        Créditos Disponibles
+                      </Typography>
+                      <AccountBalanceWalletIcon sx={{ 
+                        fontSize: 40,
+                        filter: 'drop-shadow(0 0 5px rgba(0, 229, 255, 0.5))'
+                      }} />
+                    </Box>
+                    <Typography variant="h3" sx={{ 
+                      mb: 2,
+                      textShadow: '0 0 20px rgba(0, 229, 255, 0.7)',
+                      fontWeight: 'bold'
+                    }}>
+                      {credits?.toFixed(1) || '0'}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      sx={{
+                        mt: 2,
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        backdropFilter: 'blur(8px)',
+                        textTransform: 'none',
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.3)',
+                        }
+                      }}
+                    >
+                      Ver Planes y Precios
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            {/* Panel de Admin y otros componentes */}
             {user && user.email === 'alemart87@gmail.com' && (
               <>
                 <Paper 
@@ -263,6 +321,74 @@ const DashboardPage = () => {
                 </Paper>
 
                 <EmailCampaigns />
+
+                <Container maxWidth="lg">
+                  <Grid container spacing={3}>
+                    {/* Otras tarjetas del dashboard */}
+                    
+                    {/* Tarjeta de Créditos */}
+                    <Grid item xs={12} md={4}>
+                      <Card
+                        sx={{
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          background: 'linear-gradient(45deg, #00E5FF 30%, #00B8D4 90%)',
+                          color: 'white',
+                          cursor: 'pointer',
+                          boxShadow: '0 0 20px rgba(0, 229, 255, 0.3)',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 0 30px rgba(0, 229, 255, 0.5)',
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                        onClick={() => navigate('/credits-info')}
+                      >
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h5" component="div" sx={{ textShadow: '0 0 10px rgba(0, 229, 255, 0.5)' }}>
+                              Créditos Disponibles
+                            </Typography>
+                            <AccountBalanceWalletIcon 
+                              sx={{ 
+                                fontSize: 40,
+                                filter: 'drop-shadow(0 0 5px rgba(0, 229, 255, 0.5))'
+                              }} 
+                            />
+                          </Box>
+                          <Typography 
+                            variant="h3" 
+                            sx={{ 
+                              mb: 2,
+                              textShadow: '0 0 20px rgba(0, 229, 255, 0.7)',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {credits?.toFixed(1) || '0'}
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            fullWidth
+                            sx={{
+                              mt: 2,
+                              bgcolor: 'rgba(255,255,255,0.2)',
+                              backdropFilter: 'blur(8px)',
+                              textTransform: 'none',
+                              fontSize: '1.1rem',
+                              fontWeight: 'bold',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.3)',
+                              }
+                            }}
+                          >
+                            Ver Planes y Precios
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                </Container>
               </>
             )}
           </Container>

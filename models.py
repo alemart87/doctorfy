@@ -700,4 +700,19 @@ class Subscription(db.Model):
     user = db.relationship('User', backref=db.backref('subscription', uselist=False))
     
     def __repr__(self):
-        return f'<Subscription {self.id} - User {self.user_id} - Status {self.status}>' 
+        return f'<Subscription {self.id} - User {self.user_id} - Status {self.status}>'
+
+class CreditTransaction(db.Model):
+    __tablename__ = 'credit_transaction'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    stripe_session_id = db.Column(db.String(255))
+    status = db.Column(db.String(50), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relación con el usuario
+    user = db.relationship('User', backref=db.backref('credit_transactions', lazy=True))
+
+    def __repr__(self):
+        return f'<CreditTransaction {self.id} - User {self.user_id} - Amount {self.amount}>' 

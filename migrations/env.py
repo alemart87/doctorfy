@@ -5,6 +5,8 @@ from flask import current_app
 
 from alembic import context
 
+from models import db, User, CreditTransaction  # Importar todos los modelos
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -65,7 +67,10 @@ def run_migrations_offline():
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url, target_metadata=get_metadata(), literal_binds=True
+        url=url,
+        target_metadata=get_metadata(),
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
     )
 
     with context.begin_transaction():
@@ -97,6 +102,7 @@ def run_migrations_online():
             connection=connection,
             target_metadata=get_metadata(),
             process_revision_directives=process_revision_directives,
+            include_schemas=True,
             **current_app.extensions['migrate'].configure_args
         )
 

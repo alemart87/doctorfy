@@ -12,7 +12,9 @@ import {
   Typography,
   Avatar,
   Button,
-  Tooltip
+  Tooltip,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -26,6 +28,7 @@ import { Link } from 'react-router-dom';
 import ChatIcon from '@mui/icons-material/Chat';
 import { alpha } from '@mui/material/styles';
 import axios from 'axios';
+import { CreditCard as CreditIcon } from '@mui/icons-material';
 
 // Navbar con efecto glassmorphism
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -70,6 +73,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [credits, setCredits] = useState(null);
+  const [anchorElNav, setAnchorElNav] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
 
   // Detectar scroll
   useEffect(() => {
@@ -204,24 +209,38 @@ const Navbar = () => {
               Chat Médico
             </Button>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Tooltip title="Ver información de créditos">
-                <Box 
-                  component={Link} 
-                  to="/credits-info"
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    color: 'white',
-                    textDecoration: 'none'
-                  }}
-                >
-                  <Typography variant="h6" sx={{ mr: 1 }}>
-                    {credits?.toFixed(1)}
-                  </Typography>
-                  <Typography variant="body2">créditos</Typography>
-                </Box>
-              </Tooltip>
+            {/* Botón de Créditos - Agregar antes del menú de usuario */}
+            {user && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                <Tooltip title="Comprar más créditos">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<CreditIcon />}
+                    onClick={() => navigate('/credits-info')}
+                    sx={{
+                      borderRadius: 2,
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: 'white'
+                      }
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mr: 1 }}>
+                      Créditos:
+                    </Typography>
+                    <Typography variant="h6" component="span">
+                      {credits?.toFixed(1)}
+                    </Typography>
+                  </Button>
+                </Tooltip>
+              </Box>
+            )}
+
+            {/* Menú de usuario existente */}
+            <Box sx={{ flexGrow: 0 }}>
+              {/* ... resto del código ... */}
             </Box>
           </Toolbar>
         </Container>
