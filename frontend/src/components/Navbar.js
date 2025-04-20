@@ -600,20 +600,25 @@ const Navbar = () => {
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        variant="temporary"
+        elevation={0}
         PaperProps={{
           sx: {
             width: '100%',
-            maxWidth: '100%',
+            maxWidth: '320px',
             bgcolor: '#000000',
             backgroundImage: 'none',
-            '@media (min-width: 600px)': {
-              maxWidth: '320px',
-            },
           }
         }}
-        BackdropProps={{
+        ModalProps={{
+          keepMounted: true,
+          BackdropProps: {
+            invisible: true,
+          },
           sx: {
-            backgroundColor: 'transparent',
+            '& .MuiBackdrop-root': {
+              display: 'none',
+            }
           }
         }}
         sx={{
@@ -621,6 +626,7 @@ const Navbar = () => {
             boxSizing: 'border-box',
             borderLeft: 'none',
           },
+          zIndex: theme.zIndex.appBar + 1,
         }}
       >
         {drawer}
