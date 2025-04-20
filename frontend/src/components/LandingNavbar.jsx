@@ -360,8 +360,32 @@ const LandingNavbar = () => {
         anchor="right"
         open={drawerOpen}
         onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true, // Mejor rendimiento en dispositivos móviles
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: '100%',
+            bgcolor: '#000000',
+            backgroundImage: 'none',
+            '@media (min-width: 600px)': {
+              maxWidth: '320px',
+            },
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'transparent', // Eliminamos el backdrop
+          }
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            borderLeft: 'none',
+          },
+          // Asegurarnos que el drawer no afecte al contenido debajo
+          '& .MuiModal-backdrop': {
+            backgroundColor: 'transparent',
+          },
+          zIndex: theme.zIndex.appBar + 1,
         }}
       >
         {drawer}
