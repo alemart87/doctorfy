@@ -99,72 +99,51 @@ def stripe_webhook():
     sig_header = request.headers.get('Stripe-Signature')
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
 
-    print(f"Signature Header: {sig_header}")
-    print(f"Webhook Secret configurado: {webhook_secret[:10]}...")  # Solo mostrar primeros caracteres
-
     try:
-        # Verificar firma
         event = stripe.Webhook.construct_event(
             payload, sig_header, webhook_secret
         )
         
         print(f"Tipo de evento: {event.type}")
-        print(f"Evento verificado correctamente")
         
         if event.type == 'checkout.session.completed':
             session = event.data.object
             print(f"Sesión completada: {session.id}")
             
-            # Obtener detalles del producto
-            line_items = stripe.checkout.Session.list_line_items(session.id)
-            
-            if line_items.data:
-                product_id = line_items.data[0].price.product
-                quantity = line_items.data[0].quantity
-                amount_total = session.amount_total / 100  # Convertir de centavos a euros
-                print(f"Producto: {product_id}, Cantidad: {quantity}")
+            try:
+                # Obtener detalles del producto
+                line_items = stripe.checkout.Session.list_line_items(session.id)
                 
-                if product_id == PRODUCT_ID:
-                    # Buscar el usuario
-                    user = User.query.filter_by(email=session.customer_details.email).first()
+                if line_items.data:
+                    quantity = line_items.data[0].quantity
+                    amount_total = session.amount_total / 100
                     
+                    # Buscar usuario y actualizar créditos
+                    user = User.query.filter_by(email=session.customer_details.email).first()
                     if user:
-                        # Registrar la transacción
                         transaction = CreditTransaction(
                             user_id=user.id,
-                            amount=quantity,  # Cantidad directa de créditos
+                            amount=quantity,
                             stripe_session_id=session.id,
                             status='completed'
                         )
                         
-                        # Actualizar créditos del usuario
                         user.credits = float(user.credits or 0) + quantity
-                        
                         db.session.add(transaction)
                         db.session.commit()
                         
                         print(f"✅ {quantity} créditos asignados a {user.email}")
                         
-                        # Enviar notificaciones por correo
-                        try:
-                            # Notificación al admin
-                            send_purchase_notification(
-                                user=user,
-                                credits=quantity,
-                                session_id=session.id,
-                                amount_eur=amount_total
-                            )
-                            print(f"✉️ Notificación de compra enviada a alemart87@gmail.com")
-                            
-                            # Correo de agradecimiento al usuario
-                            send_purchase_thank_you(user, quantity)
-                            print(f"✉️ Correo de agradecimiento enviado a {user.email}")
-                        except Exception as email_error:
-                            print(f"❌ Error enviando notificaciones por correo: {str(email_error)}")
-                            traceback.print_exc()
+                        # Enviar notificaciones
+                        send_purchase_notification(user, quantity, session.id, amount_total)
+                        send_purchase_thank_you(user, quantity)
                     else:
-                        print(f"❌ No se encontró usuario con email: {session.customer_details.email}")
-        
+                        print(f"❌ Usuario no encontrado: {session.customer_details.email}")
+                        
+            except stripe.error.StripeError as e:
+                print(f"❌ Error de Stripe al procesar sesión: {str(e)}")
+                return jsonify({'error': str(e)}), 400
+                
         return jsonify({'status': 'success'})
         
     except stripe.error.SignatureVerificationError as e:
