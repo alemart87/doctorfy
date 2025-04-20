@@ -435,15 +435,10 @@ const Navbar = () => {
         sx={{ 
           background: 'rgba(18, 18, 18, 0.8)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          zIndex: 1200 // Asegurar que esté por encima
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
         }}
       >
-        <Toolbar sx={{ 
-          justifyContent: 'space-between',
-          minHeight: { xs: '56px', sm: '64px' }, // Altura consistente
-          px: { xs: 2, sm: 3 } // Padding horizontal
-        }}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
           {/* Logo en AppBar */}
           <Box
             component={RouterLink}
@@ -453,8 +448,7 @@ const Navbar = () => {
               alignItems: 'center',
               textDecoration: 'none',
               color: 'white',
-              '&:hover': { opacity: 0.9 },
-              mr: 3 // Margen derecho para separar del contenido
+              '&:hover': { opacity: 0.9 }
             }}
           >
             <LocalHospitalIcon 
@@ -475,21 +469,82 @@ const Navbar = () => {
             </Typography>
           </Box>
 
+          {/* Botones de Acción Rápida para Móvil */}
+          {isMobile && user && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* Reemplazar Chat Médico por Guía */}
+              <Tooltip title="Guía de Salud">
+                <IconButton
+                  component={RouterLink}
+                  to="/guide"
+                  sx={{
+                    color: '#00ffff',
+                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
+                  }}
+                >
+                  <MenuBookIcon />
+                </IconButton>
+              </Tooltip>
+
+              {/* Botón de Créditos */}
+              <Tooltip title="Mis Créditos">
+                <Button
+                  onClick={() => navigate('/credits-info')}
+                  sx={{
+                    minWidth: 'auto',
+                    px: 2,
+                    border: '1px solid rgba(0, 255, 255, 0.5)',
+                    borderRadius: '20px',
+                    color: '#00ffff',
+                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {credits?.toFixed(1) || '0'}
+                  </Typography>
+                </Button>
+              </Tooltip>
+
+              {/* Menú Hamburguesa */}
+              <IconButton
+                color="inherit"
+                onClick={() => setDrawerOpen(true)}
+                sx={{ 
+                  ml: 1,
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Box>
+          )}
+
           {/* Navegación Desktop */}
           {!isMobile && (
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2,
-              flex: 1, // Tomar espacio restante
-              justifyContent: 'flex-end' // Alinear a la derecha
-            }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Créditos para Desktop */}
+              {user && (
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate('/credits-info')}
+                  startIcon={<AccountBalanceWalletIcon sx={{ color: '#00ffff' }} />}
+                  sx={{
+                    borderColor: 'rgba(0, 255, 255, 0.5)',
+                    color: '#00ffff',
+                    px: 2,
+                    '&:hover': {
+                      borderColor: '#00ffff',
+                      bgcolor: 'rgba(0, 255, 255, 0.1)'
+                    }
+                  }}
+                >
+                  {credits?.toFixed(1) || '0'} créditos
+                </Button>
+              )}
+
               {/* Botones de Navegación */}
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 1,
-                mr: 2 // Margen derecho antes de los créditos
-              }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 {filteredNavItems.map((item) => (
                   <Button
                     key={item.text}
@@ -498,8 +553,7 @@ const Navbar = () => {
                     startIcon={item.icon}
                     sx={{
                       color: 'white',
-                      px: 1.5, // Padding horizontal reducido
-                      fontSize: '0.9rem', // Tamaño de fuente más pequeño
+                      px: 2,
                       '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
                       ...(location.pathname === item.path && {
                         bgcolor: 'primary.main',
@@ -512,49 +566,27 @@ const Navbar = () => {
                 ))}
               </Box>
 
-              {/* Créditos y Perfil */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {user && (
-                  <Button
-                    variant="outlined"
-                    onClick={() => navigate('/credits-info')}
-                    startIcon={<AccountBalanceWalletIcon sx={{ color: '#00ffff' }} />}
-                    sx={{
-                      borderColor: 'rgba(0, 255, 255, 0.5)',
-                      color: '#00ffff',
-                      px: 2,
-                      '&:hover': {
-                        borderColor: '#00ffff',
-                        bgcolor: 'rgba(0, 255, 255, 0.1)'
-                      }
-                    }}
-                  >
-                    {credits?.toFixed(1) || '0'} créditos
-                  </Button>
-                )}
-
-                {/* Perfil/Login */}
-                {user ? (
-                  <IconButton
-                    onClick={handleProfile}
-                    sx={{ 
-                      ml: 1,
-                      border: '1px solid rgba(255, 255, 255, 0.2)'
-                    }}
-                  >
-                    <PersonIcon />
-                  </IconButton>
-                ) : (
-                  <Button
-                    variant="contained"
-                    component={RouterLink}
-                    to="/login"
-                    sx={{ ml: 1 }}
-                  >
-                    Iniciar Sesión
-                  </Button>
-                )}
-              </Box>
+              {/* Perfil/Login */}
+              {user ? (
+                <IconButton
+                  onClick={handleProfile}
+                  sx={{ 
+                    ml: 1,
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  <PersonIcon />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  component={RouterLink}
+                  to="/login"
+                  sx={{ ml: 1 }}
+                >
+                  Iniciar Sesión
+                </Button>
+              )}
             </Box>
           )}
         </Toolbar>

@@ -293,21 +293,16 @@ const LandingPage = () => {
                 animate={heroInView ? "visible" : "hidden"}
                 variants={containerVariants}
                 sx={{ 
-                  minHeight: '100vh',
+                  minHeight: '90vh',
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  pt: { xs: 0, md: 6 },    // Eliminado completamente el padding top en mobile
-                  mt: { xs: -2, md: 0 }    // Añadido margin top negativo SOLO para mobile
+                  alignItems: 'center',
+                  pt: { xs: 8, md: 0 }
                 }}
               >
         <Container maxWidth="lg">
-            <Grid container spacing={4} alignItems="flex-start">
+            <Grid container spacing={4} alignItems="center">
                   <Grid item xs={12} md={7}>
-                    <Box sx={{ 
-                      position: 'relative', 
-                      zIndex: 2,
-                      pt: { xs: 1, md: 2 }  // Reducido aún más el padding en mobile
-                    }}>
+                    <Box sx={{ position: 'relative', zIndex: 2 }}>
                       <motion.div variants={itemVariants}>
                 <Typography
                   variant="h1"
@@ -315,7 +310,6 @@ const LandingPage = () => {
                             fontWeight: 800,
                             fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4.5rem' },
                     mb: 2,
-                    mt: { xs: 0, md: 0 },  // Eliminado margin top en mobile
                             background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
