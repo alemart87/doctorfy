@@ -17,7 +17,8 @@ import {
   MenuItem,
   ListItemIcon,
   Menu,
-  Tooltip
+  Tooltip,
+  Avatar
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
@@ -58,14 +59,6 @@ const Navbar = () => {
 
   // Definir items de navegación según el estado de autenticación
   const navItems = [
-    // Sección Principal
-    { 
-      text: 'Dashboard', 
-      path: '/dashboard',
-      icon: <DashboardIcon />,
-      requireAuth: true
-    },
-
     // Sección Médica
     { 
       text: 'Estudios Médicos', 
@@ -78,12 +71,6 @@ const Navbar = () => {
       path: '/doctors',
       icon: <LocalHospitalIcon />,
       requireAuth: false
-    },
-    {
-      text: 'Chat Médico IA',
-      path: '/medical-chat',
-      icon: <ChatIcon />,
-      requireAuth: true
     },
     {
       text: 'Psicólogo Virtual',
@@ -194,7 +181,7 @@ const Navbar = () => {
       title: "Principal",
       items: navItems.filter(item => 
         !item.adminOnly && !item.doctorOnly && 
-        ['/dashboard', '/medical-chat', '/tixae-chatbot'].includes(item.path)
+        ['/tixae-chatbot'].includes(item.path)
       )
     },
     {
@@ -219,53 +206,124 @@ const Navbar = () => {
     }] : [])
   ];
 
+  // Estilos para mejorar legibilidad
+  const mobileStyles = {
+    menuItem: {
+      fontSize: '1.1rem',  // Aumentar tamaño de fuente en menú
+      padding: '12px 16px', // Más espacio para touch
+    },
+    categoryTitle: {
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      letterSpacing: '0.5px',
+      padding: '16px',
+      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+    },
+    drawerHeader: {
+      padding: '20px',
+      fontSize: '1.3rem'
+    },
+    navButton: {
+      fontSize: '1rem',
+      padding: '10px 16px'
+    }
+  };
+
   // Drawer content optimizado para móvil
   const drawer = (
-    <Box sx={{ width: 280 }}>
-      {/* Header del Drawer */}
+    <Box sx={{ 
+      width: 280,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Header del Drawer con Logo */}
       <Box 
         sx={{ 
-          p: 2, 
-          display: 'flex', 
+          p: 2,
+          background: 'linear-gradient(45deg, #00bcd4, #2196f3)',
+          color: 'white',
+          display: 'flex',
           alignItems: 'center',
-          bgcolor: 'primary.main',
-          color: 'white'
+          gap: 2,
+          textDecoration: 'none'
         }}
+        component={RouterLink}
+        to="/"
+        onClick={() => setDrawerOpen(false)}
       >
-        <LocalHospitalIcon sx={{ mr: 1 }} />
-        <Typography variant="h6">
+        <LocalHospitalIcon sx={{ fontSize: '2rem' }} />
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
           Doctorfy
         </Typography>
       </Box>
 
-      {/* Información del Usuario */}
+      {/* Perfil del Usuario */}
       {user && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            {user.name || user.email}
-          </Typography>
+        <Box 
+          sx={{ 
+            p: 2,
+            bgcolor: 'rgba(0, 188, 212, 0.1)',
+            borderBottom: '1px solid rgba(0, 188, 212, 0.2)'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
+            <Avatar 
+              sx={{ 
+                width: 60, 
+                height: 60,
+                bgcolor: 'primary.main',
+                fontSize: '1.5rem'
+              }}
+            >
+              {user.name?.[0] || user.email?.[0]}
+            </Avatar>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                {user.name || user.email}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user.is_doctor ? 'Doctor' : 'Paciente'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Créditos */}
           <Button
             fullWidth
             variant="outlined"
             onClick={() => navigate('/credits-info')}
-            startIcon={<AccountBalanceWalletIcon />}
+            startIcon={<AccountBalanceWalletIcon sx={{ color: '#00bcd4' }} />}
             sx={{
-              borderColor: 'primary.main',
-              color: 'primary.main',
+              mb: 1,
+              borderColor: '#00bcd4',
+              color: '#00bcd4',
+              p: 1.5,
               justifyContent: 'flex-start',
-              mb: 1
+              '& .MuiButton-startIcon': {
+                fontSize: '1.5rem'
+              }
             }}
           >
-            {credits?.toFixed(1) || '0'} créditos
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                Créditos disponibles
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                {credits?.toFixed(1) || '0'}
+              </Typography>
+            </Box>
           </Button>
+
+          {/* Botón de Perfil */}
           <Button
             fullWidth
             variant="outlined"
             onClick={handleProfile}
             startIcon={<PersonIcon />}
             sx={{
-              borderColor: 'primary.main',
-              color: 'primary.main',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              p: 1.5,
               justifyContent: 'flex-start'
             }}
           >
@@ -274,21 +332,20 @@ const Navbar = () => {
         </Box>
       )}
 
-      <Divider />
-
-      {/* Menú Categorizado */}
-      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+      {/* Menú Principal */}
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
         {menuCategories.map((category, index) => (
           category.items.length > 0 && (
             <React.Fragment key={category.title}>
               <Typography
-                variant="overline"
                 sx={{
-                  px: 2,
-                  py: 1,
-                  display: 'block',
-                  color: 'text.secondary',
-                  bgcolor: 'background.paper'
+                  px: 3,
+                  py: 1.5,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  color: 'primary.main',
+                  bgcolor: 'rgba(0, 188, 212, 0.05)'
                 }}
               >
                 {category.title}
@@ -302,7 +359,8 @@ const Navbar = () => {
                       selected={location.pathname === item.path}
                       onClick={() => setDrawerOpen(false)}
                       sx={{
-                        pl: 3,
+                        py: 2,
+                        px: 3,
                         '&.Mui-selected': {
                           bgcolor: 'primary.main',
                           color: 'white',
@@ -321,28 +379,32 @@ const Navbar = () => {
                       <ListItemText 
                         primary={item.text}
                         primaryTypographyProps={{
-                          fontSize: '0.9rem'
+                          fontSize: '1rem',
+                          fontWeight: 500
                         }}
                       />
                     </ListItemButton>
                   </ListItem>
                 ))}
               </List>
-              {index < menuCategories.length - 1 && <Divider />}
             </React.Fragment>
           )
         ))}
       </Box>
 
-      {/* Footer del Drawer */}
-      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+      {/* Footer con botón de cerrar sesión */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}>
         {user ? (
           <Button
             fullWidth
             variant="contained"
-            color="primary"
+            color="error"
             onClick={handleLogout}
             startIcon={<ExitToAppIcon />}
+            sx={{
+              py: 1.5,
+              fontSize: '1rem'
+            }}
           >
             Cerrar Sesión
           </Button>
@@ -354,7 +416,10 @@ const Navbar = () => {
             component={RouterLink}
             to="/login"
             startIcon={<LoginIcon />}
-            onClick={() => setDrawerOpen(false)}
+            sx={{
+              py: 1.5,
+              fontSize: '1rem'
+            }}
           >
             Iniciar Sesión
           </Button>
@@ -370,11 +435,16 @@ const Navbar = () => {
         sx={{ 
           background: 'rgba(18, 18, 18, 0.8)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          zIndex: 1200 // Asegurar que esté por encima
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          {/* Logo */}
+        <Toolbar sx={{ 
+          justifyContent: 'space-between',
+          minHeight: { xs: '56px', sm: '64px' }, // Altura consistente
+          px: { xs: 2, sm: 3 } // Padding horizontal
+        }}>
+          {/* Logo en AppBar */}
           <Box
             component={RouterLink}
             to="/"
@@ -383,7 +453,8 @@ const Navbar = () => {
               alignItems: 'center',
               textDecoration: 'none',
               color: 'white',
-              '&:hover': { opacity: 0.9 }
+              '&:hover': { opacity: 0.9 },
+              mr: 3 // Margen derecho para separar del contenido
             }}
           >
             <LocalHospitalIcon 
@@ -404,82 +475,21 @@ const Navbar = () => {
             </Typography>
           </Box>
 
-          {/* Botones de Acción Rápida para Móvil */}
-          {isMobile && user && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {/* Botón de Chat Médico */}
-              <Tooltip title="Chat Médico">
-                <IconButton
-                  component={RouterLink}
-                  to="/medical-chat"
-                  sx={{
-                    color: '#00ffff',
-                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
-                  }}
-                >
-                  <ChatIcon />
-                </IconButton>
-              </Tooltip>
-
-              {/* Botón de Créditos */}
-              <Tooltip title="Mis Créditos">
-                <Button
-                  onClick={() => navigate('/credits-info')}
-                  sx={{
-                    minWidth: 'auto',
-                    px: 2,
-                    border: '1px solid rgba(0, 255, 255, 0.5)',
-                    borderRadius: '20px',
-                    color: '#00ffff',
-                    '&:hover': { bgcolor: 'rgba(0, 255, 255, 0.1)' }
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {credits?.toFixed(1) || '0'}
-                  </Typography>
-                </Button>
-              </Tooltip>
-
-              {/* Menú Hamburguesa */}
-              <IconButton
-                color="inherit"
-                onClick={() => setDrawerOpen(true)}
-                sx={{ 
-                  ml: 1,
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-            </Box>
-          )}
-
           {/* Navegación Desktop */}
           {!isMobile && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* Créditos para Desktop */}
-              {user && (
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/credits-info')}
-                  startIcon={<AccountBalanceWalletIcon sx={{ color: '#00ffff' }} />}
-                  sx={{
-                    borderColor: 'rgba(0, 255, 255, 0.5)',
-                    color: '#00ffff',
-                    px: 2,
-                    '&:hover': {
-                      borderColor: '#00ffff',
-                      bgcolor: 'rgba(0, 255, 255, 0.1)'
-                    }
-                  }}
-                >
-                  {credits?.toFixed(1) || '0'} créditos
-                </Button>
-              )}
-
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2,
+              flex: 1, // Tomar espacio restante
+              justifyContent: 'flex-end' // Alinear a la derecha
+            }}>
               {/* Botones de Navegación */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1,
+                mr: 2 // Margen derecho antes de los créditos
+              }}>
                 {filteredNavItems.map((item) => (
                   <Button
                     key={item.text}
@@ -488,7 +498,8 @@ const Navbar = () => {
                     startIcon={item.icon}
                     sx={{
                       color: 'white',
-                      px: 2,
+                      px: 1.5, // Padding horizontal reducido
+                      fontSize: '0.9rem', // Tamaño de fuente más pequeño
                       '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
                       ...(location.pathname === item.path && {
                         bgcolor: 'primary.main',
@@ -501,27 +512,49 @@ const Navbar = () => {
                 ))}
               </Box>
 
-              {/* Perfil/Login */}
-              {user ? (
-                <IconButton
-                  onClick={handleProfile}
-                  sx={{ 
-                    ml: 1,
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  <PersonIcon />
-                </IconButton>
-              ) : (
-                <Button
-                  variant="contained"
-                  component={RouterLink}
-                  to="/login"
-                  sx={{ ml: 1 }}
-                >
-                  Iniciar Sesión
-                </Button>
-              )}
+              {/* Créditos y Perfil */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {user && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/credits-info')}
+                    startIcon={<AccountBalanceWalletIcon sx={{ color: '#00ffff' }} />}
+                    sx={{
+                      borderColor: 'rgba(0, 255, 255, 0.5)',
+                      color: '#00ffff',
+                      px: 2,
+                      '&:hover': {
+                        borderColor: '#00ffff',
+                        bgcolor: 'rgba(0, 255, 255, 0.1)'
+                      }
+                    }}
+                  >
+                    {credits?.toFixed(1) || '0'} créditos
+                  </Button>
+                )}
+
+                {/* Perfil/Login */}
+                {user ? (
+                  <IconButton
+                    onClick={handleProfile}
+                    sx={{ 
+                      ml: 1,
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}
+                  >
+                    <PersonIcon />
+                  </IconButton>
+                ) : (
+                  <Button
+                    variant="contained"
+                    component={RouterLink}
+                    to="/login"
+                    sx={{ ml: 1 }}
+                  >
+                    Iniciar Sesión
+                  </Button>
+                )}
+              </Box>
             </Box>
           )}
         </Toolbar>
@@ -538,10 +571,24 @@ const Navbar = () => {
         PaperProps={{
           sx: {
             width: '100%',
-            maxWidth: 320,
-            bgcolor: 'background.default',
-            backgroundImage: 'none'
+            maxWidth: '100%',
+            bgcolor: '#000000',
+            backgroundImage: 'none',
+            '@media (min-width: 600px)': {
+              maxWidth: '320px',
+            },
           }
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'transparent',
+          }
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            borderLeft: 'none',
+          },
         }}
       >
         {drawer}

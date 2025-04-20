@@ -21,10 +21,10 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#2196f3",
-  "background_color": "#ffffff",
+  "background_color": "#121212",
   "orientation": "portrait",
   "description": "Tu asistente de salud con IA disponible 24/7",
   "screenshots": [
