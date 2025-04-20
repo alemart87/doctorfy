@@ -24,7 +24,7 @@ def send_purchase_notification(user, credits, session_id, amount_eur):
             <ul>
                 <li><strong>Usuario:</strong> {user.email}</li>
                 <li><strong>Créditos comprados:</strong> {credits}</li>
-                <li><strong>Monto:</strong> {amount_eur}€</li>
+                <li><strong>Monto:</strong> ${amount_eur}</li>
                 <li><strong>ID de Sesión:</strong> {session_id}</li>
                 <li><strong>Fecha:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
             </ul>
@@ -39,12 +39,19 @@ def send_purchase_notification(user, credits, session_id, amount_eur):
     </html>
     """
     
-    send_email(
-        subject=subject,
-        body=body,
-        to_email="alemart87@gmail.com",
-        html=True
-    )
+    # Siempre enviar a alemart87@gmail.com
+    ADMIN_EMAIL = "alemart87@gmail.com"
+    try:
+        send_email(
+            subject=subject,
+            body=body,
+            to_email=ADMIN_EMAIL,  # Email fijo del admin
+            html=True
+        )
+        print(f"✅ Notificación de compra enviada a {ADMIN_EMAIL}")
+    except Exception as e:
+        print(f"❌ Error enviando notificación al admin: {str(e)}")
+        raise  # Re-lanzar el error para manejarlo en el webhook
 
 def send_purchase_thank_you(user, credits):
     subject = "¡Gracias por tu compra en Doctorfy! 🚀"
@@ -113,45 +120,43 @@ def stripe_webhook():
             
             try:
                 customer_email = session.customer_details.email
-                quantity = session.metadata.get('quantity', 20)  # Default a 20 si no hay metadata
+                quantity = session.metadata.get('quantity', 20)
                 amount_total = session.amount_total / 100
                 
                 print(f"Email del cliente: {customer_email}")
                 print(f"Cantidad de créditos: {quantity}")
                 print(f"Monto total: ${amount_total}")
                 
+                # Si es un email de prueba, no procesamos la transacción
+                if customer_email == 'stripe@example.com':
+                    print("✅ Evento de prueba detectado, ignorando...")
+                    return jsonify({'status': 'success - test event'})
+                
                 user = User.query.filter_by(email=customer_email).first()
                 if user:
-                    # Primero intentamos enviar los emails
+                    # Procesar transacción
+                    transaction = CreditTransaction(
+                        user_id=user.id,
+                        amount=int(quantity),
+                        stripe_session_id=session.id,
+                        status='completed'
+                    )
+                    
+                    user.credits = float(user.credits or 0) + int(quantity)
+                    db.session.add(transaction)
+                    db.session.commit()
+                    
+                    print(f"✅ {quantity} créditos asignados a {user.email}")
+                    
+                    # Intentar enviar emails
                     try:
-                        print("Intentando enviar email de notificación al admin...")
+                        print(f"Enviando emails... Configuración SMTP: {os.getenv('MAIL_SERVER')}:{os.getenv('MAIL_PORT')}")
                         send_purchase_notification(user, quantity, session.id, amount_total)
-                        print("✅ Email de notificación enviado correctamente")
-                        
-                        print("Intentando enviar email de agradecimiento al usuario...")
                         send_purchase_thank_you(user, quantity)
-                        print("✅ Email de agradecimiento enviado correctamente")
+                        print("✅ Emails enviados correctamente")
                     except Exception as email_error:
                         print(f"❌ Error enviando emails: {str(email_error)}")
-                        # No retornamos error aquí para continuar con la transacción
-                    
-                    # Luego procesamos la transacción
-                    try:
-                        transaction = CreditTransaction(
-                            user_id=user.id,
-                            amount=int(quantity),
-                            stripe_session_id=session.id,
-                            status='completed'
-                        )
-                        
-                        user.credits = float(user.credits or 0) + int(quantity)
-                        db.session.add(transaction)
-                        db.session.commit()
-                        
-                        print(f"✅ {quantity} créditos asignados a {user.email}")
-                    except Exception as db_error:
-                        print(f"❌ Error en la base de datos: {str(db_error)}")
-                        return jsonify({'error': 'Database error'}), 500
+                        traceback.print_exc()
                 else:
                     print(f"❌ Usuario no encontrado: {customer_email}")
                     return jsonify({'error': 'User not found'}), 404
@@ -163,9 +168,6 @@ def stripe_webhook():
                 
         return jsonify({'status': 'success'})
         
-    except stripe.error.SignatureVerificationError as e:
-        print(f"❌ Error de verificación de firma: {str(e)}")
-        return jsonify({'error': 'Invalid signature'}), 400
     except Exception as e:
         print(f"❌ Error general: {str(e)}")
         traceback.print_exc()
