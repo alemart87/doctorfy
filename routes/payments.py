@@ -98,7 +98,7 @@ def stripe_webhook():
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
-    stripe.api_key = os.getenv('STRIPE_SECRET_KEY')  # Asegurarnos de usar la clave correcta
+    stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
     try:
         event = stripe.Webhook.construct_event(
@@ -112,35 +112,53 @@ def stripe_webhook():
             print(f"Sesión completada: {session.id}")
             
             try:
-                # Obtener el email del cliente directamente del evento
                 customer_email = session.customer_details.email
-                quantity = session.metadata.get('quantity', 0)  # Obtener cantidad de los metadata
+                quantity = session.metadata.get('quantity', 20)  # Default a 20 si no hay metadata
+                amount_total = session.amount_total / 100
                 
-                # Buscar usuario y actualizar créditos
+                print(f"Email del cliente: {customer_email}")
+                print(f"Cantidad de créditos: {quantity}")
+                print(f"Monto total: ${amount_total}")
+                
                 user = User.query.filter_by(email=customer_email).first()
                 if user:
-                    transaction = CreditTransaction(
-                        user_id=user.id,
-                        amount=int(quantity),
-                        stripe_session_id=session.id,
-                        status='completed'
-                    )
+                    # Primero intentamos enviar los emails
+                    try:
+                        print("Intentando enviar email de notificación al admin...")
+                        send_purchase_notification(user, quantity, session.id, amount_total)
+                        print("✅ Email de notificación enviado correctamente")
+                        
+                        print("Intentando enviar email de agradecimiento al usuario...")
+                        send_purchase_thank_you(user, quantity)
+                        print("✅ Email de agradecimiento enviado correctamente")
+                    except Exception as email_error:
+                        print(f"❌ Error enviando emails: {str(email_error)}")
+                        # No retornamos error aquí para continuar con la transacción
                     
-                    user.credits = float(user.credits or 0) + int(quantity)
-                    db.session.add(transaction)
-                    db.session.commit()
-                    
-                    print(f"✅ {quantity} créditos asignados a {user.email}")
-                    
-                    # Enviar notificaciones
-                    amount_total = session.amount_total / 100
-                    send_purchase_notification(user, quantity, session.id, amount_total)
-                    send_purchase_thank_you(user, quantity)
+                    # Luego procesamos la transacción
+                    try:
+                        transaction = CreditTransaction(
+                            user_id=user.id,
+                            amount=int(quantity),
+                            stripe_session_id=session.id,
+                            status='completed'
+                        )
+                        
+                        user.credits = float(user.credits or 0) + int(quantity)
+                        db.session.add(transaction)
+                        db.session.commit()
+                        
+                        print(f"✅ {quantity} créditos asignados a {user.email}")
+                    except Exception as db_error:
+                        print(f"❌ Error en la base de datos: {str(db_error)}")
+                        return jsonify({'error': 'Database error'}), 500
                 else:
                     print(f"❌ Usuario no encontrado: {customer_email}")
+                    return jsonify({'error': 'User not found'}), 404
                     
             except Exception as e:
                 print(f"❌ Error procesando la compra: {str(e)}")
+                traceback.print_exc()
                 return jsonify({'error': str(e)}), 400
                 
         return jsonify({'status': 'success'})
