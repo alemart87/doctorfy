@@ -596,41 +596,37 @@ const Navbar = () => {
       <Toolbar />
 
       {/* Drawer mejorado */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        variant="temporary"
-        elevation={0}
-        PaperProps={{
-          sx: {
-            width: '100%',
-            maxWidth: '320px',
-            bgcolor: '#000000',
-            backgroundImage: 'none',
-          }
-        }}
-        ModalProps={{
-          keepMounted: true,
-          BackdropProps: {
-            invisible: true,
-          },
-          sx: {
-            '& .MuiBackdrop-root': {
-              display: 'none',
-            }
-          }
-        }}
+      <Box
+        component="nav"
         sx={{
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
-            borderLeft: 'none',
-          },
+          position: 'fixed',
+          top: 0,
+          right: drawerOpen ? 0 : '-100%',
+          width: '320px',
+          height: '100%',
+          bgcolor: '#000000',
+          transition: 'right 0.3s ease',
           zIndex: theme.zIndex.appBar + 1,
+          boxShadow: '-4px 0 10px rgba(0,0,0,0.5)',
         }}
       >
         {drawer}
-      </Drawer>
+      </Box>
+
+      {/* Overlay para cerrar el drawer al hacer click fuera */}
+      {drawerOpen && (
+        <Box
+          onClick={() => setDrawerOpen(false)}
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: theme.zIndex.appBar,
+          }}
+        />
+      )}
     </>
   );
 };
