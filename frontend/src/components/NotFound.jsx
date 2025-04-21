@@ -7,17 +7,18 @@ const NotFound = () => {
   const navigate = useNavigate();
 
   return (
-    <Container 
-      sx={{ 
-        minHeight: '100vh',
+    <Container
+      sx={{
+        minHeight: 'calc(100vh - 64px)', // Ajusta si tu Navbar tiene altura diferente
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         textAlign: 'center',
-        bgcolor: 'background.default',
-        color: 'text.primary',
-        py: 8
+        bgcolor: 'background.default', // Usa el color de fondo del tema
+        color: 'text.primary',      // Usa el color de texto primario del tema
+        pt: 8, // Padding top para separar del Navbar si existe
+        pb: 8
       }}
     >
       {/* Número 404 */}
@@ -26,7 +27,7 @@ const NotFound = () => {
         sx={{
           fontSize: { xs: '6rem', sm: '8rem', md: '10rem' },
           fontWeight: 900,
-          background: 'linear-gradient(45deg, #00bcd4, #2196f3)',
+          background: 'linear-gradient(45deg, #00bcd4, #2196f3)', // Colores del tema
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           mb: 2,
@@ -37,9 +38,9 @@ const NotFound = () => {
       </Typography>
 
       {/* Mensaje principal */}
-      <Typography 
-        variant="h4" 
-        sx={{ 
+      <Typography
+        variant="h4"
+        sx={{
           mb: 2,
           fontWeight: 700
         }}
@@ -48,11 +49,11 @@ const NotFound = () => {
       </Typography>
 
       {/* Submensaje */}
-      <Typography 
-        variant="h6" 
-        sx={{ 
+      <Typography
+        variant="h6"
+        sx={{
           mb: 4,
-          color: 'text.secondary',
+          color: 'text.secondary', // Color secundario del tema
           maxWidth: '600px'
         }}
       >
@@ -64,7 +65,7 @@ const NotFound = () => {
       <Button
         variant="contained"
         size="large"
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/')} // Navega a la ruta raíz
         startIcon={<HomeIcon />}
         sx={{
           px: 4,
@@ -72,7 +73,7 @@ const NotFound = () => {
           borderRadius: 2,
           fontSize: '1.1rem',
           textTransform: 'none',
-          background: 'linear-gradient(45deg, #00bcd4, #2196f3)',
+          background: 'linear-gradient(45deg, #00bcd4, #2196f3)', // Colores del tema
           boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
           '&:hover': {
             background: 'linear-gradient(45deg, #00acc1, #1e88e5)',
