@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import { Button, Box, Typography, Tooltip } from '@mui/material';
 import { CreditCard as CreditIcon } from '@mui/icons-material';
+import NotFound from './components/NotFound';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -147,7 +148,7 @@ function App() {
                       <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
                       
                       {/* Ruta para manejar URLs no encontradas */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
+                      <Route path="*" element={<NotFound />} />
 
                       <Route path="/dashboard" element={
                         <ProtectedRoute>
