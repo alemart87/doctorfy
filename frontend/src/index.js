@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import axios from 'axios';
 import ReactGA from 'react-ga4';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 // Añadir al principio del archivo
 if (process.env.NODE_ENV === 'production') {
@@ -97,4 +98,10 @@ reportWebVitals(({ name, delta, id }) => {
     label: id,
     nonInteraction: true,
   });
-}); 
+});
+
+// Si quieres que tu app funcione offline y cargue más rápido, puedes cambiar
+// unregister() a register(). Nota: esto viene con algunas trampas.
+// Aprende más sobre service workers: https://cra.link/PWA
+// Asegúrate que esta línea llame a register()
+serviceWorkerRegistration.register(); 
