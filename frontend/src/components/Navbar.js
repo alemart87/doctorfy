@@ -1,5 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
-import {
+import { 
   AppBar, Toolbar, IconButton, Typography, Button, Drawer, List, ListItem,
   ListItemIcon, ListItemText, Divider, Box, useTheme, useMediaQuery, Menu, MenuItem, Tooltip, Chip, Avatar,
   ListItemButton, ListSubheader, CircularProgress,
@@ -168,7 +168,11 @@ const Navbar = () => {
   }, [user]);
 
   const toggleDrawer = (open) => (event) => {
-    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+    if (
+      event &&
+      event.type === 'keydown' &&
+      (event.key === 'Tab' || event.key === 'Shift')
+    ) {
       return;
     }
     setDrawerOpen(open);
@@ -265,8 +269,8 @@ const Navbar = () => {
     <Box sx={{ width: drawerWidth }} role="presentation">
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-           Doctorfy
-         </Typography>
+          Doctorfy
+        </Typography>
       </Box>
 
       {user && (
@@ -292,17 +296,9 @@ const Navbar = () => {
       <List onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)} sx={{ pt: 0 }}>
         {user && (
           <>
-            <ListItem
-              disablePadding
-              sx={{ my: 1 }}
-              secondaryAction={
-                <IconButton edge="end" aria-label="info" size="small" component={RouterLink} to="/credits-info">
-                   <HelpOutlineIcon fontSize="small" sx={{color: 'text.secondary'}}/>
-                </IconButton>
-              }
-            >
-              <ListItemButton component={RouterLink} to="/credits-info">
-                <ListItemIcon sx={{ minWidth: '40px', color: brightCyan }}>
+            <ListItem disablePadding sx={{ my: 0.5 }}>
+              <ListItemButton component={RouterLink} to="/credits-info" sx={{ py: 0.8 }}>
+                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: brightCyan }}>
                   {creditsLoading ? <CircularProgress size={20} sx={{ color: brightCyan }}/> : <AccountBalanceWalletIcon />}
                 </ListItemIcon>
                 <ListItemText
@@ -329,11 +325,11 @@ const Navbar = () => {
 
         {(showInstallButton || !isOnline) && (
           <>
-            <ListSubheader sx={{ bgcolor: 'transparent' }}>Aplicación</ListSubheader>
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Aplicación</ListSubheader>
             {!isOnline && (
               <ListItem disablePadding sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
-                <ListItemButton>
-                  <ListItemIcon sx={{ color: 'warning.main' }}>
+                <ListItemButton sx={{ py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'warning.main' }}>
                     <WifiOffIcon />
                   </ListItemIcon>
                   <ListItemText primary="Sin conexión" primaryTypographyProps={{ color: 'warning.main', fontWeight: 'medium' }} />
@@ -342,9 +338,9 @@ const Navbar = () => {
             )}
             {showInstallButton && (
               <ListItem disablePadding>
-                <ListItemButton onClick={handleInstallClick}>
-                  <ListItemIcon>
-                    <GetAppIcon sx={{ color: theme.palette.primary.main }}/>
+                <ListItemButton onClick={handleInstallClick} sx={{ py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'primary.main' }}>
+                    <GetAppIcon />
                   </ListItemIcon>
                   <ListItemText primary="Instalar App" />
                 </ListItemButton>
@@ -354,11 +350,11 @@ const Navbar = () => {
           </>
         )}
 
-        <ListSubheader sx={{ bgcolor: 'transparent' }}>Navegación</ListSubheader>
+        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Navegación</ListSubheader>
         {commonNavItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? activeStyle : {}}>
-              <ListItemIcon sx={{ minWidth: '40px' }}>
+            <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+              <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
@@ -369,11 +365,13 @@ const Navbar = () => {
         {isAdmin && (
           <>
             <Divider sx={{ my: 1 }} />
-            <ListSubheader sx={{ bgcolor: 'transparent' }}>Admin</ListSubheader>
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Admin</ListSubheader>
             {adminNavItems.map((item) => (
               <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? activeStyle : {}}>
-                  <ListItemIcon sx={{ minWidth: '40px' }}>{item.icon}</ListItemIcon>
+                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                    {item.icon}
+                  </ListItemIcon>
                   <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
@@ -383,11 +381,13 @@ const Navbar = () => {
         {isDoctor && !isAdmin && (
           <>
             <Divider sx={{ my: 1 }} />
-            <ListSubheader sx={{ bgcolor: 'transparent' }}>Doctor</ListSubheader>
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Doctor</ListSubheader>
             {doctorNavItems.map((item) => (
               <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? activeStyle : {}}>
-                  <ListItemIcon sx={{ minWidth: '40px' }}>{item.icon}</ListItemIcon>
+                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                    {item.icon}
+                  </ListItemIcon>
                   <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
@@ -396,21 +396,23 @@ const Navbar = () => {
         )}
 
         <Divider sx={{ my: 1 }} />
-        <ListSubheader sx={{ bgcolor: 'transparent' }}>{user ? 'Mi Cuenta' : 'Acceso'}</ListSubheader>
+        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>{user ? 'Mi Cuenta' : 'Acceso'}</ListSubheader>
         {user ? (
           <>
             {userAccountItems.map((item) => (
               <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? activeStyle : {}}>
-                  <ListItemIcon sx={{ minWidth: '40px' }}>{item.icon}</ListItemIcon>
+                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                    {item.icon}
+                  </ListItemIcon>
                   <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
             ))}
             <ListItem disablePadding>
-              <ListItemButton onClick={handleLogout}>
-                <ListItemIcon sx={{ minWidth: '40px' }}>
-                  <ExitToAppIcon />
+              <ListItemButton onClick={handleLogout} sx={{ py: 0.8 }}>
+                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                  <ExitToAppIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText primary="Cerrar Sesión" />
               </ListItemButton>
@@ -419,8 +421,10 @@ const Navbar = () => {
         ) : (
           authItems.map((item) => (
             <ListItem key={item.text} disablePadding>
-              <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? activeStyle : {}}>
-                <ListItemIcon sx={{ minWidth: '40px' }}>{item.icon}</ListItemIcon>
+              <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                  {item.icon}
+                </ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>
@@ -446,16 +450,16 @@ const Navbar = () => {
         <Toolbar sx={{ justifyContent: 'space-between', minHeight: { xs: NAVBAR_HEIGHT_XS, sm: NAVBAR_HEIGHT_SM } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <RouterLink to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
-              <Typography
-                variant="h6"
+          <Typography 
+            variant="h6" 
                 component="div"
-                sx={{
+            sx={{ 
                   fontWeight: 'bold',
                   color: 'primary.main',
-                }}
-              >
-                Doctorfy
-              </Typography>
+            }}
+          >
+            Doctorfy
+          </Typography>
             </RouterLink>
           </Box>
 
@@ -464,12 +468,12 @@ const Navbar = () => {
               {commonNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
-                  <Button
+                <Button
                     key={item.text}
                     color="inherit"
                     component={RouterLink}
                     to={item.path}
-                    sx={{
+                  sx={{
                       mx: 0.5,
                       px: 1.5,
                       py: 0.5,
@@ -479,7 +483,7 @@ const Navbar = () => {
                       position: 'relative',
                       overflow: 'hidden',
                       transition: `color ${TRANSITION_DURATION} ease-out`,
-                      '&:hover': {
+                    '&:hover': {
                         color: 'primary.main',
                         backgroundColor: alpha(theme.palette.primary.main, 0.04)
                       },
@@ -589,7 +593,7 @@ const Navbar = () => {
                             console.log("Navbar: Click en botón créditos, navegando a /credits-info");
                             navigate('/credits-info');
                         }}
-                        sx={{
+                      sx={{ 
                           mr: 1.5,
                           borderRadius: '20px',
                           textTransform: 'none',
@@ -627,19 +631,19 @@ const Navbar = () => {
                             : (credits === 'Error' ? 'Error' : '-- Créditos')
                           )
                         }
-                      </Button>
+                </Button>
                     </span>
-                  </Tooltip>
-                )}
-
+              </Tooltip>
+          )}
+          
                 {!isMobile && (
                   <>
                     {user ? (
                       <Tooltip title="Mi Cuenta">
-                        <IconButton
+            <IconButton
                           size="medium"
                           onClick={handleMenu}
-                          color="inherit"
+              color="inherit"
                           aria-label="Menú de usuario"
                           sx={{
                             transition: `transform ${TRANSITION_DURATION} ease`,
@@ -655,21 +659,21 @@ const Navbar = () => {
                           >
                              {!user.profilePicture && user.name ? user.name.charAt(0).toUpperCase() : <PersonIcon />}
                           </Avatar>
-                        </IconButton>
+            </IconButton>
                       </Tooltip>
-                    ) : (
+          ) : (
                       authItems.map((item) => (
-                        <Button
-                          key={item.text}
+                <Button 
+                  key={item.text}
                           color="primary"
                           variant={item.text === 'Registrarse' ? 'contained' : 'outlined'}
-                          component={RouterLink}
-                          to={item.path}
+                  component={RouterLink} 
+                  to={item.path}
                           size="small"
                           sx={{ mx: 0.5, textTransform: 'none', borderRadius: '20px', transition: `background-color ${TRANSITION_DURATION} ease, border-color ${TRANSITION_DURATION} ease, color ${TRANSITION_DURATION} ease` }}
-                        >
-                          {item.text}
-                        </Button>
+                >
+                  {item.text}
+                </Button>
                       ))
                     )}
                   </>
@@ -688,25 +692,25 @@ const Navbar = () => {
                 )}
                 <IconButton
                   color="inherit"
-                  aria-label="Abrir menú"
+                  aria-label={drawerOpen ? "Cerrar menú" : "Abrir menú"}
                   edge="end"
-                  onClick={toggleDrawer(true)}
+                  onClick={toggleDrawer(!drawerOpen)}
                   sx={{ ml: 0.5 }}
                 >
                   <MenuIcon />
                 </IconButton>
               </>
             )}
-          </Box>
+            </Box>
         </Toolbar>
       </AppBar>
-
+      
       <Drawer
         anchor="right"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
         ModalProps={{ keepMounted: true }}
-        sx={{
+              sx={{
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
@@ -714,18 +718,18 @@ const Navbar = () => {
           },
         }}
       >
-        {drawer}
+          {drawer}
       </Drawer>
 
       {user && (
-        <Menu
-          id="menu-appbar"
-          anchorEl={anchorEl}
+      <Menu
+        id="menu-appbar"
+        anchorEl={anchorEl}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          keepMounted
+        keepMounted
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
+        open={Boolean(anchorEl)}
+        onClose={handleClose}
           MenuListProps={{ 'aria-labelledby': 'basic-button' }}
           slotProps={{ paper: { elevation: 3, sx: { mt: 1.5, minWidth: 180 } } }}
         >

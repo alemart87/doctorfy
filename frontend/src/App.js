@@ -94,6 +94,7 @@ function App() {
                     component="main"
                     sx={{ 
                       pt: { xs: '56px', sm: '64px' },
+                      flexGrow: 1,
                     }}
                   >
                     <Suspense fallback={<LoadingScreen />}>
