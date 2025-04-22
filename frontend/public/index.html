@@ -2,9 +2,15 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2196f3" />
+    
+    <!-- Favicon y Apple Touch Icon -->
+    <link rel="icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    
+    <!-- PWA / Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
     <!-- SEO Metatags -->
     <title>Doctorfy - Plataforma de Salud con IA | Psicología 24/7</title>
@@ -32,9 +38,17 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://doctorfy.onrender.com/" />
     
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/serviceWorker.js')
+            .then(registration => console.log('SW registrado:', registration))
+            .catch(error => console.log('SW registro fallido:', error));
+        });
+      }
+    </script>
   </head>
   <body>
     <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>

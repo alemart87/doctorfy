@@ -48,6 +48,7 @@ import WelcomePage from './components/WelcomePage';
 import CreditsInfo from './pages/CreditsInfo';
 import AdminCredits from './pages/AdminCredits';
 import NewWelcomePage from './components/NewWelcomePage';
+import NotFound from './components/NotFound';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -147,7 +148,7 @@ function App() {
                       <Route path="/doctors/:doctorId" element={<DoctorProfileView />} />
                       
                       {/* Ruta para manejar URLs no encontradas */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
+                      <Route path="*" element={<NotFound />} />
 
                       <Route path="/dashboard" element={
                         <ProtectedRoute>
