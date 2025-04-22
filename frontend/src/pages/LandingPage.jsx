@@ -17,8 +17,11 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { styled, alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/LandingNavbar';
@@ -38,7 +41,10 @@ import {
   Psychology as PsychologyIcon,
   Science as ClinicalIcon,
   Send as SendIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  AddToHomeScreen as AddToHomeScreenIcon,
+  Login as LoginIcon,
+  AppRegistration as AppRegistrationIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
@@ -47,7 +53,6 @@ import ActionButton from '../components/ActionButton';
 import CountUp from '../components/CountUp';
 import LiquidChrome from '../components/LiquidChrome';
 import { keyframes } from '@mui/system';
-import { alpha } from '@mui/material/styles';
 import DecryptedText from '../components/DecryptedText';
 import { Helmet } from 'react-helmet-async';
 
@@ -63,6 +68,35 @@ const pulse = keyframes`
     box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
   }
 `;
+
+// --- NUEVO: Estilo para el botón PWA ---
+const PwaButton = styled(Button)(({ theme }) => ({
+  background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.1)} 30%, ${alpha(theme.palette.secondary.main, 0.1)} 90%)`,
+  border: `1px solid ${theme.palette.primary.main}`,
+  color: theme.palette.primary.main,
+  padding: theme.spacing(1.5, 3),
+  borderRadius: '30px',
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textTransform: 'none',
+  transition: 'all 0.3s ease',
+  boxShadow: `0 0 15px ${alpha(theme.palette.primary.main, 0.3)}`,
+  '&:hover': {
+    background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.2)} 30%, ${alpha(theme.palette.secondary.main, 0.2)} 90%)`,
+    boxShadow: `0 0 25px ${alpha(theme.palette.primary.main, 0.5)}`,
+    transform: 'translateY(-3px) scale(1.03)',
+    borderColor: theme.palette.secondary.main,
+    color: theme.palette.secondary.main,
+  },
+  '& .MuiButton-startIcon': {
+    color: theme.palette.primary.main, // Icono cian
+    transition: 'color 0.3s ease',
+  },
+  '&:hover .MuiButton-startIcon': {
+    color: theme.palette.secondary.main, // Icono cambia a secundario en hover
+  },
+}));
+// --- FIN NUEVO ---
 
 const LandingPage = () => {
   const theme = useTheme();
@@ -345,96 +379,64 @@ const LandingPage = () => {
                         </Box>
                       </motion.div>
                       
+                      {/* --- SECCIÓN CTA PWA Y ACCIONES MODIFICADA --- */}
                       <motion.div variants={itemVariants}>
-                        <Box 
-                          sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: 2,
-                            mt: 4 
+                        <Paper
+                          elevation={3}
+                          sx={{
+                            p: { xs: 2, sm: 3 },
+                            mb: 4,
+                            borderRadius: '16px',
+                            background: alpha(theme.palette.background.paper, 0.1),
+                            backdropFilter: 'blur(5px)',
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                            textAlign: 'center',
                           }}
                         >
-                          <div className="action-button-container">
-                            <motion.button
-                              className="action-button guide-button"
-                              onClick={() => navigate('/guide')}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
+                          <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'white' }}>
+                            Optimiza tu Experiencia Doctorfy
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 2.5, color: theme.palette.grey[300], maxWidth: '85%', mx: 'auto' }}>
+                            {/* Texto modificado */}
+                            Añade Doctorfy a tu pantalla de inicio para un acceso más rápido y fluido, ¡como una app nativa!
+                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                            {/* Tooltip y Botón Modificados */}
+                            <Tooltip title="Accede más rápido añadiendo Doctorfy a tu pantalla de inicio (instrucciones varían).">
+                              <PwaButton
+                                startIcon={<SpeedIcon />} // Cambiado icono a SpeedIcon
+                                onClick={() => alert("Para añadir a inicio:\nEn iOS: Toca 'Compartir' > 'Agregar a inicio'.\nEn Android/PC: Busca la opción 'Instalar' en el menú del navegador.")}
+                              >
+                                {/* Texto del botón modificado */}
+                                Acceso Rápido
+                              </PwaButton>
+                            </Tooltip>
+                            <Button
+                              variant="outlined"
+                              color="secondary"
+                              size="medium"
+                              startIcon={<LoginIcon />}
+                              onClick={() => navigate('/login')}
+                              sx={{ borderRadius: '30px', textTransform: 'none' }}
                             >
-                              <div className="action-button-content">
-                                <span className="action-button-prefix">GUIA DE</span>
-                                <span className="action-button-text">SALUD IA</span>
-                              </div>
-                            </motion.button>
-                          </div>
-                        </Box>
+                              Iniciar Sesión
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="medium"
+                              startIcon={<AppRegistrationIcon />}
+                              onClick={() => navigate('/register')}
+                              sx={{ borderRadius: '30px', textTransform: 'none' }}
+                            >
+                              Registrarse
+                            </Button>
+                          </Box>
+                        </Paper>
                       </motion.div>
-                      
-                      <motion.div variants={itemVariants}>
-                        <Typography 
-                          variant="h6" 
-                  sx={{
-                            mb: 4, 
-                            color: theme.palette.grey[300],
-                            maxWidth: '90%',
-                            lineHeight: 1.6
-                          }}
-                        >
-                          Consulta tus análisis con nuestra IA y obtén resultados en 30 segundos, 
-                          no en 3 días como con médicos tradicionales.
-                </Typography>
-                      </motion.div>
-                      
-                      <motion.div variants={itemVariants}>
-                        <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-                  <Button
-                    variant="contained"
-                            color="primary"
-                    size="large"
-                    onClick={() => navigate('/register')}
-                    sx={{
-                              py: 1.5, 
-                              px: 4, 
-                      borderRadius: '30px',
-                              fontWeight: 600,
-                              fontSize: '1rem',
-                              textTransform: 'none',
-                              boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
-                      '&:hover': {
-                                transform: 'translateY(-3px)',
-                                boxShadow: `0 6px 25px ${theme.palette.primary.main}60`,
-                              },
-                              transition: 'all 0.3s ease',
-                    }}
-                  >
-                    Comenzar Ahora
-                  </Button>
-                  <Button
-                    variant="outlined"
-                            color="secondary"
-                    size="large"
-                            onClick={() => navigate('/login')}
-                    sx={{
-                              py: 1.5, 
-                              px: 4, 
-                      borderRadius: '30px',
-                              fontWeight: 600,
-                              fontSize: '1rem',
-                              textTransform: 'none',
-                              borderWidth: '2px',
-                      '&:hover': {
-                                borderWidth: '2px',
-                                transform: 'translateY(-3px)',
-                                boxShadow: `0 6px 25px ${theme.palette.secondary.main}40`,
-                              },
-                              transition: 'all 0.3s ease',
-                            }}
-                          >
-                            Iniciar Sesión
-                  </Button>
-                        </Box>
-                      </motion.div>
+                      {/* --- FIN SECCIÓN MODIFICADA --- */}
+
+                      {/* ... (Botones originales comentados o eliminados) ... */}
                 </Box>
               </Grid>
 
