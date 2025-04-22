@@ -32,11 +32,13 @@ const AdminCredits = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await axios.get('/api/admin/users');
       setUsers(Array.isArray(response.data) ? response.data : response.data.users || []);
     } catch (error) {
       setError('Error al cargar usuarios');
-      console.error(error);
+      console.error("Error en fetchUsers:", error.response || error.message || error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -49,22 +51,30 @@ const AdminCredits = () => {
   }, [user]);
 
   const handleAssignCredits = async (userId, amount) => {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        setError('La cantidad de créditos debe ser un número positivo.');
+        return;
+    }
+    if (!userId) {
+        setError('Debes seleccionar un ID de usuario.');
+        return;
+    }
+
     try {
+      setError(null);
       await axios.post('/api/credits/assign', {
         user_id: userId,
-        credits: parseFloat(amount)
+        credits: parsedAmount
       });
       
-      // Actualizar la lista de usuarios
       fetchUsers();
-      
-      // Limpiar el formulario
       setSelectedUser(null);
       setCreditsToAdd(0);
       
     } catch (error) {
-      setError('Error al asignar créditos');
-      console.error(error);
+      setError('Error al asignar créditos. Verifica la consola.');
+      console.error("Error en handleAssignCredits:", error.response || error.message || error);
     }
   };
 
@@ -83,12 +93,11 @@ const AdminCredits = () => {
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* Formulario de asignación */}
       <Paper sx={{ p: 3, mb: 4 }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={4}>
@@ -106,7 +115,7 @@ const AdminCredits = () => {
               label="Cantidad de Créditos"
               value={creditsToAdd}
               onChange={(e) => setCreditsToAdd(e.target.value)}
-              inputProps={{ step: "0.1" }}
+              inputProps={{ step: "0.1", min: "0" }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -114,7 +123,7 @@ const AdminCredits = () => {
               variant="contained"
               onClick={() => handleAssignCredits(selectedUser, creditsToAdd)}
               startIcon={<AddIcon />}
-              disabled={!selectedUser || !creditsToAdd}
+              disabled={!selectedUser || !(parseFloat(creditsToAdd) > 0)}
             >
               Asignar Créditos
             </Button>
@@ -122,7 +131,6 @@ const AdminCredits = () => {
         </Grid>
       </Paper>
 
-      {/* Lista de usuarios y sus créditos */}
       <TableContainer component={Paper}>
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="h6">Usuarios y Créditos</Typography>
@@ -146,15 +154,15 @@ const AdminCredits = () => {
                 <TableCell colSpan={5} align="center">Cargando...</TableCell>
               </TableRow>
             ) : Array.isArray(users) && users.length > 0 ? (
-              users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.credits?.toFixed(1)}</TableCell>
-                  <TableCell>{user.is_doctor ? 'Médico' : 'Paciente'}</TableCell>
+              users.map((userRow) => (
+                <TableRow key={userRow.id}>
+                  <TableCell>{userRow.id}</TableCell>
+                  <TableCell>{userRow.email}</TableCell>
+                  <TableCell>{userRow.credits != null ? userRow.credits.toFixed(1) : 'N/A'}</TableCell>
+                  <TableCell>{userRow.is_doctor ? 'Médico' : 'Paciente'}</TableCell>
                   <TableCell>
-                    <Tooltip title="Asignar créditos">
-                      <IconButton onClick={() => setSelectedUser(user.id)}>
+                    <Tooltip title="Seleccionar para asignar créditos">
+                      <IconButton onClick={() => setSelectedUser(userRow.id)}>
                         <AddIcon />
                       </IconButton>
                     </Tooltip>
@@ -163,7 +171,7 @@ const AdminCredits = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} align="center">No hay usuarios para mostrar</TableCell>
+                <TableCell colSpan={5} align="center">No hay usuarios para mostrar o error al cargar.</TableCell>
               </TableRow>
             )}
           </TableBody>
