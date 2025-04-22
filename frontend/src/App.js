@@ -69,6 +69,10 @@ const NavbarWrapper = ({ children }) => {
   );
 };
 
+// Define o importa las alturas de la Navbar
+const NAVBAR_HEIGHT_XS = 56; // Altura para móviles
+const NAVBAR_HEIGHT_SM = 64; // Altura para pantallas más grandes
+
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
 
@@ -93,7 +97,7 @@ function App() {
                   <Box 
                     component="main"
                     sx={{ 
-                      pt: { xs: '56px', sm: '64px' },
+                      pt: { xs: `${NAVBAR_HEIGHT_XS}px`, sm: `${NAVBAR_HEIGHT_SM}px` },
                       flexGrow: 1,
                     }}
                   >

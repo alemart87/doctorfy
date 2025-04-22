@@ -293,7 +293,7 @@ const Navbar = () => {
         </Box>
       )}
 
-      <List onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)} sx={{ pt: 0 }}>
+      <List onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)} sx={{ pt: 0, color: 'common.white', '& .MuiListItemIcon-root': { color: brightCyan, minWidth: 'auto', marginRight: 1.5 } }}>
         {user && (
           <>
             <ListItem disablePadding sx={{ my: 0.5 }}>
@@ -325,7 +325,7 @@ const Navbar = () => {
 
         {(showInstallButton || !isOnline) && (
           <>
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Aplicación</ListSubheader>
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Aplicación</ListSubheader>
             {!isOnline && (
               <ListItem disablePadding sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
                 <ListItemButton sx={{ py: 0.8 }}>
@@ -350,11 +350,27 @@ const Navbar = () => {
           </>
         )}
 
-        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Navegación</ListSubheader>
+        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Navegación</ListSubheader>
         {commonNavItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
-              <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+            <ListItemButton 
+              component={RouterLink} 
+              to={item.path} 
+              sx={location.pathname === item.path 
+                ? {
+                    ...activeStyle,
+                    py: 0.8, 
+                    backgroundColor: alpha(brightCyan, 0.15),
+                    '& .MuiListItemIcon-root': { color: brightCyan },
+                    '& .MuiListItemText-primary': { color: brightCyan, fontWeight: 'bold' }
+                  } 
+                : { 
+                    py: 0.8, 
+                    '&:hover': { backgroundColor: alpha(theme.palette.common.white, 0.1) }
+                  }
+              }
+            >
+              <ListItemIcon> 
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
@@ -364,8 +380,8 @@ const Navbar = () => {
 
         {isAdmin && (
           <>
-            <Divider sx={{ my: 1 }} />
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Admin</ListSubheader>
+            <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Admin</ListSubheader>
             {adminNavItems.map((item) => (
               <ListItem key={item.text} disablePadding>
                 <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
@@ -380,8 +396,8 @@ const Navbar = () => {
         )}
         {isDoctor && !isAdmin && (
           <>
-            <Divider sx={{ my: 1 }} />
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>Doctor</ListSubheader>
+            <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
+            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Doctor</ListSubheader>
             {doctorNavItems.map((item) => (
               <ListItem key={item.text} disablePadding>
                 <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
@@ -395,8 +411,8 @@ const Navbar = () => {
           </>
         )}
 
-        <Divider sx={{ my: 1 }} />
-        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px' }}>{user ? 'Mi Cuenta' : 'Acceso'}</ListSubheader>
+        <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
+        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>{user ? 'Mi Cuenta' : 'Acceso'}</ListSubheader>
         {user ? (
           <>
             {userAccountItems.map((item) => (
@@ -410,11 +426,11 @@ const Navbar = () => {
               </ListItem>
             ))}
             <ListItem disablePadding>
-              <ListItemButton onClick={handleLogout} sx={{ py: 0.8 }}>
-                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+              <ListItemButton onClick={handleLogout} sx={{ py: 0.8, '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.2) } }}>
+                <ListItemIcon sx={{ color: theme.palette.error.light }}>
                   <ExitToAppIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary="Cerrar Sesión" />
+                <ListItemText primary="Cerrar Sesión" sx={{ color: theme.palette.error.light }} />
               </ListItemButton>
             </ListItem>
           </>
@@ -710,11 +726,14 @@ const Navbar = () => {
         open={drawerOpen}
         onClose={toggleDrawer(false)}
         ModalProps={{ keepMounted: true }}
-              sx={{
+        sx={{
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
-            borderLeft: `1px solid ${theme.palette.divider}`
+            backgroundColor: alpha(theme.palette.common.black, 0.85),
+            backdropFilter: 'blur(8px)',
+            borderLeft: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+            color: theme.palette.common.white,
           },
         }}
       >
