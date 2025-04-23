@@ -52,6 +52,10 @@ import AdminCredits from './pages/AdminCredits';
 import NewWelcomePage from './components/NewWelcomePage';
 import NotFound from './components/NotFound';
 import SearchPage from './pages/SearchPage.jsx';
+import ShareTarget from './pages/ShareTarget';
+import ProtocolHandler from './pages/ProtocolHandler';
+import OpenFileHandler from './pages/OpenFileHandler';
+import ComposeEmail from './pages/ComposeEmail';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -201,6 +205,10 @@ function App() {
                           } 
                         />
                         <Route path="/search" element={<SearchPage />} />
+                        <Route path="/share-target" element={<ShareTarget />} />
+                        <Route path="/protocol" element={<ProtocolHandler />} />
+                        <Route path="/open-file" element={<OpenFileHandler />} />
+                        <Route path="/compose" element={<ComposeEmail />} />
                       </Routes>
                     </Suspense>
                     <FloatingChatButton />

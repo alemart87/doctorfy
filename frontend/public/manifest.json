@@ -1,6 +1,7 @@
 {
   "short_name": "Doctorfy",
   "name": "Doctorfy - Plataforma de Salud con IA",
+  "id": "com.doctorfy.app",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,21 +11,34 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "maskable_icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "minimal-ui"],
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "theme_color": "#2196f3",
   "background_color": "#ffffff",
   "description": "Consultas médicas y psicológicas ilimitadas con IA. Análisis de estudios médicos en segundos.",
   "categories": ["health", "medical", "ai", "wellness"],
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  },
   "screenshots": [
     {
       "src": "screenshot1.png",
@@ -62,7 +76,7 @@
       "name": "Subir Estudio",
       "short_name": "Estudio",
       "description": "Sube un estudio médico para análisis",
-      "url": "/medical-studies/upload",
+      "url": "/medical-studies",
       "icons": [{ "src": "/icons/upload.png", "sizes": "192x192" }]
     },
     {
@@ -82,7 +96,7 @@
       }
     },
     {
-      "action": "/open-medical-report",
+      "action": "/medical-studies",
       "accept": {
         "application/dicom": [".dcm"],
         "text/csv": [".csv"]
@@ -104,5 +118,11 @@
         }
       ]
     }
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "handle_links": {
+    "enabled": true
   }
 } 
