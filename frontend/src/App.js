@@ -13,6 +13,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import { Button, Box, Typography, Tooltip } from '@mui/material';
 import { CreditCard as CreditIcon } from '@mui/icons-material';
+import InstallPrompt from './components/InstallPrompt';
+import UpdateNotification from './components/UpdateNotification';
 
 // Componentes
 import Navbar from './components/Navbar';
@@ -206,6 +208,8 @@ function App() {
                 </NavbarWrapper>
               )}
             </ErrorBoundary>
+            <InstallPrompt />
+            <UpdateNotification />
           </Router>
         </AuthProvider>
       </HelmetProvider>

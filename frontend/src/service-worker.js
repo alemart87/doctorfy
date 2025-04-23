@@ -106,6 +106,39 @@ registerRoute(
   })
 );
 
+// Cachear más tipos de archivos
+registerRoute(
+  ({ request }) => 
+    request.destination === 'script' || 
+    request.destination === 'style' ||
+    request.destination === 'document',
+  new StaleWhileRevalidate({
+    cacheName: 'assets-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 7 * 24 * 60 * 60, // 1 semana
+      }),
+    ],
+  })
+);
+
+// Mejorar el soporte offline para archivos multimedia
+registerRoute(
+  ({ request }) => 
+    request.destination === 'audio' || 
+    request.destination === 'video',
+  new StaleWhileRevalidate({
+    cacheName: 'media-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 20,
+        maxAgeSeconds: 14 * 24 * 60 * 60, // 2 semanas
+      }),
+    ],
+  })
+);
+
 // Página offline personalizada
 const offlineFallbackPage = '/offline.html';
 
@@ -234,5 +267,30 @@ async function syncFormData() {
     return false;
   }
 }
+
+// Implementar manejo de links (para abrir URLs externas)
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Si es una solicitud a un dominio externo, podemos manejarla de manera especial
+  if (url.origin !== self.location.origin && event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(offlineFallbackPage);
+      })
+    );
+  }
+});
+
+// Implementar manejo de protocolos
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Manejar protocolos especiales (mailto:, tel:, etc.)
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    // No interferir con estos protocolos
+    return;
+  }
+});
 
 // Any other custom service worker logic can go here. 
