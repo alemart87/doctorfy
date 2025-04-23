@@ -268,14 +268,28 @@ async function syncFormData() {
   }
 }
 
-// Implementar manejo de links (para abrir URLs externas)
+// Mejorar el manejo de enlaces externos
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Si es una solicitud a un dominio externo, podemos manejarla de manera especial
-  if (url.origin !== self.location.origin && event.request.mode === 'navigate') {
+  // Si es una solicitud a un dominio externo de confianza
+  const trustedDomains = [
+    'anthropic.com',
+    'openai.com',
+    'who.int',
+    'mayoclinic.org'
+  ];
+  
+  if (url.origin !== self.location.origin && 
+      event.request.mode === 'navigate' &&
+      trustedDomains.some(domain => url.hostname.includes(domain))) {
+    
+    // Podemos aplicar políticas especiales para estos dominios
     event.respondWith(
-      fetch(event.request).catch(() => {
+      fetch(event.request, { 
+        credentials: 'omit',  // No enviar cookies a dominios externos
+        mode: 'cors'          // Usar CORS para dominios externos
+      }).catch(() => {
         return caches.match(offlineFallbackPage);
       })
     );

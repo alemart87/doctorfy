@@ -28,31 +28,60 @@ const InstallPrompt = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   
+  // Verificar si la app ya está instalada
+  const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                         window.navigator.standalone || // Para iOS
+                         document.referrer.includes('android-app://');
+  
   // Mostrar snackbar después de 5 segundos en la primera visita
   useEffect(() => {
-    const hasSeenPrompt = localStorage.getItem('hasSeenInstallPrompt');
+    // Si la app ya está instalada, no mostrar ningún prompt
+    if (isAppInstalled) {
+      return;
+    }
     
-    if (!hasSeenPrompt) {
+    const lastPromptTime = localStorage.getItem('lastInstallPromptTime');
+    const hasSeenPrompt = localStorage.getItem('hasSeenInstallPrompt');
+    const currentTime = new Date().getTime();
+    
+    // Mostrar el prompt si:
+    // 1. Nunca lo ha visto, o
+    // 2. Han pasado más de 7 días desde la última vez
+    if (!hasSeenPrompt || (lastPromptTime && currentTime - parseInt(lastPromptTime) > 7 * 24 * 60 * 60 * 1000)) {
       const timer = setTimeout(() => {
         setShowSnackbar(true);
+        // Guardar el tiempo actual
+        localStorage.setItem('lastInstallPromptTime', currentTime.toString());
       }, 5000);
       
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isAppInstalled]);
   
   // Manejar evento beforeinstallprompt (Android/Desktop)
   useEffect(() => {
+    // Si la app ya está instalada, no hacer nada
+    if (isAppInstalled) {
+      return;
+    }
+    
     const handler = (e) => {
       e.preventDefault();
       setInstallPromptEvent(e);
       
       // Solo mostrar automáticamente en móvil no-iOS
       if (isMobile && !isIOS) {
-        setTimeout(() => {
-          setShowDialog(true);
-          localStorage.setItem('hasSeenInstallPrompt', 'true');
-        }, 10000); // Mostrar después de 10 segundos
+        const lastPromptTime = localStorage.getItem('lastInstallPromptTime');
+        const currentTime = new Date().getTime();
+        
+        // Mostrar el diálogo si nunca lo ha visto o han pasado más de 7 días
+        if (!lastPromptTime || currentTime - parseInt(lastPromptTime) > 7 * 24 * 60 * 60 * 1000) {
+          setTimeout(() => {
+            setShowDialog(true);
+            localStorage.setItem('hasSeenInstallPrompt', 'true');
+            localStorage.setItem('lastInstallPromptTime', currentTime.toString());
+          }, 10000); // Mostrar después de 10 segundos
+        }
       }
     };
 
@@ -61,7 +90,25 @@ const InstallPrompt = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
     };
-  }, [isMobile, isIOS]);
+  }, [isMobile, isIOS, isAppInstalled]);
+
+  // Verificar si la app se instaló después de aceptar el prompt
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      // La app fue instalada, guardar esta información
+      localStorage.setItem('appInstalled', 'true');
+      // Ocultar cualquier prompt que esté visible
+      setShowDialog(false);
+      setShowIOSInstructions(false);
+      setShowSnackbar(false);
+    };
+    
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   const handleInstall = async () => {
     if (isIOS) {
@@ -93,7 +140,7 @@ const InstallPrompt = () => {
   return (
     <>
       {/* Botón flotante en escritorio */}
-      {!isMobile && installPromptEvent && (
+      {!isMobile && installPromptEvent && !isAppInstalled && (
         <Button
           variant="contained"
           color="secondary"
@@ -115,7 +162,7 @@ const InstallPrompt = () => {
       )}
 
       {/* Botón flotante en iOS */}
-      {isIOS && !localStorage.getItem('dismissedIOSPrompt') && (
+      {isIOS && !localStorage.getItem('dismissedIOSPrompt') && !isAppInstalled && (
         <Paper
           elevation={3}
           sx={{
@@ -132,6 +179,7 @@ const InstallPrompt = () => {
             backgroundColor: theme.palette.primary.main,
             color: 'white'
           }}
+          data-ios-prompt
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <GetAppIcon sx={{ mr: 1 }} />
