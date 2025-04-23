@@ -39,16 +39,6 @@
     <link rel="canonical" href="https://doctorfy.onrender.com/" />
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/serviceWorker.js')
-            .then(registration => console.log('SW registrado:', registration))
-            .catch(error => console.log('SW registro fallido:', error));
-        });
-      }
-    </script>
   </head>
   <body>
     <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>

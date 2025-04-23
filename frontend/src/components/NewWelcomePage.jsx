@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Box, Typography, Stack, Divider } from '@mui/material';
 import { motion } from 'framer-motion';
 import Particles from './Particles';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 
 const NewWelcomePage = ({ onComplete }) => {
   useEffect(() => {
@@ -14,11 +14,20 @@ const NewWelcomePage = ({ onComplete }) => {
   return (
     <>
       <Helmet>
-        <title>Doctorfy - Innovación en Salud con IA | Powered by Anthropic Claude y OpenAI</title>
-        <meta name="description" content="Plataforma médica inteligente que utiliza tecnología de Anthropic Claude y OpenAI para revolucionar la atención médica en Paraguay." />
-        <meta name="keywords" content="Doctorfy, salud, inteligencia artificial, Anthropic, Claude, OpenAI, GPT, asistente médico, Market Labs Paraguay" />
-        <meta property="og:title" content="Doctorfy - Innovación en Salud con IA | Powered by Anthropic y OpenAI" />
-        <meta property="og:description" content="Plataforma médica inteligente impulsada por Anthropic Claude y OpenAI GPT para revolucionar la atención médica." />
+        <title>Doctorfy - Salud, Bienestar y Psicología con IA | Paraguay</title>
+        <meta 
+          name="description" 
+          content="Doctorfy: Plataforma líder en Paraguay para salud digital y bienestar. Obtén análisis médicos con IA (diabetes, etc.), consulta psicológica 24/7 y planes de nutrición. Powered by Anthropic y OpenAI." 
+        />
+        <meta 
+          name="keywords" 
+          content="Doctorfy, salud digital, bienestar, wellness, psicología online, inteligencia artificial, IA médica, análisis médicos, diabetes, nutrición, telemedicina, Anthropic Claude, OpenAI GPT, Paraguay" 
+        />
+        <meta property="og:title" content="Doctorfy - Salud, Bienestar y Psicología con IA | Paraguay" />
+        <meta property="og:description" content="Análisis médicos rápidos, psicología 24/7 y bienestar integral con IA. Tu salud digital en Paraguay." />
+        <meta property="og:url" content="https://doctorfy.onrender.com/" /> 
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://doctorfy.onrender.com/" />
       </Helmet>
       
       <Box sx={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
@@ -144,7 +153,7 @@ const NewWelcomePage = ({ onComplete }) => {
                 mb: 4
               }}
             >
-              Un Highway hacia la Innovación en SALUD con IA
+              Un Highway hacia la Innovación en SALUD, BIENESTAR y PSICOLOGÍA con IA
             </Typography>
             
             {/* Powered by logos - Mejorado para SEO */}
