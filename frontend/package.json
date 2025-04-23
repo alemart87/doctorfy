@@ -67,6 +67,7 @@
   },
   "proxy": "http://localhost:5000",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "sitemap": "^8.0.0"
   }
 }
