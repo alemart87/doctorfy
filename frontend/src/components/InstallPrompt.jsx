@@ -257,7 +257,11 @@ const InstallPrompt = () => {
             borderRadius: 1,
             border: `1px solid ${theme.palette.grey[300]}`
           }}>
-            <Typography variant="body2" color="textSecondary">
+            <Typography 
+              variant="body2" 
+              color="text.primary"
+              sx={{ fontWeight: 500 }}
+            >
               Una vez instalada, Doctorfy aparecerá como una aplicación en tu pantalla de inicio y funcionará como una app nativa, incluso sin conexión.
             </Typography>
           </Box>
