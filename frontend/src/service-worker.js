@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-globals */
+/* eslint-disable no-restricted-globals, no-undef */
 
 // This service worker can be customized!
 // See https://developers.google.com/web/tools/workbox/modules
@@ -168,6 +168,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
+  /* global clients */
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then(clientList => {
       // Si ya hay una ventana abierta, enfócala
