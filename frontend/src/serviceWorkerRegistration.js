@@ -138,4 +138,68 @@ export function unregister() {
         console.error(error.message);
       });
   }
+}
+
+// Función para solicitar permiso y registrar para notificaciones push
+export function registerForPush() {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    console.log('Push notifications are supported');
+    
+    return navigator.serviceWorker.ready
+      .then(registration => {
+        // Solicitar permiso
+        return Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            
+            // Aquí normalmente suscribirías al usuario a tu servidor de push
+            // Este es un ejemplo básico, necesitarías un backend para implementarlo completamente
+            return registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(
+                'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' // Reemplazar con tu clave VAPID pública
+              )
+            });
+          } else {
+            console.log('Permission for notifications was denied');
+            throw new Error('Permission denied');
+          }
+        });
+      })
+      .then(subscription => {
+        // Enviar la suscripción a tu servidor
+        console.log('User is subscribed:', subscription);
+        
+        // Aquí enviarías la suscripción a tu backend
+        // return fetch('/api/save-subscription', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify(subscription)
+        // });
+        
+        return subscription;
+      })
+      .catch(error => {
+        console.error('Error during push subscription:', error);
+      });
+  } else {
+    console.warn('Push notifications are not supported');
+    return Promise.reject('Push notifications not supported');
+  }
+}
+
+// Función auxiliar para convertir la clave VAPID
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 } 

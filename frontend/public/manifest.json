@@ -1,6 +1,6 @@
 {
   "short_name": "Doctorfy",
-  "name": "Doctorfy - Plataforma Médica Inteligente",
+  "name": "Doctorfy - Plataforma de Salud con IA",
   "icons": [
     {
       "src": "favicon.ico",
@@ -22,5 +22,20 @@
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff",
-  "description": "Tu asistente de salud con IA disponible 24/7"
+  "description": "Consultas médicas y psicológicas ilimitadas con IA. Análisis de estudios médicos en segundos.",
+  "categories": ["health", "medical", "ai", "wellness"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshot2.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
 } 

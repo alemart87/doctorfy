@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2196f3" />
+  <title>Doctorfy - Sin Conexión</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 20px;
+    }
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #2196f3;
+      margin-bottom: 20px;
+    }
+    p {
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.3s;
+    }
+    .button:hover {
+      background-color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/logo192.png" alt="Doctorfy Logo" class="logo" />
+    <h1>Sin conexión a Internet</h1>
+    <p>Parece que no tienes conexión a Internet en este momento. Algunas funciones de Doctorfy pueden no estar disponibles hasta que te vuelvas a conectar.</p>
+    <p>Puedes seguir accediendo a algunas partes de la aplicación que ya has visitado anteriormente.</p>
+    <button class="button" onclick="window.location.reload()">Intentar nuevamente</button>
+  </div>
+</body>
+</html> 

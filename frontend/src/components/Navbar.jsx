@@ -29,6 +29,8 @@ import ChatIcon from '@mui/icons-material/Chat';
 import { alpha } from '@mui/material/styles';
 import axios from 'axios';
 import { CreditCard as CreditIcon } from '@mui/icons-material';
+import { registerForPush } from '../serviceWorkerRegistration';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 // Navbar con efecto glassmorphism
 const GlassNavbar = styled(AppBar)(({ theme, scrolled }) => ({
@@ -75,6 +77,7 @@ const Navbar = () => {
   const [credits, setCredits] = useState(null);
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   // Detectar scroll
   useEffect(() => {
@@ -96,6 +99,13 @@ const Navbar = () => {
     };
     
     fetchCredits();
+  }, []);
+
+  // Verificar si las notificaciones están habilitadas
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPushEnabled(Notification.permission === 'granted');
+    }
   }, []);
 
   const handleDrawerToggle = () => {
@@ -135,6 +145,18 @@ const Navbar = () => {
       logout();
     } else {
       navigate(href);
+    }
+  };
+
+  // Función para solicitar permisos de notificación
+  const handleEnablePush = async () => {
+    try {
+      await registerForPush();
+      setPushEnabled(true);
+      // Mostrar mensaje de éxito
+    } catch (error) {
+      console.error('Error enabling push notifications:', error);
+      // Mostrar mensaje de error
     }
   };
 
@@ -236,6 +258,15 @@ const Navbar = () => {
                   </Button>
                 </Tooltip>
               </Box>
+            )}
+
+            {/* Botón para habilitar notificaciones push */}
+            {!pushEnabled && (
+              <Tooltip title="Activar notificaciones">
+                <IconButton onClick={handleEnablePush} color="inherit">
+                  <NotificationsIcon />
+                </IconButton>
+              </Tooltip>
             )}
 
             {/* Menú de usuario existente */}

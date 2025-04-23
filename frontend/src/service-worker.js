@@ -7,7 +7,8 @@ import { clientsClaim } from 'workbox-core';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate } from 'workbox-strategies';
+import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
+import { openDB } from 'idb';
 
 clientsClaim();
 
@@ -62,6 +63,81 @@ registerRoute(
   })
 );
 
+// Cachear recursos estáticos adicionales
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: 'images-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+      }),
+    ],
+  })
+);
+
+// Cachear fuentes
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com' || 
+               url.origin === 'https://fonts.gstatic.com',
+  new StaleWhileRevalidate({
+    cacheName: 'google-fonts',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 60 * 24 * 365, // 1 año
+      }),
+    ],
+  })
+);
+
+// Cachear API (ajustar según tus endpoints)
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: 'api-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 5 * 60, // 5 minutos
+      }),
+    ],
+  })
+);
+
+// Página offline personalizada
+const offlineFallbackPage = '/offline.html';
+
+// Precachear la página offline
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('offline-cache').then((cache) => {
+      return cache.add(offlineFallbackPage);
+    })
+  );
+});
+
+// Mostrar página offline cuando no hay conexión
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  async ({ event }) => {
+    try {
+      return await new NetworkFirst({
+        cacheName: 'pages-cache',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 25,
+            maxAgeSeconds: 7 * 24 * 60 * 60, // 1 semana
+          }),
+        ],
+      }).handle({ event });
+    } catch (error) {
+      return caches.match(offlineFallbackPage);
+    }
+  }
+);
+
 // This allows the web app to trigger skipWaiting via
 // registration.waiting.postMessage({type: 'SKIP_WAITING'})
 self.addEventListener('message', (event) => {
@@ -69,5 +145,93 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// Manejo de notificaciones push
+self.addEventListener('push', (event) => {
+  const data = event.data.json();
+  
+  const options = {
+    body: data.body || 'Notificación de Doctorfy',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    data: {
+      url: data.url || '/'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Doctorfy', options)
+  );
+});
+
+// Manejo de clics en notificaciones
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(clientList => {
+      // Si ya hay una ventana abierta, enfócala
+      for (const client of clientList) {
+        if (client.url === event.notification.data.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no hay ventana abierta, abre una nueva
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url);
+      }
+    })
+  );
+});
+
+// Sincronización en segundo plano
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-form-data') {
+    event.waitUntil(syncFormData());
+  }
+});
+
+// Función para sincronizar datos cuando hay conexión
+async function syncFormData() {
+  try {
+    const db = await openDB('doctorfy-offline-db', 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains('offlineFormData')) {
+          db.createObjectStore('offlineFormData', { keyPath: 'id', autoIncrement: true });
+        }
+      }
+    });
+
+    // Obtener todos los datos pendientes
+    const tx = db.transaction('offlineFormData', 'readwrite');
+    const store = tx.objectStore('offlineFormData');
+    const pendingItems = await store.getAll();
+
+    // Procesar cada elemento
+    for (const item of pendingItems) {
+      try {
+        // Intentar enviar al servidor
+        const response = await fetch(item.url, {
+          method: item.method,
+          headers: item.headers,
+          body: JSON.stringify(item.data)
+        });
+
+        if (response.ok) {
+          // Si se envió correctamente, eliminar de la base de datos
+          await store.delete(item.id);
+        }
+      } catch (error) {
+        console.error('Error syncing item:', error);
+      }
+    }
+
+    await tx.done;
+    return true;
+  } catch (error) {
+    console.error('Error during background sync:', error);
+    return false;
+  }
+}
 
 // Any other custom service worker logic can go here. 
