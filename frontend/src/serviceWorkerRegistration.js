@@ -20,6 +20,13 @@ const isLocalhost = Boolean(
     )
 );
 
+// Callback para cuando hay una actualización disponible
+let onUpdateCallback = () => {};
+
+export function onUpdate(callback) {
+  onUpdateCallback = callback;
+}
+
 export function register(config) {
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
@@ -66,13 +73,13 @@ function registerValidSW(swUrl, config) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // At this point, the updated precached content has been fetched,
-              // but the previous service worker will still serve the older
-              // content until all client tabs are closed.
+              // En este punto, hay una nueva versión disponible
               console.log(
-                'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://cra.link/PWA.'
+                'New content is available and will be used when all tabs for this page are closed.'
               );
+
+              // Ejecutar el callback con la información de registro
+              onUpdateCallback(registration);
 
               // Execute callback
               if (config && config.onUpdate) {

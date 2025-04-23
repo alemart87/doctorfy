@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Snackbar, Button, Box } from '@mui/material';
-import { useRegisterSW } from 'virtual:pwa-register/react';
+import { Snackbar, Button } from '@mui/material';
+import * as serviceWorkerRegistration from '../serviceWorkerRegistration';
 
 function UpdateNotification() {
   const [showReload, setShowReload] = useState(false);
-  const {
-    needRefresh,
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(r) {
-      console.log('SW Registered: ' + r);
-    },
-    onRegisterError(error) {
-      console.log('SW registration error', error);
-    },
-  });
+  const [waitingWorker, setWaitingWorker] = useState(null);
 
   useEffect(() => {
-    if (needRefresh) {
+    // Configurar el callback para cuando hay una actualización disponible
+    serviceWorkerRegistration.onUpdate((registration) => {
       setShowReload(true);
-    }
-  }, [needRefresh]);
+      setWaitingWorker(registration.waiting);
+    });
+  }, []);
 
   const handleReload = () => {
-    updateServiceWorker(true);
+    if (waitingWorker) {
+      // Enviar mensaje al service worker para activar la nueva versión
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+    }
+    
+    // Recargar la página para usar la nueva versión
+    window.location.reload();
+    setShowReload(false);
   };
 
   return (
