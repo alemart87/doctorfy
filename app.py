@@ -28,6 +28,7 @@ import stripe
 from utils.email_utils import send_email
 import json
 from xml.etree.ElementTree import Element, SubElement, tostring
+from sqlalchemy import func
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -284,7 +285,6 @@ def create_app(config_class=Config):
     @app.route('/api/payments/webhook', methods=['POST'])
     def stripe_webhook():
         app.logger.info("=== WEBHOOK RECIBIDO ===")
-        app.logger.info("=== PASO 1: Verificando firma y decodificando evento ===")
         payload = request.get_data(as_text=True)
         sig_header = request.headers.get('Stripe-Signature')
         
@@ -294,131 +294,85 @@ def create_app(config_class=Config):
                 payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
             )
             
-            app.logger.info(f"=== PASO 2: Evento decodificado correctamente: {event.type} ===")
+            app.logger.info(f"Tipo de evento: {event.type}")
             
             if event.type == 'checkout.session.completed':
                 session = event.data.object
-                app.logger.info(f"=== PASO 3: Sesión de checkout completada: {session.id} ===")
+                app.logger.info(f"Sesión completada: {session.id}")
                 
                 # Obtener detalles del producto
                 try:
-                    app.logger.info("=== PASO 4: Obteniendo detalles de line_items ===")
                     line_items = stripe.checkout.Session.list_line_items(session.id)
-                    app.logger.info(f"Line items obtenidos: {line_items}")
                     
                     if line_items.data:
-                        app.logger.info("=== PASO 5: Line items encontrados ===")
-                        
                         # Obtener información del producto
                         price_id = line_items.data[0].price.id
-                        app.logger.info(f"Price ID: {price_id}")
-                        
                         price = stripe.Price.retrieve(price_id)
-                        app.logger.info(f"Price details: {price}")
-                        
                         product_id = price.product
                         quantity = line_items.data[0].quantity or 1
                         
-                        app.logger.info(f"=== PASO 6: Producto: {product_id}, Cantidad: {quantity} ===")
+                        app.logger.info(f"Producto: {product_id}, Cantidad: {quantity}")
                         
-                        # Verificar si es uno de nuestros productos de créditos
-                        if product_id in ['prod_SA8W9pcwKE2odz', 'prod_SBaimVqeeYhjhT']:
-                            app.logger.info(f"=== PASO 7: Producto de créditos identificado ===")
+                        # Buscar el usuario por email
+                        customer_email = session.customer_details.email
+                        app.logger.info(f"Buscando usuario con email: {customer_email}")
+                        
+                        # Usar una consulta insensible a mayúsculas/minúsculas
+                        user = User.query.filter(func.lower(User.email) == func.lower(customer_email)).first()
+                        
+                        if user:
+                            app.logger.info(f"Usuario encontrado: {user.email} (ID: {user.id})")
+                            app.logger.info(f"Créditos actuales: {user.credits}")
                             
-                            # La cantidad es directamente los créditos a asignar
-                            credits_to_assign = quantity
-                            app.logger.info(f"=== PASO 8: Créditos a asignar: {credits_to_assign} ===")
+                            # Actualizar créditos del usuario - USAR OPERACIÓN DIRECTA
+                            old_credits = user.credits
+                            user.credits = user.credits + quantity
+                            db.session.commit()
                             
-                            # Buscar el usuario por email
-                            customer_email = session.customer_details.email
-                            app.logger.info(f"=== PASO 9: Buscando usuario con email: {customer_email} ===")
+                            app.logger.info(f"Créditos actualizados: {old_credits} + {quantity} = {user.credits}")
                             
-                            # Imprimir todos los detalles del cliente para depuración
-                            app.logger.info(f"Customer details: {session.customer_details}")
+                            # Verificar que los créditos se hayan actualizado
+                            updated_user = User.query.get(user.id)
+                            app.logger.info(f"Verificación: Usuario {updated_user.email} ahora tiene {updated_user.credits} créditos")
                             
-                            user = User.query.filter_by(email=customer_email).first()
-                            
-                            if user:
-                                app.logger.info(f"=== PASO 10: Usuario encontrado: {user.email} (ID: {user.id}) ===")
-                                app.logger.info(f"Créditos actuales: {user.credits}")
+                            # Enviar email de confirmación
+                            try:
+                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                                body = f"""
+                                <html>
+                                <body>
+                                    <h1>¡Créditos añadidos!</h1>
+                                    <p>Hola {user.first_name or user.email},</p>
+                                    <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
+                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                                    <p>Gracias por tu compra.</p>
+                                    <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                                </body>
+                                </html>
+                                """
                                 
-                                # Actualizar créditos del usuario
-                                try:
-                                    app.logger.info(f"=== PASO 11: Actualizando créditos: {user.credits} + {credits_to_assign} = {user.credits + credits_to_assign} ===")
-                                    
-                                    user.credits = user.credits + credits_to_assign
-                                    
-                                    # Guardar cambios en la base de datos
-                                    db.session.commit()
-                                    
-                                    app.logger.info(f"=== PASO 12: Créditos actualizados en la base de datos ===")
-                                    app.logger.info(f"✅ {credits_to_assign} créditos asignados a {user.email}. Nuevo balance: {user.credits + credits_to_assign}")
-                                    
-                                    # Verificar que los créditos se hayan actualizado correctamente
-                                    user_after_update = User.query.get(user.id)
-                                    app.logger.info(f"Verificación post-actualización: Usuario {user_after_update.email} tiene {user_after_update.credits} créditos")
-                                    
-                                    # Enviar email de confirmación
-                                    try:
-                                        app.logger.info(f"=== PASO 13: Preparando envío de email ===")
-                                        
-                                        subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                                        body = f"""
-                                        <html>
-                                        <body>
-                                            <h1>¡Créditos añadidos!</h1>
-                                            <p>Hola {user.first_name or user.email},</p>
-                                            <p>Hemos añadido <strong>{credits_to_assign} créditos</strong> a tu cuenta de Doctorfy.</p>
-                                            <p>Tu balance actual es: <strong>{user.credits + credits_to_assign} créditos</strong></p>
-                                            <p>Gracias por tu compra.</p>
-                                            <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
-                                        </body>
-                                        </html>
-                                        """
-                                        
-                                        app.logger.info(f"=== PASO 14: Enviando email a {user.email} ===")
-                                        app.logger.info(f"Configuración SMTP: Server={os.environ.get('SMTP_SERVER')}, Port={os.environ.get('SMTP_PORT')}, Username={os.environ.get('SMTP_USERNAME')}")
-                                        
-                                        email_sent = send_email(subject, body, to_email=user.email, html=True)
-                                        app.logger.info(f"=== PASO 15: Resultado del envío de email: {email_sent} ===")
-                                        
-                                        if email_sent:
-                                            app.logger.info("✅ Email enviado correctamente")
-                                        else:
-                                            app.logger.error("❌ Error al enviar email")
-                                        
-                                    except Exception as e:
-                                        app.logger.error(f"=== ERROR EN PASO 13-15: Error enviando email de confirmación: {str(e)} ===")
-                                        import traceback
-                                        app.logger.error(traceback.format_exc())
-                                except Exception as db_error:
-                                    app.logger.error(f"=== ERROR EN PASO 11-12: Error actualizando créditos en la base de datos: {str(db_error)} ===")
-                                    import traceback
-                                    app.logger.error(traceback.format_exc())
-                                    # Intentar hacer rollback en caso de error
-                                    try:
-                                        db.session.rollback()
-                                        app.logger.info("Rollback de la sesión de base de datos realizado")
-                                    except:
-                                        app.logger.error("Error al hacer rollback de la sesión")
+                                app.logger.info(f"Enviando email a {user.email}")
+                                email_sent = send_email(subject, body, to_email=user.email, html=True)
+                                app.logger.info(f"Resultado del envío de email: {email_sent}")
+                                
+                            except Exception as e:
+                                app.logger.error(f"Error enviando email: {str(e)}")
                         else:
-                            app.logger.error(f"=== ERROR EN PASO 10: No se encontró usuario con email: {customer_email} ===")
+                            app.logger.error(f"No se encontró usuario con email: {customer_email}")
                             
-                            # Buscar usuarios similares para depuración
-                            similar_users = User.query.filter(User.email.like(f"%{customer_email.split('@')[0]}%")).all()
+                            # Buscar usuarios con email similar para depuración
+                            similar_users = User.query.filter(User.email.ilike(f"%{customer_email.split('@')[0]}%")).all()
                             if similar_users:
                                 app.logger.info(f"Usuarios similares encontrados: {[u.email for u in similar_users]}")
-                    else:
-                        app.logger.error("=== ERROR EN PASO 5: No se encontraron line items en la sesión ===")
                 except Exception as e:
-                    app.logger.error(f"=== ERROR EN PASOS 4-6: Error procesando line items: {str(e)} ===")
+                    app.logger.error(f"Error procesando line items: {str(e)}")
                     import traceback
                     app.logger.error(traceback.format_exc())
             
             return jsonify({'status': 'success'})
             
         except Exception as e:
-            app.logger.error(f"=== ERROR EN PASOS 1-2: Error en webhook: {str(e)} ===")
+            app.logger.error(f"Error en webhook: {str(e)}")
             import traceback
             app.logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 400
