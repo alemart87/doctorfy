@@ -300,101 +300,75 @@ def create_app(config_class=Config):
                 session = event.data.object
                 print(f"Sesión completada: {session.id}")
                 
-                # Imprimir datos del cliente para depuración
-                print("Datos del cliente:")
-                print(f"Customer details: {session.get('customer_details')}")
-                print(f"Email: {session.get('customer_details', {}).get('email')}")
+                # Enviar email inmediato de confirmación
+                customer_email = session.customer_details.email
+                print(f"Enviando email de confirmación inicial a {customer_email}")
+                
+                subject = "Compra recibida en Doctorfy"
+                body = f"""
+                <html>
+                <body>
+                    <h1>¡Gracias por tu compra!</h1>
+                    <p>Hola,</p>
+                    <p>Hemos recibido tu pago correctamente.</p>
+                    <p><strong>En breve recibirás tus créditos en tu cuenta.</strong></p>
+                    <p>Te enviaremos otro email cuando los créditos estén disponibles.</p>
+                    <p>Gracias por confiar en Doctorfy.</p>
+                </body>
+                </html>
+                """
+                
+                send_email(subject, body, to_email=customer_email, html=True)
+                print(f"✉️ Email inicial enviado a {customer_email}")
                 
                 # Obtener detalles del producto
                 line_items = stripe.checkout.Session.list_line_items(session.id)
-                print(f"Line items: {line_items}")
                 
                 if line_items.data:
                     quantity = line_items.data[0].quantity
                     print(f"Cantidad a asignar: {quantity}")
-                    
-                    # Obtener email del cliente
-                    customer_email = session.get('customer_details', {}).get('email')
-                    print(f"Buscando usuario con email: {customer_email}")
-                    
-                    if not customer_email:
-                        print("❌ No se encontró email en los datos del cliente")
-                        return jsonify({'error': 'No email found'}), 400
                     
                     # Buscar el usuario
                     user = User.query.filter_by(email=customer_email).first()
                     
                     if user:
                         print(f"Usuario encontrado: {user.email}")
-                        print(f"Créditos actuales: {user.credits}")
                         
-                        try:
-                            # Actualizar créditos
-                            old_credits = float(user.credits or 0)
-                            new_credits = old_credits + float(quantity)
-                            user.credits = new_credits
-                            
-                            print(f"Intentando actualizar créditos: {old_credits} + {quantity} = {new_credits}")
-                            
-                            db.session.commit()
-                            print(f"✅ Créditos actualizados en la base de datos")
-                            
-                            # Verificar la actualización
-                            db.session.refresh(user)
-                            print(f"Créditos después de actualizar: {user.credits}")
-                            
-                            # Enviar email
-                            try:
-                                print(f"Intentando enviar email a {user.email}")
-                                
-                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                                body = f"""
-                                <html>
-                                <body>
-                                    <h1>¡Créditos añadidos!</h1>
-                                    <p>Hola {user.first_name or user.email},</p>
-                                    <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
-                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
-                                    <p>Gracias por tu compra.</p>
-                                    <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
-                                </body>
-                                </html>
-                                """
-                                
-                                # Verificar configuración SMTP
-                                print("Configuración SMTP:")
-                                print(f"Server: {os.environ.get('SMTP_SERVER')}")
-                                print(f"Port: {os.environ.get('SMTP_PORT')}")
-                                print(f"Username: {os.environ.get('SMTP_USERNAME')}")
-                                
-                                email_sent = send_email(subject, body, to_email=user.email, html=True)
-                                print(f"✉️ Resultado del envío de email: {email_sent}")
-                                
-                            except Exception as email_error:
-                                print(f"❌ Error enviando email: {str(email_error)}")
-                                import traceback
-                                print(traceback.format_exc())
-                                
-                        except Exception as db_error:
-                            print(f"❌ Error actualizando créditos: {str(db_error)}")
-                            import traceback
-                            print(traceback.format_exc())
-                            db.session.rollback()
+                        # Actualizar créditos
+                        old_credits = float(user.credits or 0)
+                        user.credits = old_credits + float(quantity)
+                        db.session.commit()
+                        
+                        print(f"✅ {quantity} créditos asignados a {user.email}")
+                        
+                        # Enviar email de confirmación de créditos
+                        subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                        body = f"""
+                        <html>
+                        <body>
+                            <h1>¡Créditos añadidos!</h1>
+                            <p>Hola {user.first_name or user.email},</p>
+                            <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
+                            <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                            <p>Gracias por tu compra.</p>
+                            <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                        </body>
+                        </html>
+                        """
+                        
+                        send_email(subject, body, to_email=user.email, html=True)
+                        print(f"✉️ Email de confirmación de créditos enviado a {user.email}")
                     else:
                         print(f"❌ No se encontró usuario con email: {customer_email}")
-                        # Buscar usuarios similares para depuración
-                        similar_users = User.query.filter(User.email.ilike(f"%{customer_email.split('@')[0]}%")).all()
-                        if similar_users:
-                            print(f"Usuarios similares encontrados: {[u.email for u in similar_users]}")
                 else:
                     print("❌ No se encontraron line items en la sesión")
             
             return jsonify({'status': 'success'})
-            
+        
         except Exception as e:
-            print(f"❌ Error general: {str(e)}")
+            print(f"❌ Error: {str(e)}")
             import traceback
-            print(traceback.format_exc())
+            traceback.print_exc()
             return jsonify({'error': str(e)}), 400
 
     def get_credits_for_product(product_id, quantity=1):
