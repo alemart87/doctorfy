@@ -284,7 +284,7 @@ def create_app(config_class=Config):
     # Webhook para recibir eventos de Stripe
     @app.route('/api/payments/webhook', methods=['POST'])
     def stripe_webhook():
-        app.logger.info("=== WEBHOOK RECIBIDO ===")
+        print("\n=== WEBHOOK RECIBIDO ===")
         payload = request.get_data(as_text=True)
         sig_header = request.headers.get('Stripe-Signature')
         
@@ -294,142 +294,57 @@ def create_app(config_class=Config):
                 payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
             )
             
-            app.logger.info(f"Tipo de evento: {event.type}")
+            print(f"Tipo de evento: {event.type}")
             
             if event.type == 'checkout.session.completed':
                 session = event.data.object
-                app.logger.info(f"Sesión completada: {session.id}")
+                print(f"Sesión completada: {session.id}")
                 
                 # Obtener detalles del producto
-                try:
-                    # Imprimir el objeto session completo para depuración
-                    app.logger.info(f"Session object: {session}")
+                line_items = stripe.checkout.Session.list_line_items(session.id)
+                
+                if line_items.data:
+                    quantity = line_items.data[0].quantity
+                    print(f"Cantidad a asignar: {quantity}")
                     
-                    # Verificar si hay customer_details
-                    if not hasattr(session, 'customer_details') or not session.customer_details:
-                        app.logger.error("No se encontraron customer_details en la sesión")
-                        return jsonify({'status': 'error', 'message': 'No customer details found'}), 400
-                    
-                    # Verificar si hay email
-                    customer_email = session.customer_details.get('email')
-                    if not customer_email:
-                        app.logger.error("No se encontró email en customer_details")
-                        return jsonify({'status': 'error', 'message': 'No email found in customer details'}), 400
-                    
-                    app.logger.info(f"Email del cliente: {customer_email}")
-                    
-                    # Obtener line_items
-                    line_items = stripe.checkout.Session.list_line_items(session.id)
-                    app.logger.info(f"Line items: {line_items}")
-                    
-                    if not line_items.data:
-                        app.logger.error("No se encontraron line_items en la sesión")
-                        return jsonify({'status': 'error', 'message': 'No line items found'}), 400
-                    
-                    # Obtener cantidad
-                    quantity = line_items.data[0].quantity or 1
-                    app.logger.info(f"Cantidad a asignar: {quantity}")
-                    
-                    # IMPORTANTE: Buscar usuario directamente por email sin convertir a minúsculas
-                    user = User.query.filter_by(email=customer_email).first()
-                    
-                    if not user:
-                        app.logger.info("Usuario no encontrado con email exacto, buscando con case insensitive")
-                        # Intentar búsqueda insensible a mayúsculas/minúsculas
-                        from sqlalchemy import func
-                        user = User.query.filter(func.lower(User.email) == func.lower(customer_email)).first()
+                    # Buscar el usuario
+                    user = User.query.filter_by(email=session.customer_details.email).first()
                     
                     if user:
-                        app.logger.info(f"Usuario encontrado: {user.email} (ID: {user.id})")
+                        print(f"Usuario encontrado: {user.email}")
                         
-                        # Verificar tipo de créditos
-                        current_credits = user.credits if user.credits is not None else 0
-                        app.logger.info(f"Créditos actuales: {current_credits} (tipo: {type(current_credits)})")
+                        # Actualizar créditos directamente
+                        user.credits = (user.credits or 0) + quantity
+                        db.session.commit()
                         
-                        # Actualizar créditos - USAR ASIGNACIÓN DIRECTA
-                        try:
-                            # Convertir explícitamente a float para evitar problemas de tipo
-                            user.credits = float(current_credits) + float(quantity)
-                            app.logger.info(f"Nuevos créditos (antes de commit): {user.credits}")
-                            
-                            # Commit con manejo de errores
-                            try:
-                                db.session.commit()
-                                app.logger.info(f"Commit exitoso. Créditos actualizados a: {user.credits}")
-                            except Exception as commit_error:
-                                db.session.rollback()
-                                app.logger.error(f"Error en commit: {str(commit_error)}")
-                                raise commit_error
-                            
-                            # Verificar actualización
-                            db.session.refresh(user)
-                            app.logger.info(f"Créditos después de refresh: {user.credits}")
-                            
-                            # Enviar email
-                            try:
-                                from utils.email_utils import send_email
-                                
-                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                                body = f"""
-                                <html>
-                                <body>
-                                    <h1>¡Créditos añadidos!</h1>
-                                    <p>Hola {user.first_name or user.email},</p>
-                                    <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
-                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
-                                    <p>Gracias por tu compra.</p>
-                                    <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
-                                </body>
-                                </html>
-                                """
-                                
-                                app.logger.info(f"Intentando enviar email a {user.email}")
-                                
-                                # Verificar configuración SMTP
-                                smtp_server = os.environ.get('SMTP_SERVER')
-                                smtp_port = os.environ.get('SMTP_PORT')
-                                smtp_username = os.environ.get('SMTP_USERNAME')
-                                app.logger.info(f"Configuración SMTP: Server={smtp_server}, Port={smtp_port}, Username={smtp_username}")
-                                
-                                # Enviar email con manejo de errores detallado
-                                try:
-                                    email_sent = send_email(subject, body, to_email=user.email, html=True)
-                                    app.logger.info(f"Resultado del envío de email: {email_sent}")
-                                except Exception as email_error:
-                                    app.logger.error(f"Error específico al enviar email: {str(email_error)}")
-                                    import traceback
-                                    app.logger.error(traceback.format_exc())
-                            except ImportError as import_error:
-                                app.logger.error(f"Error importando módulo de email: {str(import_error)}")
-                            except Exception as email_setup_error:
-                                app.logger.error(f"Error configurando email: {str(email_setup_error)}")
-                        except ValueError as type_error:
-                            app.logger.error(f"Error de tipo al actualizar créditos: {str(type_error)}")
-                        except Exception as update_error:
-                            app.logger.error(f"Error general al actualizar créditos: {str(update_error)}")
+                        print(f"✅ {quantity} créditos asignados a {user.email}")
+                        
+                        # Enviar email de confirmación (simple como el welcome_email)
+                        subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                        body = f"""
+                        <html>
+                        <body>
+                            <h1>¡Créditos añadidos!</h1>
+                            <p>Hola {user.first_name or user.email},</p>
+                            <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
+                            <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                            <p>Gracias por tu compra.</p>
+                            <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                        </body>
+                        </html>
+                        """
+                        
+                        send_email(subject, body, to_email=user.email, html=True)
+                        print(f"✉️ Email enviado a {user.email}")
                     else:
-                        app.logger.error(f"No se encontró usuario con email: {customer_email}")
-                        
-                        # Buscar usuarios similares
-                        similar_users = User.query.filter(User.email.ilike(f"%{customer_email.split('@')[0]}%")).all()
-                        if similar_users:
-                            app.logger.info(f"Usuarios similares encontrados: {[u.email for u in similar_users]}")
-                        
-                        # Listar todos los usuarios para depuración
-                        all_users = User.query.all()
-                        app.logger.info(f"Total de usuarios en la base de datos: {len(all_users)}")
-                        app.logger.info(f"Primeros 5 usuarios: {[u.email for u in all_users[:5]]}")
-                except Exception as e:
-                    app.logger.error(f"Error procesando checkout session: {str(e)}")
-                    import traceback
-                    app.logger.error(traceback.format_exc())
+                        print(f"❌ No se encontró usuario con email: {session.customer_details.email}")
             
             return jsonify({'status': 'success'})
             
         except Exception as e:
-            app.logger.error(f"Error en webhook: {str(e)}")
+            print(f"❌ Error: {str(e)}")
             import traceback
-            app.logger.error(traceback.format_exc())
+            traceback.print_exc()
             return jsonify({'error': str(e)}), 400
 
     def get_credits_for_product(product_id, quantity=1):
