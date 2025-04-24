@@ -290,7 +290,7 @@ def create_app(config_class=Config):
         try:
             # Verificar firma del webhook
             event = stripe.Webhook.construct_event(
-                payload, sig_header, stripe_webhook_secret
+                payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
             )
             
             app.logger.info(f"Tipo de evento: {event.type}")
@@ -304,51 +304,69 @@ def create_app(config_class=Config):
                     line_items = stripe.checkout.Session.list_line_items(session.id)
                     
                     if line_items.data:
-                        # Obtener la cantidad directamente (esto es lo que el cliente eligió)
+                        # Obtener información del producto
+                        price_id = line_items.data[0].price.id
+                        price = stripe.Price.retrieve(price_id)
+                        product_id = price.product
                         quantity = line_items.data[0].quantity or 1
                         
-                        app.logger.info(f"Cantidad comprada: {quantity}")
+                        app.logger.info(f"Producto: {product_id}, Cantidad: {quantity}")
                         
-                        # La cantidad es directamente los créditos a asignar
-                        credits_to_assign = quantity
-                        app.logger.info(f"Créditos a asignar: {credits_to_assign}")
-                        
-                        # Buscar el usuario por email
-                        customer_email = session.customer_details.email
-                        user = User.query.filter_by(email=customer_email).first()
-                        
-                        if user and credits_to_assign > 0:
-                            app.logger.info(f"Usuario encontrado: {user.email}")
+                        # Verificar si es uno de nuestros productos de créditos
+                        if product_id in ['prod_SA8W9pcwKE2odz', 'prod_SBaimVqeeYhjhT']:
+                            # La cantidad es directamente los créditos a asignar
+                            credits_to_assign = quantity
+                            app.logger.info(f"Créditos a asignar: {credits_to_assign}")
                             
-                            # Actualizar créditos
-                            current_credits = float(user.credits or 0)
-                            user.credits = current_credits + credits_to_assign
-                            db.session.commit()
+                            # Buscar el usuario por email
+                            customer_email = session.customer_details.email
+                            app.logger.info(f"Email del cliente: {customer_email}")
                             
-                            app.logger.info(f"✅ {credits_to_assign} créditos asignados a {user.email}")
+                            user = User.query.filter_by(email=customer_email).first()
                             
-                            # Enviar email de confirmación
-                            try:
-                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                                body = f"""
-                                <html>
-                                <body>
-                                    <h1>¡Créditos añadidos!</h1>
-                                    <p>Hola {user.first_name or user.email},</p>
-                                    <p>Hemos añadido <strong>{credits_to_assign} créditos</strong> a tu cuenta de Doctorfy.</p>
-                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
-                                    <p>Gracias por tu compra.</p>
-                                    <p><a href="https://doctorfy.onrender.com/dashboard">Ir a mi Dashboard</a></p>
-                                </body>
-                                </html>
-                                """
-                                send_email(subject, body, to_email=user.email, html=True)
-                            except Exception as e:
-                                app.logger.error(f"Error sending confirmation email: {str(e)}")
+                            if user:
+                                app.logger.info(f"Usuario encontrado: {user.email} (ID: {user.id})")
+                                
+                                # Actualizar créditos del usuario
+                                current_credits = float(user.credits or 0)
+                                new_credits = current_credits + credits_to_assign
+                                user.credits = new_credits
+                                
+                                # Guardar cambios en la base de datos
+                                db.session.commit()
+                                
+                                app.logger.info(f"✅ {credits_to_assign} créditos asignados a {user.email}. Nuevo balance: {new_credits}")
+                                
+                                # Enviar email de confirmación
+                                try:
+                                    subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                                    body = f"""
+                                    <html>
+                                    <body>
+                                        <h1>¡Créditos añadidos!</h1>
+                                        <p>Hola {user.first_name or user.email},</p>
+                                        <p>Hemos añadido <strong>{credits_to_assign} créditos</strong> a tu cuenta de Doctorfy.</p>
+                                        <p>Tu balance actual es: <strong>{new_credits} créditos</strong></p>
+                                        <p>Gracias por tu compra.</p>
+                                        <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                                    </body>
+                                    </html>
+                                    """
+                                    
+                                    email_sent = send_email(subject, body, to_email=user.email, html=True)
+                                    app.logger.info(f"Email enviado: {email_sent}")
+                                except Exception as e:
+                                    app.logger.error(f"Error enviando email de confirmación: {str(e)}")
+                                    import traceback
+                                    traceback.print_exc()
+                            else:
+                                app.logger.error(f"❌ No se encontró usuario con email: {customer_email}")
                         else:
-                            app.logger.error(f"❌ No se encontró usuario con email: {customer_email} o créditos a asignar: {credits_to_assign}")
+                            app.logger.info(f"Producto no es de créditos: {product_id}")
                 except Exception as e:
-                    app.logger.error(f"Error obteniendo line items: {str(e)}")
+                    app.logger.error(f"Error procesando line items: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             
             return jsonify({'status': 'success'})
             
