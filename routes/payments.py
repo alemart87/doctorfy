@@ -94,7 +94,7 @@ def send_purchase_thank_you(user, credits):
 
 @payments_bp.route('/webhook', methods=['POST'])
 def stripe_webhook():
-    print("\n=== MIERDA ===")
+    print("\n=== WEBHOOK RECIBIDO RAFAEL EL MEJOR ===")
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
     
@@ -110,59 +110,85 @@ def stripe_webhook():
             session = event.data.object
             print(f"Sesión completada: {session.id}")
             
+            # Enviar email inmediato de confirmación
+            customer_email = session.customer_details.email
+            print(f"Enviando email inicial a {customer_email}")
+            
+            # Primer email - Confirmación inmediata
+            try:
+                subject = "Compra recibida en Doctorfy"
+                body = f"""
+                <html>
+                <body>
+                    <h1>¡Gracias por tu compra!</h1>
+                    <p>Hola,</p>
+                    <p>Hemos recibido tu pago correctamente.</p>
+                    <p><strong>En breve recibirás tus créditos en tu cuenta.</strong></p>
+                    <p>Te enviaremos otro email cuando los créditos estén disponibles.</p>
+                    <p>Gracias por confiar en Doctorfy.</p>
+                </body>
+                </html>
+                """
+                
+                send_email(subject, body, to_email=customer_email, html=True)
+                print(f"✉️ Email inicial enviado a {customer_email}")
+            except Exception as e:
+                print(f"❌ Error enviando email inicial: {str(e)}")
+            
             # Obtener detalles del producto
             line_items = stripe.checkout.Session.list_line_items(session.id)
             
             if line_items.data:
-                product_id = line_items.data[0].price.product
                 quantity = line_items.data[0].quantity
                 amount_total = session.amount_total / 100  # Convertir de centavos a euros
-                print(f"Producto: {product_id}, Cantidad: {quantity}")
+                print(f"Cantidad a asignar: {quantity}")
                 
-                if product_id == PRODUCT_ID:
-                    # Buscar el usuario
-                    user = User.query.filter_by(email=session.customer_details.email).first()
+                # Buscar el usuario
+                user = User.query.filter_by(email=customer_email).first()
+                
+                if user:
+                    print(f"Usuario encontrado: {user.email}")
                     
-                    if user:
-                        # Registrar la transacción
-                        transaction = CreditTransaction(
-                            user_id=user.id,
-                            amount=quantity,  # Cantidad directa de créditos
-                            stripe_session_id=session.id,
-                            status='completed'
+                    # Registrar la transacción
+                    transaction = CreditTransaction(
+                        user_id=user.id,
+                        amount=quantity,
+                        stripe_session_id=session.id,
+                        status='completed'
+                    )
+                    
+                    # Actualizar créditos del usuario
+                    old_credits = float(user.credits or 0)
+                    user.credits = old_credits + quantity
+                    
+                    db.session.add(transaction)
+                    db.session.commit()
+                    
+                    print(f"✅ {quantity} créditos asignados a {user.email}")
+                    
+                    # Enviar emails de confirmación
+                    try:
+                        # Email al admin
+                        send_purchase_notification(
+                            user=user,
+                            credits=quantity,
+                            session_id=session.id,
+                            amount_eur=amount_total
                         )
+                        print("✉️ Notificación enviada al admin")
                         
-                        # Actualizar créditos del usuario
-                        user.credits = float(user.credits or 0) + quantity
-                        
-                        db.session.add(transaction)
-                        db.session.commit()
-                        
-                        print(f"✅ {quantity} créditos asignados a {user.email}")
-                        
-                        # Enviar notificaciones por correo
-                        try:
-                            # Notificación al admin
-                            send_purchase_notification(
-                                user=user,
-                                credits=quantity,
-                                session_id=session.id,
-                                amount_eur=amount_total
-                            )
-                            print(f"✉️ Notificación de compra enviada a alemart87@gmail.com")
-                            
-                            # Correo de agradecimiento al usuario
-                            send_purchase_thank_you(user, quantity)
-                            print(f"✉️ Correo de agradecimiento enviado a {user.email}")
-                        except Exception as email_error:
-                            print(f"❌ Error enviando notificaciones por correo: {str(email_error)}")
-                            traceback.print_exc()
-                    else:
-                        print(f"❌ No se encontró usuario con email: {session.customer_details.email}")
+                        # Email al usuario
+                        send_purchase_thank_you(user, quantity)
+                        print(f"✉️ Email de confirmación enviado a {user.email}")
+                    except Exception as e:
+                        print(f"❌ Error enviando emails de confirmación: {str(e)}")
+                        traceback.print_exc()
+                else:
+                    print(f"❌ No se encontró usuario con email: {customer_email}")
         
         return jsonify({'status': 'success'})
         
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"❌ Error general: {str(e)}")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 400 
