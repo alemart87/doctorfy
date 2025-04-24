@@ -6,13 +6,18 @@ def setup_logging():
     """
     Configura el sistema de logging para la aplicación
     """
-    # Crear directorio de logs si no existe
+    # Configurar el directorio de logs
     log_dir = 'logs'
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    try:
+        os.makedirs(log_dir, exist_ok=True)  # Añadir exist_ok=True
+    except Exception as e:
+        # Si no podemos crear el directorio, usamos el directorio temporal del sistema
+        import tempfile
+        log_dir = tempfile.gettempdir()
+        print(f"No se pudo crear directorio de logs, usando {log_dir}: {str(e)}")
     
-    # Configurar el logger raíz
-    logger = logging.getLogger()
+    # Configurar el logger
+    logger = logging.getLogger('doctorfy')
     logger.setLevel(logging.INFO)
     
     # Formato para los logs
@@ -20,6 +25,7 @@ def setup_logging():
     
     # Handler para la consola
     console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     

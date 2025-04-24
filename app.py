@@ -29,6 +29,7 @@ from utils.email_utils import send_email
 import json
 from xml.etree.ElementTree import Element, SubElement, tostring
 from sqlalchemy import func
+import logging
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -54,6 +55,9 @@ os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
 # Al inicio de tu archivo app.py, después de importar stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
+
+# Al inicio del archivo, después de las importaciones
+logger = logging.getLogger('doctorfy')
 
 def ensure_upload_dirs(app):
     """
@@ -284,7 +288,7 @@ def create_app(config_class=Config):
     # Webhook para recibir eventos de Stripe
     @app.route('/api/payments/webhook', methods=['POST'])
     def stripe_webhook():
-        print("\n=== WEBHOOK RECIBIDO ===")
+        logger.info("\n=== WEBHOOK RAFAEL FULL ===")
         payload = request.get_data(as_text=True)
         sig_header = request.headers.get('Stripe-Signature')
         
@@ -294,81 +298,92 @@ def create_app(config_class=Config):
                 payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
             )
             
-            print(f"Tipo de evento: {event.type}")
+            logger.info(f"Tipo de evento: {event.type}")
             
             if event.type == 'checkout.session.completed':
                 session = event.data.object
-                print(f"Sesión completada: {session.id}")
+                logger.info(f"Sesión completada: {session.id}")
                 
                 # Enviar email inmediato de confirmación
                 customer_email = session.customer_details.email
-                print(f"Enviando email de confirmación inicial a {customer_email}")
+                logger.info(f"Enviando email de confirmación inicial a {customer_email}")
                 
-                subject = "Compra recibida en Doctorfy"
-                body = f"""
-                <html>
-                <body>
-                    <h1>¡Gracias por tu compra!</h1>
-                    <p>Hola,</p>
-                    <p>Hemos recibido tu pago correctamente.</p>
-                    <p><strong>En breve recibirás tus créditos en tu cuenta.</strong></p>
-                    <p>Te enviaremos otro email cuando los créditos estén disponibles.</p>
-                    <p>Gracias por confiar en Doctorfy.</p>
-                </body>
-                </html>
-                """
-                
-                send_email(subject, body, to_email=customer_email, html=True)
-                print(f"✉️ Email inicial enviado a {customer_email}")
-                
-                # Obtener detalles del producto
-                line_items = stripe.checkout.Session.list_line_items(session.id)
-                
-                if line_items.data:
-                    quantity = line_items.data[0].quantity
-                    print(f"Cantidad a asignar: {quantity}")
+                try:
+                    subject = "Compra recibida en Doctorfy"
+                    body = f"""
+                    <html>
+                    <body>
+                        <h1>¡Gracias por tu compra!</h1>
+                        <p>Hola,</p>
+                        <p>Hemos recibido tu pago correctamente.</p>
+                        <p><strong>En breve recibirás tus créditos en tu cuenta.</strong></p>
+                        <p>Te enviaremos otro email cuando los créditos estén disponibles.</p>
+                        <p>Gracias por confiar en Doctorfy.</p>
+                    </body>
+                    </html>
+                    """
                     
-                    # Buscar el usuario
-                    user = User.query.filter_by(email=customer_email).first()
+                    send_email(subject, body, to_email=customer_email, html=True)
+                    logger.info(f"✉️ Email inicial enviado a {customer_email}")
+                except Exception as email_error:
+                    logger.error(f"Error enviando email inicial: {str(email_error)}")
+                
+                try:
+                    # Obtener detalles del producto
+                    line_items = stripe.checkout.Session.list_line_items(session.id)
                     
-                    if user:
-                        print(f"Usuario encontrado: {user.email}")
+                    if line_items.data:
+                        quantity = line_items.data[0].quantity
+                        logger.info(f"Cantidad a asignar: {quantity}")
                         
-                        # Actualizar créditos
-                        old_credits = float(user.credits or 0)
-                        user.credits = old_credits + float(quantity)
-                        db.session.commit()
+                        # Buscar el usuario
+                        user = User.query.filter_by(email=customer_email).first()
                         
-                        print(f"✅ {quantity} créditos asignados a {user.email}")
-                        
-                        # Enviar email de confirmación de créditos
-                        subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                        body = f"""
-                        <html>
-                        <body>
-                            <h1>¡Créditos añadidos!</h1>
-                            <p>Hola {user.first_name or user.email},</p>
-                            <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
-                            <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
-                            <p>Gracias por tu compra.</p>
-                            <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
-                        </body>
-                        </html>
-                        """
-                        
-                        send_email(subject, body, to_email=user.email, html=True)
-                        print(f"✉️ Email de confirmación de créditos enviado a {user.email}")
+                        if user:
+                            logger.info(f"Usuario encontrado: {user.email}")
+                            
+                            # Actualizar créditos
+                            old_credits = float(user.credits or 0)
+                            user.credits = old_credits + float(quantity)
+                            db.session.commit()
+                            
+                            logger.info(f"✅ {quantity} créditos asignados a {user.email}")
+                            
+                            # Enviar email de confirmación de créditos
+                            try:
+                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                                body = f"""
+                                <html>
+                                <body>
+                                    <h1>¡Créditos añadidos!</h1>
+                                    <p>Hola {user.first_name or user.email},</p>
+                                    <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
+                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                                    <p>Gracias por tu compra.</p>
+                                    <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                                </body>
+                                </html>
+                                """
+                                
+                                send_email(subject, body, to_email=user.email, html=True)
+                                logger.info(f"✉️ Email de confirmación de créditos enviado a {user.email}")
+                            except Exception as email_error:
+                                logger.error(f"Error enviando email de confirmación: {str(email_error)}")
+                        else:
+                            logger.error(f"❌ No se encontró usuario con email: {customer_email}")
                     else:
-                        print(f"❌ No se encontró usuario con email: {customer_email}")
-                else:
-                    print("❌ No se encontraron line items en la sesión")
+                        logger.error("❌ No se encontraron line items en la sesión")
+                except Exception as process_error:
+                    logger.error(f"Error procesando el pago: {str(process_error)}")
+                    import traceback
+                    logger.error(traceback.format_exc())
             
             return jsonify({'status': 'success'})
         
         except Exception as e:
-            print(f"❌ Error: {str(e)}")
+            logger.error(f"❌ Error en webhook: {str(e)}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 400
 
     def get_credits_for_product(product_id, quantity=1):
