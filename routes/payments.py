@@ -94,7 +94,7 @@ def send_purchase_thank_you(user, credits):
 
 @payments_bp.route('/webhook', methods=['POST'])
 def stripe_webhook():
-    print("\n=== WEBHOOK RECIBIDO ===")
+    print("\n=== MIERDA ===")
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
     
