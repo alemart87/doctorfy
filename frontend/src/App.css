@@ -1,0 +1,44 @@
+/* App.css */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+}
+
+.main-content {
+  padding-top: 64px; /* Para compensar la barra de navegación fija */
+}
+
+/* Estilos para la página de inicio de sesión y registro */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 64px);
+  padding: 20px;
+}
+
+.auth-paper {
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+}
+
+/* Estilos para las tarjetas */
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+} 

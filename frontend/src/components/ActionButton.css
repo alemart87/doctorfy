@@ -1,0 +1,301 @@
+.action-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 4rem 0;
+  position: relative;
+  padding-top: 60px;
+}
+
+.action-button-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón moderno con color cian brillante y texto blanco */
+.action-button {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s ease !important;
+  margin: 0 4px !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shine var(--animation-speed) linear infinite;
+}
+
+@keyframes shine {
+  to {
+    left: 200%;
+  }
+}
+
+.action-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  color: #ffffff;
+}
+
+.action-button-prefix {
+  margin-right: 0.6rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+
+.action-button-rotating-text {
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+
+.action-button-split-level {
+  overflow: hidden;
+  height: 1.8em;
+}
+
+.click-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #00cfe8;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-shadow: 0 0 12px rgba(0, 207, 232, 0.8);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.click-indicator-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .action-button-container {
+    padding-top: 50px;
+  }
+
+  .action-button {
+    height: 67.6px;
+    min-width: 390px;
+    font-size: 1.6rem;
+    padding: 0 2.5rem;
+    border-radius: 30px;
+  }
+
+  .click-indicator {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .action-button-container {
+    padding-top: 40px;
+    margin: 3rem 0;
+  }
+
+  .action-button {
+    height: 62.4px;
+    min-width: 338px;
+    font-size: 1.5rem;
+    padding: 0 2rem;
+    border-radius: 28px;
+  }
+
+  .action-button-prefix {
+    margin-right: 0.4rem;
+  }
+
+  .click-indicator {
+    font-size: 1rem;
+  }
+}
+
+.action-button.primary {
+  color: #4a90e2 !important;
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.2);
+}
+
+.action-button.success {
+  color: #2ecc71 !important;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
+}
+
+.action-button.warning {
+  color: #f1c40f !important;
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.2);
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.action-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.action-button.disabled::before {
+  animation: none;
+}
+
+@media (max-width: 600px) {
+  .action-button {
+    padding: 8px !important;
+  }
+}
+
+.guide-button {
+  background: linear-gradient(
+    45deg,
+    rgba(0, 188, 212, 0.15),
+    rgba(124, 77, 255, 0.15)
+  ) !important;
+  border: 2px solid rgba(0, 188, 212, 0.4) !important;
+  border-radius: 50px !important;
+  padding: 1.2rem 2.5rem !important;
+  min-width: 280px;
+  height: auto !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease !important;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 15px rgba(0, 188, 212, 0.2),
+    0 0 20px rgba(124, 77, 255, 0.1),
+    inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.guide-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shine 3s linear infinite;
+  transform: skewX(-15deg);
+}
+
+.guide-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  padding: 2px;
+  background: linear-gradient(45deg, #00bcd4, #7c4dff);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.guide-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(0, 188, 212, 0.6) !important;
+  box-shadow: 
+    0 8px 25px rgba(0, 188, 212, 0.3),
+    0 0 40px rgba(124, 77, 255, 0.2),
+    inset 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.guide-button:hover::after {
+  opacity: 1;
+}
+
+.guide-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.action-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  z-index: 1;
+}
+
+.action-button-prefix {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.action-button-text {
+  font-size: 1.8rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #00bcd4, #7c4dff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 2px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .guide-button {
+    min-width: 250px;
+    padding: 1.2rem 2rem !important;
+  }
+  
+  .action-button-prefix {
+    font-size: 0.9rem;
+  }
+  
+  .action-button-text {
+    font-size: 1.6rem;
+  }
+}

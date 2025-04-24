@@ -1,0 +1,56 @@
+[
+  {
+    "slug": "importancia-chequeos-medicos-regulares",
+    "title": "La Importancia de los Chequeos Médicos Regulares",
+    "lastmod": "2024-02-20",
+    "priority": "0.9",
+    "url": "https://www.doctorfy.app/blog/importancia-chequeos-medicos-regulares",
+    "description": "Artículo médico sobre la importancia de los chequeos médicos regulares",
+    "keywords": "medicina, salud, importancia, chequeos, medicos, regulares"
+  },
+  {
+    "slug": "beneficios-telemedicina",
+    "title": "Beneficios de la Telemedicina en la Atención Médica Moderna",
+    "lastmod": "2024-02-18",
+    "priority": "0.9",
+    "url": "https://www.doctorfy.app/blog/beneficios-telemedicina",
+    "description": "Artículo médico sobre beneficios de la telemedicina en la atención médica moderna",
+    "keywords": "medicina, salud, beneficios, telemedicina"
+  },
+  {
+    "slug": "nutricion-salud-mental",
+    "title": "La Conexión entre Nutrición y Salud Mental",
+    "lastmod": "2024-02-15",
+    "priority": "0.8",
+    "url": "https://www.doctorfy.app/blog/nutricion-salud-mental",
+    "description": "Artículo médico sobre la conexión entre nutrición y salud mental",
+    "keywords": "medicina, salud, nutricion, salud, mental"
+  },
+  {
+    "slug": "tecnologia-diagnostico-medico",
+    "title": "Avances en Tecnología para el Diagnóstico Médico",
+    "lastmod": "2024-02-12",
+    "priority": "0.8",
+    "url": "https://www.doctorfy.app/blog/tecnologia-diagnostico-medico",
+    "description": "Artículo médico sobre avances en tecnología para el diagnóstico médico",
+    "keywords": "medicina, salud, tecnologia, diagnostico, medico"
+  },
+  {
+    "slug": "prevencion-enfermedades-cardiovasculares",
+    "title": "Guía para la Prevención de Enfermedades Cardiovasculares",
+    "lastmod": "2024-02-10",
+    "priority": "0.8",
+    "url": "https://www.doctorfy.app/blog/prevencion-enfermedades-cardiovasculares",
+    "description": "Artículo médico sobre guía para la prevención de enfermedades cardiovasculares",
+    "keywords": "medicina, salud, prevencion, enfermedades, cardiovasculares"
+  },
+  {
+    "slug": "salud-digital-futuro-medicina",
+    "title": "La Salud Digital y el Futuro de la Medicina",
+    "lastmod": "2024-02-08",
+    "priority": "0.9",
+    "url": "https://www.doctorfy.app/blog/salud-digital-futuro-medicina",
+    "description": "Artículo médico sobre la salud digital y el futuro de la medicina",
+    "keywords": "medicina, salud, salud, digital, futuro, medicina"
+  }
+]

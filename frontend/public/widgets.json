@@ -1,0 +1,19 @@
+{
+  "widgets": [
+    {
+      "name": "Doctorfy Stats",
+      "description": "Muestra tus estadísticas de salud",
+      "tag": "doctorfy-stats",
+      "url": "/widgets/stats",
+      "width": 2,
+      "height": 2,
+      "screenshots": [
+        {
+          "src": "/widget-screenshot.png",
+          "sizes": "540x540",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+} 
