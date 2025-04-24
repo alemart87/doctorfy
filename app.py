@@ -281,228 +281,90 @@ def create_app(config_class=Config):
         })
 
     # Webhook para recibir eventos de Stripe
-    @app.route('/api/webhook/stripe', methods=['POST'])
+    @app.route('/api/payments/webhook', methods=['POST'])
     def stripe_webhook():
-        try:
-            payload     = request.data
-            sig_header  = request.headers.get('Stripe-Signature')
-            event       = None
-
-            # Verificar la firma
-            try:
-                event = stripe.Webhook.construct_event(
-                    payload, sig_header, stripe_webhook_secret
-                )
-            except ValueError as e:
-                # Payload inválido
-                app.logger.error(f"Payload inválido: {str(e)}")
-                return jsonify({'error': 'Payload inválido'}), 400
-            except stripe.error.SignatureVerificationError as e:
-                # Firma inválida
-                app.logger.error(f"Firma inválida: {str(e)}")
-                return jsonify({'error': 'Firma inválida'}), 400
-            
-            # Procesar el evento
-            event_type = event['type']
-            app.logger.info(f"Evento Stripe recibido: {event_type}")
-            
-            if event_type == 'customer.subscription.created' or event_type == 'customer.subscription.updated':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object['customer']
-                subscription_id = subscription_object['id']
-                status = subscription_object['status']
-                
-                # Buscar el usuario por customer_id
-                subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                
-                if subscription:
-                    # Actualizar el estado de la suscripción
-                    if status == 'active':
-                        subscription.status = 'active'
-                        
-                        # Actualizar también el campo subscription_active del usuario
-                        user = db.session.get(User, subscription.user_id)
-                        if user:
-                            user.subscription_active = True
-                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
-                    else:
-                        subscription.status = 'inactive'
-                        
-                        # Actualizar también el campo subscription_active del usuario
-                        user = db.session.get(User, subscription.user_id)
-                        if user:
-                            user.subscription_active = False
-                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
-                    
-                    subscription.stripe_subscription_id = subscription_id
-                    subscription.updated_at = datetime.now(timezone.utc)
-                    db.session.commit()
-                    app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
-            
-            elif event_type == 'customer.subscription.deleted':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object['customer']
-                
-                # Buscar el usuario por customer_id
-                subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                
-                if subscription:
-                    # Marcar la suscripción como cancelada
-                    subscription.status = 'canceled'
-                    
-                    # Actualizar también el campo subscription_active del usuario
-                    user = db.session.get(User, subscription.user_id)
-                    if user:
-                        user.subscription_active = False
-                        app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
-                    
-                    subscription.updated_at = datetime.now(timezone.utc)
-                    db.session.commit()
-                    app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
-            
-            # Siempre devolver éxito
-            return jsonify({'success': True}), 200
+        app.logger.info("=== WEBHOOK RECIBIDO ===")
+        payload = request.get_data(as_text=True)
+        sig_header = request.headers.get('Stripe-Signature')
         
-        except Exception as e:
-            app.logger.error(f"Error al procesar webhook: {str(e)}")
-            # Devolver 200 para que Stripe no reintente
-            return jsonify({'error': str(e)}), 200
-
-    # Webhook alternativo para Stripe
-    @app.route('/api/webhook/stripe/accept', methods=['POST'])
-    def stripe_webhook_accept():
         try:
-            # Obtener el payload y la firma
-            payload = request.data
-            sig_header = request.headers.get('Stripe-Signature')
+            # Verificar firma del webhook
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, stripe_webhook_secret
+            )
             
-            # Verificar la firma
-            try:
-                event = stripe.Webhook.construct_event(
-                    payload, sig_header, stripe_webhook_secret
-                )
-            except ValueError as e:
-                # Payload inválido
-                app.logger.error(f"Payload inválido: {str(e)}")
-                return jsonify({'error': 'Payload inválido'}), 400
-            except stripe.error.SignatureVerificationError as e:
-                # Firma inválida
-                app.logger.error(f"Firma inválida: {str(e)}")
-                return jsonify({'error': 'Firma inválida'}), 400
+            app.logger.info(f"Tipo de evento: {event.type}")
             
-            # Procesar el evento
-            event_type = event['type']
-            app.logger.info(f"Evento Stripe recibido: {event_type}")
-            
-            if event_type == 'checkout.session.completed':
-                session = event['data']['object']
-                customer_id = session.get('customer')
-                subscription_id = session.get('subscription')
+            if event.type == 'checkout.session.completed':
+                session = event.data.object
+                app.logger.info(f"Sesión completada: {session.id}")
                 
-                if customer_id and subscription_id:
-                    # Buscar el usuario por customer_id
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
+                # Obtener detalles del producto
+                try:
+                    line_items = stripe.checkout.Session.list_line_items(session.id)
                     
-                    if subscription:
-                        # Actualizar la suscripción existente
-                        subscription.stripe_subscription_id = subscription_id
-                        subscription.status = 'active'
-                        subscription.updated_at = datetime.now(timezone.utc)
+                    if line_items.data:
+                        # Obtener la cantidad directamente (esto es lo que el cliente eligió)
+                        quantity = line_items.data[0].quantity or 1
                         
-                        # Actualizar también el campo subscription_active del usuario
-                        user = db.session.get(User, subscription.user_id)
-                        if user:
-                            user.subscription_active = True
-                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
+                        app.logger.info(f"Cantidad comprada: {quantity}")
                         
-                        db.session.commit()
-                        app.logger.info(f"Suscripción actualizada para customer_id: {customer_id}")
-                    else:
+                        # La cantidad es directamente los créditos a asignar
+                        credits_to_assign = quantity
+                        app.logger.info(f"Créditos a asignar: {credits_to_assign}")
+                        
                         # Buscar el usuario por email
-                        customer = stripe.Customer.retrieve(customer_id)
-                        email = customer.get('email')
+                        customer_email = session.customer_details.email
+                        user = User.query.filter_by(email=customer_email).first()
                         
-                        if email:
-                            user = User.query.filter_by(email=email).first()
+                        if user and credits_to_assign > 0:
+                            app.logger.info(f"Usuario encontrado: {user.email}")
                             
-                            if user:
-                                # Crear una nueva suscripción
-                                subscription = Subscription(
-                                    user_id=user.id,
-                                    stripe_customer_id=customer_id,
-                                    stripe_subscription_id=subscription_id,
-                                    status='active',
-                                    created_at=datetime.now(timezone.utc),
-                                    updated_at=datetime.now(timezone.utc)
-                                )
-                                
-                                # Actualizar el campo subscription_active del usuario
-                                user.subscription_active = True
-                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
-                                
-                                db.session.add(subscription)
-                                db.session.commit()
-                                app.logger.info(f"Nueva suscripción creada para customer_id: {customer_id}")
-                                
-                                # Enviar correo de notificación
-                                try:
-                                    send_welcome_email(user)
-                                    app.logger.info(f"Correo de bienvenida enviado para el nuevo usuario")
-                                except Exception as e:
-                                    app.logger.error(f"Error al enviar correo de bienvenida: {str(e)}")
+                            # Actualizar créditos
+                            current_credits = float(user.credits or 0)
+                            user.credits = current_credits + credits_to_assign
+                            db.session.commit()
+                            
+                            app.logger.info(f"✅ {credits_to_assign} créditos asignados a {user.email}")
+                            
+                            # Enviar email de confirmación
+                            try:
+                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                                body = f"""
+                                <html>
+                                <body>
+                                    <h1>¡Créditos añadidos!</h1>
+                                    <p>Hola {user.first_name or user.email},</p>
+                                    <p>Hemos añadido <strong>{credits_to_assign} créditos</strong> a tu cuenta de Doctorfy.</p>
+                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                                    <p>Gracias por tu compra.</p>
+                                    <p><a href="https://doctorfy.onrender.com/dashboard">Ir a mi Dashboard</a></p>
+                                </body>
+                                </html>
+                                """
+                                send_email(subject, body, to_email=user.email, html=True)
+                            except Exception as e:
+                                app.logger.error(f"Error sending confirmation email: {str(e)}")
+                        else:
+                            app.logger.error(f"❌ No se encontró usuario con email: {customer_email} o créditos a asignar: {credits_to_assign}")
+                except Exception as e:
+                    app.logger.error(f"Error obteniendo line items: {str(e)}")
             
-            elif event_type == 'customer.subscription.updated':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object.get('customer')
-                status = subscription_object.get('status')
-                
-                if customer_id and status:
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                    
-                    if subscription:
-                        subscription.status = status
-                        
-                        # Actualizar también el campo subscription_active del usuario
-                        user = db.session.get(User, subscription.user_id)
-                        if user:
-                            if status == 'active':
-                                user.subscription_active = True
-                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción activa")
-                            else:
-                                user.subscription_active = False
-                                app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción inactiva")
-                        
-                        subscription.updated_at = datetime.now(timezone.utc)
-                        db.session.commit()
-                        app.logger.info(f"Estado de suscripción actualizado a {status} para customer_id: {customer_id}")
+            return jsonify({'status': 'success'})
             
-            elif event_type == 'customer.subscription.deleted':
-                subscription_object = event['data']['object']
-                customer_id = subscription_object.get('customer')
-                
-                if customer_id:
-                    subscription = Subscription.query.filter_by(stripe_customer_id=customer_id).first()
-                    
-                    if subscription:
-                        subscription.status = 'canceled'
-                        
-                        # Actualizar también el campo subscription_active del usuario
-                        user = db.session.get(User, subscription.user_id)
-                        if user:
-                            user.subscription_active = False
-                            app.logger.info(f"Usuario {user.email} (ID: {user.id}) marcado como suscripción cancelada")
-                        
-                        subscription.updated_at = datetime.now(timezone.utc)
-                        db.session.commit()
-                        app.logger.info(f"Suscripción cancelada para customer_id: {customer_id}")
-            
-            # Siempre devolver éxito
-            return jsonify({'success': True}), 200
-        
         except Exception as e:
-            app.logger.error(f"Error al procesar webhook: {str(e)}")
-            # Devolver 200 para que Stripe no reintente
-            return jsonify({'error': str(e)}), 200
+            app.logger.error(f"❌ Error en webhook: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': str(e)}), 400
+
+    def get_credits_for_product(product_id, quantity=1):
+        """Retorna la cantidad de créditos según el producto y cantidad"""
+        credits_map = {
+            'prod_SA8W9pcwKE2odz': 20 * quantity,   # 20 créditos por unidad
+            'prod_SBaimVqeeYhjhT': 50 * quantity,   # 50 créditos por unidad
+        }
+        return credits_map.get(product_id, 0)
 
     @app.route('/api/debug/trial-status', methods=['GET'])
     @jwt_required()
