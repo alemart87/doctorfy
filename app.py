@@ -300,51 +300,101 @@ def create_app(config_class=Config):
                 session = event.data.object
                 print(f"Sesión completada: {session.id}")
                 
+                # Imprimir datos del cliente para depuración
+                print("Datos del cliente:")
+                print(f"Customer details: {session.get('customer_details')}")
+                print(f"Email: {session.get('customer_details', {}).get('email')}")
+                
                 # Obtener detalles del producto
                 line_items = stripe.checkout.Session.list_line_items(session.id)
+                print(f"Line items: {line_items}")
                 
                 if line_items.data:
                     quantity = line_items.data[0].quantity
                     print(f"Cantidad a asignar: {quantity}")
                     
+                    # Obtener email del cliente
+                    customer_email = session.get('customer_details', {}).get('email')
+                    print(f"Buscando usuario con email: {customer_email}")
+                    
+                    if not customer_email:
+                        print("❌ No se encontró email en los datos del cliente")
+                        return jsonify({'error': 'No email found'}), 400
+                    
                     # Buscar el usuario
-                    user = User.query.filter_by(email=session.customer_details.email).first()
+                    user = User.query.filter_by(email=customer_email).first()
                     
                     if user:
                         print(f"Usuario encontrado: {user.email}")
+                        print(f"Créditos actuales: {user.credits}")
                         
-                        # Actualizar créditos directamente
-                        user.credits = (user.credits or 0) + quantity
-                        db.session.commit()
-                        
-                        print(f"✅ {quantity} créditos asignados a {user.email}")
-                        
-                        # Enviar email de confirmación (simple como el welcome_email)
-                        subject = "Créditos añadidos a tu cuenta de Doctorfy"
-                        body = f"""
-                        <html>
-                        <body>
-                            <h1>¡Créditos añadidos!</h1>
-                            <p>Hola {user.first_name or user.email},</p>
-                            <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
-                            <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
-                            <p>Gracias por tu compra.</p>
-                            <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
-                        </body>
-                        </html>
-                        """
-                        
-                        send_email(subject, body, to_email=user.email, html=True)
-                        print(f"✉️ Email enviado a {user.email}")
+                        try:
+                            # Actualizar créditos
+                            old_credits = float(user.credits or 0)
+                            new_credits = old_credits + float(quantity)
+                            user.credits = new_credits
+                            
+                            print(f"Intentando actualizar créditos: {old_credits} + {quantity} = {new_credits}")
+                            
+                            db.session.commit()
+                            print(f"✅ Créditos actualizados en la base de datos")
+                            
+                            # Verificar la actualización
+                            db.session.refresh(user)
+                            print(f"Créditos después de actualizar: {user.credits}")
+                            
+                            # Enviar email
+                            try:
+                                print(f"Intentando enviar email a {user.email}")
+                                
+                                subject = "Créditos añadidos a tu cuenta de Doctorfy"
+                                body = f"""
+                                <html>
+                                <body>
+                                    <h1>¡Créditos añadidos!</h1>
+                                    <p>Hola {user.first_name or user.email},</p>
+                                    <p>Hemos añadido <strong>{quantity} créditos</strong> a tu cuenta de Doctorfy.</p>
+                                    <p>Tu balance actual es: <strong>{user.credits} créditos</strong></p>
+                                    <p>Gracias por tu compra.</p>
+                                    <p><a href="https://www.doctorfy.app/dashboard">Ir a mi Dashboard</a></p>
+                                </body>
+                                </html>
+                                """
+                                
+                                # Verificar configuración SMTP
+                                print("Configuración SMTP:")
+                                print(f"Server: {os.environ.get('SMTP_SERVER')}")
+                                print(f"Port: {os.environ.get('SMTP_PORT')}")
+                                print(f"Username: {os.environ.get('SMTP_USERNAME')}")
+                                
+                                email_sent = send_email(subject, body, to_email=user.email, html=True)
+                                print(f"✉️ Resultado del envío de email: {email_sent}")
+                                
+                            except Exception as email_error:
+                                print(f"❌ Error enviando email: {str(email_error)}")
+                                import traceback
+                                print(traceback.format_exc())
+                                
+                        except Exception as db_error:
+                            print(f"❌ Error actualizando créditos: {str(db_error)}")
+                            import traceback
+                            print(traceback.format_exc())
+                            db.session.rollback()
                     else:
-                        print(f"❌ No se encontró usuario con email: {session.customer_details.email}")
+                        print(f"❌ No se encontró usuario con email: {customer_email}")
+                        # Buscar usuarios similares para depuración
+                        similar_users = User.query.filter(User.email.ilike(f"%{customer_email.split('@')[0]}%")).all()
+                        if similar_users:
+                            print(f"Usuarios similares encontrados: {[u.email for u in similar_users]}")
+                else:
+                    print("❌ No se encontraron line items en la sesión")
             
             return jsonify({'status': 'success'})
             
         except Exception as e:
-            print(f"❌ Error: {str(e)}")
+            print(f"❌ Error general: {str(e)}")
             import traceback
-            traceback.print_exc()
+            print(traceback.format_exc())
             return jsonify({'error': str(e)}), 400
 
     def get_credits_for_product(product_id, quantity=1):
