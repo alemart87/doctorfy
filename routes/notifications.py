@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
-import firebase_admin
-from firebase_admin import credentials, messaging
+import os
 from models import db, User, NotificationToken
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import os
+import logging
+import json
+import base64
 
 notifications_bp = Blueprint('notifications', __name__)
 
@@ -14,9 +15,39 @@ FIREBASE_CREDS_PATH = os.path.join(
     'doctorfy-c133e-firebase-adminsdk.json'
 )
 
-# Inicializar Firebase Admin con las credenciales
-cred = credentials.Certificate(FIREBASE_CREDS_PATH)
-firebase_admin.initialize_app(cred)
+# Inicializar Firebase Admin solo si existe el archivo de credenciales
+firebase_initialized = False
+try:
+    import firebase_admin
+    from firebase_admin import credentials, messaging
+    
+    # Primero intentar usar el archivo
+    if os.path.exists(FIREBASE_CREDS_PATH):
+        cred = credentials.Certificate(FIREBASE_CREDS_PATH)
+        firebase_admin.initialize_app(cred)
+        firebase_initialized = True
+    # Si no existe el archivo pero tenemos la variable de entorno, crear el archivo
+    elif os.environ.get('FIREBASE_CREDENTIALS_BASE64'):
+        # Asegurar que el directorio existe
+        os.makedirs(os.path.dirname(FIREBASE_CREDS_PATH), exist_ok=True)
+        
+        # Decodificar y escribir el archivo
+        creds_base64 = os.environ.get('FIREBASE_CREDENTIALS_BASE64')
+        creds_json = base64.b64decode(creds_base64).decode('utf-8')
+        
+        with open(FIREBASE_CREDS_PATH, 'w') as f:
+            f.write(creds_json)
+        
+        # Inicializar Firebase con el archivo recién creado
+        cred = credentials.Certificate(FIREBASE_CREDS_PATH)
+        firebase_admin.initialize_app(cred)
+        firebase_initialized = True
+    else:
+        logging.warning("Credenciales de Firebase no encontradas")
+        logging.warning("Las notificaciones push no estarán disponibles")
+except Exception as e:
+    logging.warning(f"Error al inicializar Firebase: {str(e)}")
+    logging.warning("Las notificaciones push no estarán disponibles")
 
 @notifications_bp.route('/subscribe', methods=['POST'])
 @jwt_required()
@@ -41,6 +72,10 @@ def subscribe():
 @notifications_bp.route('/send', methods=['POST'])
 @jwt_required()
 def send_notification():
+    # Verificar si Firebase está inicializado
+    if not firebase_initialized:
+        return jsonify({'error': 'Servicio de notificaciones no disponible'}), 503
+    
     # Verificar si es el admin
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
