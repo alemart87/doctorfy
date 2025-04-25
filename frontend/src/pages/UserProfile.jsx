@@ -204,8 +204,16 @@ const UserProfile = () => {
   const handleProfilePictureUpdate = async (file) => {
     try {
       const { data } = await uploadPicture(file);
-      setProfileData(prev => ({ ...prev, profile_picture:data.profile_picture }));
-      setPictureDialogOpen(false);
+      console.log("Respuesta de upload-profile-picture:", data);
+      if (data && data.profile_picture) {
+        setProfileData(prev => ({
+          ...prev,
+          profile_picture: data.profile_picture
+        }));
+        setPictureDialogOpen(false);
+      } else {
+        console.error("La respuesta de la API no contenía el nuevo nombre de archivo 'profile_picture'.");
+      }
     } catch (err) {
       console.error('Error al actualizar imagen de perfil:', err);
     }
@@ -249,7 +257,7 @@ const UserProfile = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              src={profileData.profile_picture ? `/uploads/${profileData.profile_picture}` : null}
+              src={profileData.profile_picture ? `/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
               alt={profileData.first_name || profileData.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />

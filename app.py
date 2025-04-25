@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, request, render_template, redirect, Response
+from flask import Flask, send_from_directory, jsonify, request, render_template, redirect, Response, abort
 from flask_migrate import Migrate
 from flask_jwt_extended import (
     JWTManager, jwt_required, get_jwt_identity
@@ -232,6 +232,65 @@ def create_app(config_class=Config):
             return Response(status=200)
         # el resto de métodos continúan normalmente;
         # la verificación se hará únicamente en las rutas con @jwt_required
+
+    # --- Ruta para Subir Foto de Perfil ---
+    @app.route('/api/profile/upload-profile-picture', methods=['POST'])
+    @jwt_required()
+    def upload_profile_picture():
+        user_id = get_jwt_identity()
+        # --- IMPORTANTE: Asegúrate que User y db estén disponibles aquí ---
+        # from models import User, db # Podrías necesitar importar aquí si no están globales
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        if 'file' not in request.files:
+            return jsonify({"error": "No se encontró el archivo"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No se seleccionó ningún archivo"}), 400
+
+        if file:
+            # --- IMPORTANTE: Asegúrate que secure_filename esté importado ---
+            # from werkzeug.utils import secure_filename
+            filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}") # Nombre único con extensión original
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            try:
+                file.save(save_path)
+                print(f"Archivo guardado en: {save_path}") # Log para confirmar la ruta
+
+                # Actualizar base de datos
+                user.profile_picture = filename
+                db.session.commit()
+
+                return jsonify({
+                    "message": "Foto de perfil actualizada con éxito",
+                    "profile_picture": filename
+                }), 200
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error al guardar archivo o actualizar DB: {e}")
+                return jsonify({"error": "Error interno al guardar la foto"}), 500
+        else:
+            # Esta condición 'else' probablemente nunca se alcance si file.filename != ''
+            return jsonify({"error": "Archivo inválido"}), 400
+
+
+    # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
+    @app.route('/uploads/<path:filename>')
+    def serve_upload(filename):
+        print(f"Intentando servir archivo: {filename} desde {app.config['UPLOAD_FOLDER']}") # Log para depurar
+        try:
+            # --- SERVIR DESDE LA RUTA CORRECTA ---
+            # --- IMPORTANTE: Asegúrate que send_from_directory esté importado ---
+            # from flask import send_from_directory
+            return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        except FileNotFoundError:
+            print(f"Archivo no encontrado: {filename} en {app.config['UPLOAD_FOLDER']}")
+            # Considera devolver una imagen por defecto o un 404
+            # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
+            abort(404)
 
     return app
 
