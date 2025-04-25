@@ -44,7 +44,8 @@ import {
   CheckCircle as CheckCircleIcon,
   AddToHomeScreen as AddToHomeScreenIcon,
   Login as LoginIcon,
-  AppRegistration as AppRegistrationIcon
+  AppRegistration as AppRegistrationIcon,
+  LocalFireDepartment as FireIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
@@ -55,6 +56,7 @@ import LiquidChrome from '../components/LiquidChrome';
 import { keyframes } from '@mui/system';
 import DecryptedText from '../components/DecryptedText';
 import { Helmet } from 'react-helmet-async';
+import CameraAltIcon from '@mui/icons-material/CameraAlt'; // Importar icono de cámara
 
 // Definir la animación de pulso
 const pulse = keyframes`
@@ -97,6 +99,29 @@ const PwaButton = styled(Button)(({ theme }) => ({
   },
 }));
 // --- FIN NUEVO ---
+
+// --- Estilo para el botón de Contador de Calorías ---
+const CalorieTrackerButton = styled(Button)(({ theme }) => ({
+  background: `linear-gradient(45deg, ${theme.palette.warning.main} 30%, ${theme.palette.error.main} 90%)`, // Naranja a Rojo
+  color: theme.palette.common.white,
+  padding: theme.spacing(1.5, 4),
+  borderRadius: '50px', // Más redondeado
+  fontWeight: 700,
+  fontSize: '1.1rem',
+  textTransform: 'none',
+  boxShadow: `0 5px 15px ${alpha(theme.palette.error.main, 0.4)}`,
+  transition: 'all 0.3s ease-in-out',
+  animation: `${pulse} 2s infinite`, // Aplicar animación de pulso
+  '&:hover': {
+    background: `linear-gradient(45deg, ${theme.palette.warning.dark} 30%, ${theme.palette.error.dark} 90%)`,
+    transform: 'translateY(-3px) scale(1.05)',
+    boxShadow: `0 8px 20px ${alpha(theme.palette.error.main, 0.6)}`,
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '1rem',
+    padding: theme.spacing(1.2, 3),
+  },
+}));
 
 const LandingPage = () => {
   const theme = useTheme();
@@ -168,6 +193,11 @@ const LandingPage = () => {
   };
 
   const features = [
+    {
+      title: "¡NUEVO! Contador de Calorías", // <--- NUEVA CARACTERÍSTICA
+      description: "Saca fotos de tu comida y mide automáticamente las calorías consumidas. ¡Controla tu dieta de forma divertida!",
+      icon: <CameraAltIcon fontSize="large" sx={{ color: theme.palette.success.main }} />, // Usar icono de cámara
+    },
     {
       title: "Análisis de Estudios Médicos",
       description: "Sube tus estudios médicos y obtén un análisis detallado en segundos, con recomendaciones personalizadas.",
@@ -334,7 +364,7 @@ const LandingPage = () => {
                 }}
               >
         <Container maxWidth="lg">
-            <Grid container spacing={4} alignItems="center">
+            <Grid container spacing={4} alignItems="center" justifyContent="space-between">
                   <Grid item xs={12} md={7}>
                     <Box sx={{ position: 'relative', zIndex: 2 }}>
                       <motion.div variants={itemVariants}>
@@ -350,7 +380,7 @@ const LandingPage = () => {
                             textShadow: '0 5px 15px rgba(0,0,0,0.2)',
                   }}
                 >
-                          Doctorfy
+                          <DecryptedText text="Tu Salud, Potenciada por IA" trigger={heroInView} />
                 </Typography>
                 <Typography
                           variant="h2"
@@ -361,10 +391,26 @@ const LandingPage = () => {
                             mb: 4,
                           }}
                         >
-                          Democratizando la SALUD
+                          Interpreta estudios médicos, analiza tu nutrición y mide calorías con solo una foto.
                         </Typography>
                       </motion.div>
                       
+                      {/* --- INICIO: CÓDIGO A INSERTAR --- */}
+                      {/* Botón Contador de Calorías */}
+                      <motion.div variants={itemVariants}>
+                        <Box sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-start' }, mb: 4 }}> {/* Centrado en móvil, izquierda en desktop */}
+                          <CalorieTrackerButton
+                            component={Link}
+                            to="/calorie-tracker"
+                            size="large"
+                            startIcon={<FireIcon />} // <<<--- ICONO DE FUEGO
+                          >
+                            Contador de Calorías con Foto
+                          </CalorieTrackerButton>
+                        </Box>
+                      </motion.div>
+                      {/* --- FIN: CÓDIGO A INSERTAR --- */}
+
                       <motion.div variants={itemVariants}>
                         <Box sx={{ mb: 3 }}>
                           <TrueFocus 
@@ -440,7 +486,7 @@ const LandingPage = () => {
                 </Box>
               </Grid>
 
-                  <Grid item xs={12} md={5}>
+                  <Grid item xs={12} md={5} sx={{ display: { xs: 'none', md: 'block' } }}>
                     <Box sx={{ 
                       position: 'relative',
                       height: { xs: '300px', md: '400px' },
@@ -1474,20 +1520,20 @@ const LandingPage = () => {
       </Box>
 
       {/* Features Section */}
-            <Box 
-              ref={featuresRef}
-              component={motion.div}
-              initial="hidden"
-              animate={featuresInView ? "visible" : "hidden"}
-              variants={containerVariants}
-              sx={{ 
-                py: { xs: 8, md: 12 },
-                position: 'relative',
-                zIndex: 2,
-                backgroundColor: 'rgba(18, 18, 18, 0.7)',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
+      <Box 
+        ref={featuresRef}
+        component={motion.div}
+        initial="hidden"
+        animate={featuresInView ? "visible" : "hidden"}
+        variants={containerVariants}
+        sx={{ 
+          py: { xs: 8, md: 12 },
+          position: 'relative',
+          zIndex: 2,
+          backgroundColor: 'rgba(18, 18, 18, 0.7)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
         <Container maxWidth="lg">
                 <motion.div variants={itemVariants}>
           <Typography

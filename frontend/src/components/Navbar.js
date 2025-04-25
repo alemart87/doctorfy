@@ -33,6 +33,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -226,6 +227,7 @@ const Navbar = () => {
 
   const commonNavItems = [
     { text: 'Inicio', path: '/', icon: <HomeIcon /> },
+    { text: 'Contador Calorías', path: '/calorie-tracker', icon: <FitnessCenterIcon /> },
     { text: 'Chat Médico IA', path: '/tixae-chatbot', icon: <ChatIcon /> },
     { text: 'Estudios Médicos', path: '/medical-studies', icon: <DescriptionIcon /> },
     { text: 'Nutrición', path: '/nutrition', icon: <RestaurantIcon /> },

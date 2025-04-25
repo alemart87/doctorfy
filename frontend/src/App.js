@@ -56,6 +56,7 @@ import ShareTarget from './pages/ShareTarget';
 import ProtocolHandler from './pages/ProtocolHandler';
 import OpenFileHandler from './pages/OpenFileHandler';
 import ComposeEmail from './pages/ComposeEmail';
+import CalorieTrackerPage from './pages/CalorieTrackerPage';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
@@ -209,6 +210,11 @@ function App() {
                         <Route path="/protocol" element={<ProtocolHandler />} />
                         <Route path="/open-file" element={<OpenFileHandler />} />
                         <Route path="/compose" element={<ComposeEmail />} />
+                        <Route path="/calorie-tracker" element={
+                          <ProtectedRoute>
+                            <CalorieTrackerPage />
+                          </ProtectedRoute>
+                        } />
                       </Routes>
                     </Suspense>
                     <FloatingChatButton />

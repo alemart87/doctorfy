@@ -132,50 +132,35 @@ const UserProfile = () => {
     setTabValue(newValue);
   };
   
+  // Actualizar Perfil (con manejo de carga/error)
   const handleProfileUpdate = async (updatedData) => {
     try {
       const response = await api.put('/profile/update', updatedData);
-      setProfileData(response.data.user);
-      setProfileDialogOpen(false);
+      setProfileData(response.data.user); // Actualizar estado local
+      setProfileDialogOpen(false); // Cerrar diálogo
     } catch (err) {
       console.error('Error al actualizar perfil:', err);
+      // Aquí podrías establecer un error general si quieres,
+      // pero no se pasará al diálogo como antes.
+      // setError('No se pudo actualizar el perfil.');
     }
   };
   
   const handleHealthProfileUpdate = async (healthData) => {
     try {
       const response = await api.post('/profile/health-profile', healthData);
-      
-      // Actualizar el perfil de salud en los datos del perfil
-      setProfileData({
-        ...profileData,
-        health_profile: response.data.health_profile
-      });
-      
+      setProfileData({ ...profileData, health_profile: response.data.health_profile });
       setHealthProfileDialogOpen(false);
-    } catch (err) {
-      console.error('Error al actualizar perfil de salud:', err);
-    }
+    } catch (err) { console.error('Error al actualizar perfil de salud:', err); }
   };
   
   const handleAddWeight = async (weightData) => {
     try {
       const response = await api.post('/profile/weight', weightData);
-      
-      // Actualizar los registros de peso
       setWeightRecords([response.data.weight_record, ...weightRecords]);
-      
-      // Actualizar el peso actual en el perfil
-      setProfileData({
-        ...profileData,
-        weight: response.data.weight_record.weight,
-        bmi: response.data.bmi
-      });
-      
+      setProfileData({ ...profileData, weight: response.data.weight_record.weight, bmi: response.data.bmi });
       setWeightDialogOpen(false);
-    } catch (err) {
-      console.error('Error al agregar peso:', err);
-    }
+    } catch (err) { console.error('Error al agregar peso:', err); }
   };
   
   const handleAddMedication = async (medicationData) => {
@@ -183,9 +168,7 @@ const UserProfile = () => {
       const response = await api.post('/profile/medications', medicationData);
       setMedications([response.data.medication, ...medications]);
       setMedicationDialogOpen(false);
-    } catch (err) {
-      console.error('Error al agregar medicamento:', err);
-    }
+    } catch (err) { console.error('Error al agregar medicamento:', err); }
   };
   
   const handleAddBloodPressure = async (bpData) => {
@@ -193,9 +176,7 @@ const UserProfile = () => {
       const response = await api.post('/profile/blood-pressure', bpData);
       setBloodPressureRecords([response.data.blood_pressure, ...bloodPressureRecords]);
       setBloodPressureDialogOpen(false);
-    } catch (err) {
-      console.error('Error al agregar presión arterial:', err);
-    }
+    } catch (err) { console.error('Error al agregar presión arterial:', err); }
   };
   
   const handleAddActivity = async (activityData) => {
@@ -203,9 +184,7 @@ const UserProfile = () => {
       const response = await api.post('/profile/physical-activities', activityData);
       setActivities([response.data.activity, ...activities]);
       setActivityDialogOpen(false);
-    } catch (err) {
-      console.error('Error al agregar actividad física:', err);
-    }
+    } catch (err) { console.error('Error al agregar actividad física:', err); }
   };
   
   // ─────────────────────  SUBIDA FOTO PERFIL  ────────────────────

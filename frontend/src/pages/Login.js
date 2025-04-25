@@ -3,12 +3,15 @@ import { Container, Typography, TextField, Button, Box, Paper, Alert, Link } fro
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState(null);
+
+  const from = location.state?.from || '/calorie-tracker';
 
   const formik = useFormik({
     initialValues: {
@@ -19,16 +22,21 @@ const Login = () => {
       email: Yup.string().email('Email inválido').required('Email es requerido'),
       password: Yup.string().required('Contraseña es requerida'),
     }),
-    onSubmit: async (values) => {
+    onSubmit: async (values, { setSubmitting }) => {
+      setError(null);
+      setSubmitting(true);
       try {
         const result = await login(values);
         if (result.success) {
-          navigate('/');
+          navigate(from, { replace: true });
         } else {
-          setError(result.error || 'Error al iniciar sesión');
+          setError(result.error || 'Email o contraseña incorrectos');
         }
       } catch (err) {
-        setError(err.response?.data?.error || 'Error al iniciar sesión');
+        console.error("Login error:", err);
+        setError(err.response?.data?.error || 'Error al iniciar sesión. Inténtalo de nuevo.');
+      } finally {
+        setSubmitting(false);
       }
     },
   });
@@ -51,6 +59,7 @@ const Login = () => {
               label="Email"
               value={formik.values.email}
               onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               error={formik.touched.email && Boolean(formik.errors.email)}
               helperText={formik.touched.email && formik.errors.email}
               margin="normal"
@@ -63,6 +72,7 @@ const Login = () => {
               type="password"
               value={formik.values.password}
               onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               error={formik.touched.password && Boolean(formik.errors.password)}
               helperText={formik.touched.password && formik.errors.password}
               margin="normal"

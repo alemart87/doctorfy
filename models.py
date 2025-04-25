@@ -76,11 +76,11 @@ class User(db.Model):
     payments = db.relationship('Payment', backref='user', lazy=True)
     
     # Relaciones adicionales
-    health_profiles = db.relationship('HealthProfile', backref='user', lazy=True)
+    health_profiles = db.relationship('HealthProfile', backref='user', lazy='dynamic')
     medications = db.relationship('Medication', backref='user', lazy=True)
     physical_activities = db.relationship('PhysicalActivity', backref='user', lazy=True)
-    blood_pressure_records = db.relationship('BloodPressure', backref='user', lazy=True)
-    weight_records = db.relationship('WeightRecord', backref='user', lazy=True)
+    blood_pressure_records = db.relationship('BloodPressure', backref='user', lazy='dynamic')
+    weight_records = db.relationship('WeightRecord', backref='user', lazy='dynamic')
     
     daily_calorie_goal = db.Column(db.Integer, nullable=True, default=2000) # Objetivo calórico diario
     credits = db.Column(
@@ -99,39 +99,47 @@ class User(db.Model):
     def is_admin(self):
         return self.role in ['ADMIN', 'SUPERADMIN']
     
-    def is_superadmin(self):
-        return self.role == UserRole.SUPERADMIN
-    
     def calculate_age(self):
         if not self.date_of_birth:
             return None
-        today = datetime.date.today()
+        today = date.today()
         return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
     
     def to_dict(self):
+        """Serializa el objeto User a un diccionario MUY BÁSICO para depuración."""
+        print(f"[DEBUG] Serializando User ID: {self.id}, Email: {self.email}, Is Doctor: {self.is_doctor}") # Log para ver si se llama
+
         base_dict = {
             'id': self.id,
             'email': self.email,
             'is_doctor': self.is_doctor,
-            'role': self.role,
+            'role': self.role, # Añadir role por si acaso
             'first_name': self.first_name,
             'last_name': self.last_name,
-            'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
-            'age': self.calculate_age(),
-            'gender': self.gender,
-            'height': self.height,
             'profile_picture': self.profile_picture,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+
+            # --- CAMPOS COMPLEJOS COMENTADOS TEMPORALMENTE ---
+            # 'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            # 'age': self.calculate_age(),
+            # 'gender': self.gender,
+            # 'height': self.height,
+            # 'phone_number': self.phone_number,
+            # 'address': self.address,
+            # 'emergency_contact': self.emergency_contact,
+            # 'weight': None, # self.get_latest_weight(),
+            # 'bmi': None, # self.calculate_bmi(),
+            # 'health_profile': None, # health_profile.to_dict() if health_profile else None,
         }
-        
-        # Si es doctor, agregar información específica
+
+        # Añadir campos de doctor si es doctor (solo los de User)
         if self.is_doctor:
-            base_dict.update({
-                'specialty': self.specialty,
-                'license_number': self.license_number,
-                'subscription_active': self.subscription_active
-            })
-        
+             base_dict.update({
+                 'specialty': self.specialty,
+                 'license_number': self.license_number,
+             })
+
+        print(f"[DEBUG] User.to_dict() resultado: {base_dict}") # Log para ver el resultado
         return base_dict
 
     def __repr__(self):
@@ -373,26 +381,25 @@ class PhysicalActivity(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    activity_type = db.Column(db.String(50), nullable=False)
-    duration = db.Column(db.Integer)  # en minutos
-    intensity = db.Column(db.String(20))  # low, moderate, high
-    calories_burned = db.Column(db.Integer)
-    date = db.Column(db.Date, nullable=False)
-    notes = db.Column(db.Text)
+    activity_type = db.Column(db.String(100), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    calories_burned = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, nullable=False, default=date.today)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
             'activity_type': self.activity_type,
             'duration': self.duration,
-            'intensity': self.intensity,
             'calories_burned': self.calories_burned,
             'date': self.date.isoformat(),
-            'notes': self.notes,
             'created_at': self.created_at.isoformat()
         }
+
+    def __repr__(self):
+        return f'<PhysicalActivity {self.id}: {self.activity_type} - {self.calories_burned} kcal>'
 
 class BloodPressure(db.Model):
     __tablename__ = 'blood_pressure_records'

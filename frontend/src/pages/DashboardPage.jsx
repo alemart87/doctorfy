@@ -24,6 +24,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import ChatIcon from '@mui/icons-material/Chat';
 import PeopleIcon from '@mui/icons-material/People';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 
 const DashboardPage = () => {
   const theme = useTheme();
@@ -35,52 +36,59 @@ const DashboardPage = () => {
   const largeIconStyle = { fontSize: '4rem' }; // Iconos mucho más grandes
 
   const glassItems = [
-    { 
-      label: "Dashboard", 
-      href: "/dashboard", 
-      icon: <DashboardIcon sx={largeIconStyle} />, 
-      color: 'blue',
-      labelSize: '1.8rem' // Texto más grande
+    {
+      label: "Contador Calorías",
+      href: "/calorie-tracker",
+      icon: <FitnessCenterIcon sx={largeIconStyle} />,
+      color: 'red',
+      labelSize: '1.8rem'
     },
-    { 
-      label: "Estudios Médicos", 
-      href: "/medical-studies", 
-      icon: <MedicalServicesIcon sx={largeIconStyle} />, 
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: <DashboardIcon sx={largeIconStyle} />,
+      color: 'blue',
+      labelSize: '1.8rem'
+    },
+    {
+      label: "Estudios Médicos",
+      href: "/medical-studies",
+      icon: <MedicalServicesIcon sx={largeIconStyle} />,
       color: 'cyan',
       labelSize: '1.8rem'
     },
-    { 
-      label: "Nutrición", 
-      href: "/nutrition", 
-      icon: <RestaurantIcon sx={largeIconStyle} />, 
+    {
+      label: "Nutrición",
+      href: "/nutrition",
+      icon: <RestaurantIcon sx={largeIconStyle} />,
       color: 'green',
       labelSize: '1.8rem'
     },
-    { 
-      label: "Doctores", 
-      href: "/doctors", 
-      icon: <GroupIcon sx={largeIconStyle} />, 
+    {
+      label: "Doctores",
+      href: "/doctors",
+      icon: <GroupIcon sx={largeIconStyle} />,
       color: 'purple',
       labelSize: '1.8rem'
     },
-    { 
-      label: "Mi Perfil", 
-      href: "/profile", 
-      icon: <AccountCircleIcon sx={largeIconStyle} />, 
+    {
+      label: "Mi Perfil",
+      href: "/profile",
+      icon: <AccountCircleIcon sx={largeIconStyle} />,
       color: 'orange',
       labelSize: '1.8rem'
     },
-    { 
-      label: "Configuración", 
-      href: "/settings", 
-      icon: <SettingsIcon sx={largeIconStyle} />, 
+    {
+      label: "Configuración",
+      href: "/settings",
+      icon: <SettingsIcon sx={largeIconStyle} />,
       color: 'indigo',
       labelSize: '1.8rem'
     },
-    { 
-      label: "Psicólogo y Doctor Virtual", 
-      href: "/tixae-chatbot", 
-      icon: <ChatIcon sx={largeIconStyle} />, 
+    {
+      label: "Psicólogo y Doctor Virtual",
+      href: "/tixae-chatbot",
+      icon: <ChatIcon sx={largeIconStyle} />,
       color: 'pink',
       labelSize: '1.8rem'
     },
