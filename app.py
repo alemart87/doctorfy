@@ -78,10 +78,15 @@ def ensure_upload_dirs(app):
         os.makedirs(os.path.join(app.root_path, dir_path), exist_ok=True)
 
 def create_app(config_class=Config):
+    # --- Determinar si servir frontend ---
+    serve_frontend_env = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
+
+    # --- Configurar static_folder basado en SERVE_FRONTEND ---
+    static_dir = 'frontend/build' if serve_frontend_env else None
     app = Flask(__name__,
-                static_folder='frontend/build/static', # Carpeta para JS, CSS, etc.
-                template_folder='frontend/build' # Para servir index.html si usas render_template
-               )
+                static_folder=static_dir, # Apunta a la carpeta build del frontend
+                static_url_path='/')      # Sirve desde la raíz
+
     app.config.from_object(config_class)
     
     # Configuración de la base de datos
@@ -295,23 +300,19 @@ def create_app(config_class=Config):
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
 
-    # --- Ruta para servir el index.html del frontend ---
-    # Esta ruta debe ir DESPUÉS de tus blueprints de API
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_react_app(path):
-        # Si la ruta parece un archivo estático dentro de la build, déjalo pasar
-        # (Flask lo manejará con static_folder si está configurado)
-        # O si static_folder es solo para /static, necesitas servirlo explícitamente
-        # if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        #    return send_from_directory(app.static_folder, path)
-
-        # Para cualquier otra ruta (o la raíz), sirve el index.html principal
-        # Esto permite que React Router maneje el enrutamiento en el cliente
-        build_dir = os.path.join(app.root_path, 'frontend/build')
-        if not os.path.exists(os.path.join(build_dir, 'index.html')):
-             return "Frontend build not found!", 404 # Error si no existe
-        return send_from_directory(build_dir, 'index.html')
+    # --- Ruta Catch-all para servir index.html del frontend (SPA) ---
+    # --- Solo si Flask está sirviendo el frontend ---
+    if serve_frontend_env and static_dir:
+        @app.route('/', defaults={'path': ''})
+        @app.route('/<path:path>')
+        def serve(path):
+            full_path = os.path.join(app.static_folder, path)
+            if path != "" and os.path.exists(full_path):
+                # Sirve el archivo estático si existe (CSS, JS, imágenes)
+                return send_from_directory(app.static_folder, path)
+            else:
+                # Sirve index.html para cualquier otra ruta (manejo de rutas de React)
+                return send_from_directory(app.static_folder, 'index.html')
 
     return app
 
