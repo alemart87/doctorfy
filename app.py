@@ -45,16 +45,6 @@ serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 # Obtener orígenes permitidos de las variables de entorno
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://doctorfy-frontend.onrender.com').split(',')
 
-# Definir las rutas de almacenamiento (solo definir las variables, no configurar app todavía)
-UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
-print(f"***** UPLOAD_FOLDER establecido en: {UPLOAD_FOLDER} *****", flush=True) # <-- LOG 1
-MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
-NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
-
-# Crear directorios si no existen
-os.makedirs(MEDICAL_STUDIES_FOLDER, exist_ok=True)
-os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
-
 # Al inicio de tu archivo app.py, después de importar stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
@@ -97,12 +87,22 @@ def create_app(config_class=Config):
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
     
-    # MOVER ESTA CONFIGURACIÓN AQUÍ
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
-    app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
-    print(f"***** app.config['UPLOAD_FOLDER'] dentro de create_app: {app.config['UPLOAD_FOLDER']} *****", flush=True) # <-- LOG 2
-    
+    # --- ESTABLECER RUTAS DE UPLOAD DIRECTAMENTE AQUÍ ---
+    # Asume que siempre se ejecuta donde /persistent existe y es la ruta correcta
+    persistent_upload_folder = '/persistent/uploads'
+    app.config['UPLOAD_FOLDER'] = persistent_upload_folder
+    app.config['MEDICAL_STUDIES_FOLDER'] = os.path.join(persistent_upload_folder, 'medical_studies')
+    app.config['NUTRITION_IMAGES_FOLDER'] = os.path.join(persistent_upload_folder, 'nutrition')
+    print(f"***** app.config['UPLOAD_FOLDER'] FORZADO a: {app.config['UPLOAD_FOLDER']} *****", flush=True) # LOG 2 (Modificado)
+
+    # --- Crear directorios necesarios usando las rutas de config ---
+    # (Es mejor hacerlo después de configurar app.config)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True) # Asegura que /persistent/uploads exista
+    os.makedirs(app.config['MEDICAL_STUDIES_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['NUTRITION_IMAGES_FOLDER'], exist_ok=True)
+    # Nota: profile_pics se crea dentro de la ruta de subida
+    # --- FIN DE LA CONFIGURACIÓN DIRECTA ---
+
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
@@ -258,14 +258,16 @@ def create_app(config_class=Config):
             # --- IMPORTANTE: Asegúrate que secure_filename esté importado ---
             # from werkzeug.utils import secure_filename
             filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}")
-            # --- LOG ANTES DE GUARDAR ---
-            save_dir = app.config['UPLOAD_FOLDER'] # Usar la config de la app
-            # --- Crear subdirectorio si no existe ---
+            # --- ¡NUEVO LOG PARA VERIFICAR LA CONFIG! ---
+            current_upload_folder = app.config['UPLOAD_FOLDER']
+            print(f"***** VALOR DE app.config['UPLOAD_FOLDER'] ANTES DE GUARDAR: {current_upload_folder} *****", flush=True) # LOG 2.5
+            # --- FIN DEL NUEVO LOG ---
+
+            save_dir = current_upload_folder # Usar la variable que acabamos de loguear
             profile_pics_dir = os.path.join(save_dir, 'profile_pics')
-            os.makedirs(profile_pics_dir, exist_ok=True) # Asegura que profile_pics/ exista
-            # --- Guardar en el subdirectorio ---
+            os.makedirs(profile_pics_dir, exist_ok=True)
             save_path = os.path.join(profile_pics_dir, filename)
-            print(f"***** Intentando guardar foto de perfil en: {save_path} *****", flush=True) # <-- LOG 3
+            print(f"***** Intentando guardar foto de perfil en: {save_path} *****", flush=True) # LOG 3
             try:
                 file.save(save_path)
                 print(f"***** Archivo supuestamente guardado en: {save_path} *****", flush=True) # LOG 4 (renombrado)
