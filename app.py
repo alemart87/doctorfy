@@ -294,30 +294,34 @@ def create_app(config_class=Config):
     # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
     @app.route('/uploads/<path:filename>')
     def serve_upload(filename):
+        # --- LOG AL INICIO DE LA RUTA ---
+        print(f"***** RUTA /uploads/ LLAMADA con filename: {filename} *****", flush=True) # <-- NUEVO LOG INICIAL
+
         directory = app.config['UPLOAD_FOLDER']
         full_path = os.path.join(directory, filename)
-        print(f"***** Intentando servir archivo: {filename} *****", flush=True) # <-- LOG 7
-        print(f"***** Buscando en directorio: {directory} *****", flush=True) # <-- LOG 8
-        print(f"***** Ruta absoluta calculada: {full_path} *****", flush=True) # <-- LOG 9
+        print(f"***** Intentando servir archivo: {filename} *****", flush=True) # LOG 7
+        print(f"***** Buscando en directorio: {directory} *****", flush=True) # LOG 8
+        print(f"***** Ruta absoluta calculada: {full_path} *****", flush=True) # LOG 9
         exists = os.path.exists(full_path)
-        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****", flush=True) # <-- LOG 10
+        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****", flush=True) # LOG 10
         if not exists:
-             # Intenta listar el contenido del directorio para depurar
              try:
                  print(f"***** Contenido de {directory}: {os.listdir(directory)} *****", flush=True)
-                 # Intenta listar subdirectorios si filename tiene /
                  if '/' in filename:
                      subdir = os.path.join(directory, os.path.dirname(filename))
                      if os.path.exists(subdir):
                           print(f"***** Contenido de {subdir}: {os.listdir(subdir)} *****", flush=True)
              except Exception as e:
                  print(f"***** Error al listar directorio: {e} *****", flush=True)
-             abort(404) # Abortar si no existe
+             abort(404)
         try:
+            # Intenta servir directamente sin chequeos extra por ahora
             return send_from_directory(directory, filename)
-        except FileNotFoundError: # Doble chequeo, aunque ya hicimos os.path.exists
-            print(f"***** FileNotFoundError al intentar servir: {filename} desde {directory} *****", flush=True) # <-- LOG 11
-            abort(404)
+        except Exception as e: # Captura cualquier error al servir
+            print(f"***** ERROR DENTRO de send_from_directory: {e} *****", flush=True)
+            import traceback
+            traceback.print_exc()
+            abort(500) # Devuelve 500 si send_from_directory falla
 
     return app
 
