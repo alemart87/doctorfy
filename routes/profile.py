@@ -119,19 +119,24 @@ def upload_profile_picture():
         # Guardar el archivo
         file.save(file_path)
         
-        # Verificar que el archivo se guardó correctamente
-        max_retries = 3
+        # Verificar que el archivo se guardó correctamente con reintentos
+        max_retries = 5
         retry_delay = 0.5  # segundos
+        file_size_threshold = 100  # bytes mínimos para considerar archivo válido
         
         for attempt in range(max_retries):
             if os.path.exists(file_path):
-                # Verificar que el archivo sea accesible y tenga tamaño
                 try:
-                    with open(file_path, 'rb') as f:
-                        f.read(1)  # Intentar leer 1 byte
-                    break
-                except IOError:
-                    pass
+                    # Verificar que el archivo sea accesible y tenga tamaño
+                    file_stats = os.stat(file_path)
+                    if file_stats.st_size > file_size_threshold:
+                        # Intentar abrir y leer el archivo
+                        with open(file_path, 'rb') as f:
+                            f.seek(0, 2)  # Ir al final del archivo
+                            if f.tell() > file_size_threshold:
+                                break
+                except (IOError, OSError) as e:
+                    print(f"Intento {attempt + 1}: Error al verificar archivo - {str(e)}")
             
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
@@ -141,6 +146,9 @@ def upload_profile_picture():
         # Actualizar la base de datos
         user.profile_picture = unique_filename
         db.session.commit()
+        
+        # Esperar un momento adicional para asegurar que el archivo esté disponible
+        time.sleep(0.5)
         
         return jsonify({
             'message': 'Foto de perfil actualizada con éxito',
