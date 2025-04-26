@@ -231,10 +231,21 @@ def create_app(config_class=Config):
     #  Ej.:  /uploads/profile_pics/1234.jpg
     # ──────────────────────────────────────────────────────────────
     @app.route('/uploads/<path:filename>')
-    def uploaded_files(filename):
-        """Devuelve cualquier archivo dentro de la carpeta uploads/"""
-        uploads_dir = os.path.join(app.root_path, 'uploads')
-        return send_from_directory(uploads_dir, filename, as_attachment=False)
+    def serve_upload(filename):
+        logger.info(f"📂 Solicitud de archivo: {filename}")
+        
+        directory = app.config['UPLOAD_FOLDER']
+        full_path = os.path.join(directory, filename)
+        
+        logger.debug(f"Buscando en directorio: {directory}")
+        logger.debug(f"Ruta absoluta calculada: {full_path}")
+        
+        try:
+            return send_from_directory(directory, filename)
+        except Exception as e:
+            logger.error(f"Error al servir archivo: {str(e)}")
+            logger.exception("Traceback completo:")
+            abort(404)
 
     # ──  IGNORAR JWT SÓLO EN PRE‑FLIGHT (OPTIONS) ────────────────
     @app.before_request
@@ -313,41 +324,6 @@ def create_app(config_class=Config):
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
 
         return jsonify({"error": "Archivo inválido"}), 400
-
-    # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
-    @app.route('/uploads/<path:filename>')
-    def serve_upload(filename):
-        logger.info(f"📂 Solicitud de archivo: {filename}")
-        
-        directory = app.config['UPLOAD_FOLDER']
-        full_path = os.path.join(directory, filename)
-        
-        logger.debug(f"Buscando en directorio: {directory}")
-        logger.debug(f"Ruta absoluta calculada: {full_path}")
-        
-        exists = os.path.exists(full_path)
-        logger.info(f"{'✅' if exists else '❌'} Archivo {'encontrado' if exists else 'no encontrado'} en: {full_path}")
-        
-        if not exists:
-            try:
-                dir_contents = os.listdir(directory)
-                logger.debug(f"Contenido del directorio {directory}: {dir_contents}")
-                
-                if '/' in filename:
-                    subdir = os.path.join(directory, os.path.dirname(filename))
-                    if os.path.exists(subdir):
-                        subdir_contents = os.listdir(subdir)
-                        logger.debug(f"Contenido del subdirectorio {subdir}: {subdir_contents}")
-            except Exception as e:
-                logger.error(f"Error al listar directorio: {str(e)}")
-            abort(404)
-        
-        try:
-            return send_from_directory(directory, filename)
-        except Exception as e:
-            logger.error(f"Error al servir archivo: {str(e)}")
-            logger.exception("Traceback completo:")
-            abort(500)
 
     return app
 

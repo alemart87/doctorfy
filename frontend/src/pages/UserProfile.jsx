@@ -257,7 +257,7 @@ const UserProfile = () => {
   // Quita '/api' si tu variable REACT_APP_BACKEND_URL ya lo incluye,
   // o mejor, define REACT_APP_BACKEND_URL sin /api.
   // Asumiremos que REACT_APP_BACKEND_URL es solo https://dominio-backend.com
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const apiUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || ''; // Quitar '/api' si está presente
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
@@ -265,8 +265,8 @@ const UserProfile = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              // --- CONSTRUIR URL ABSOLUTA PARA LA IMAGEN ---
-              src={profileData?.profile_picture && backendUrl ? `${backendUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
+              src={profileData?.profile_picture ? 
+                `${apiUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
               alt={profileData?.first_name || profileData?.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />

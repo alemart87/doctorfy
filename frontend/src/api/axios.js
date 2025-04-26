@@ -6,7 +6,7 @@ import axios from 'axios';
 // process.env.NODE_ENV se establece automáticamente por Create React App/Vite
 // process.env.REACT_APP_BACKEND_URL lo defines tú en Render
 const baseURL = process.env.NODE_ENV === 'production'
-  ? `${process.env.REACT_APP_BACKEND_URL}/api` // URL de producción con /api
+  ? process.env.REACT_APP_API_URL  // Usar la variable que ya tienes configurada
   : 'http://localhost:5000/api'; // URL local para desarrollo
 
 const api = axios.create({
