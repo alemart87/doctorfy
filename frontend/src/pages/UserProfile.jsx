@@ -203,21 +203,26 @@ const UserProfile = () => {
 
   const handleProfilePictureUpdate = async (file) => {
     try {
-      const { data } = await uploadPicture(file); // Llama a la función que usa la instancia 'api'
-      console.log("Respuesta de upload-profile-picture:", data);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data } = await api.post('/profile/upload-profile-picture', 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
       if (data && data.profile_picture) {
         setProfileData(prev => ({
           ...prev,
           profile_picture: data.profile_picture
         }));
-        setPictureDialogOpen(false);
-      } else {
-        console.error("La respuesta de la API no contenía 'profile_picture'.");
       }
-    } catch (err) {
-      console.error('Error al actualizar imagen de perfil:', err);
-      // Considera mostrar un mensaje de error al usuario
-      // setError('No se pudo actualizar la foto de perfil.');
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
