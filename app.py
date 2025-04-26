@@ -47,6 +47,7 @@ allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https
 
 # Definir las rutas de almacenamiento (solo definir las variables, no configurar app todavía)
 UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
+print(f"***** UPLOAD_FOLDER establecido en: {UPLOAD_FOLDER} *****") # <-- LOG 1
 MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
 NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
 
@@ -100,6 +101,7 @@ def create_app(config_class=Config):
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
     app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
+    print(f"***** app.config['UPLOAD_FOLDER'] dentro de create_app: {app.config['UPLOAD_FOLDER']} *****") # <-- LOG 2
     
     # Inicializar extensiones
     db.init_app(app)
@@ -254,23 +256,32 @@ def create_app(config_class=Config):
         if file:
             # --- IMPORTANTE: Asegúrate que secure_filename esté importado ---
             # from werkzeug.utils import secure_filename
-            filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}") # Nombre único con extensión original
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}")
+            # --- LOG ANTES DE GUARDAR ---
+            save_dir = app.config['UPLOAD_FOLDER'] # Usar la config de la app
+            # --- Crear subdirectorio si no existe ---
+            profile_pics_dir = os.path.join(save_dir, 'profile_pics')
+            os.makedirs(profile_pics_dir, exist_ok=True) # Asegura que profile_pics/ exista
+            # --- Guardar en el subdirectorio ---
+            save_path = os.path.join(profile_pics_dir, filename)
+            print(f"***** Intentando guardar foto de perfil en: {save_path} *****") # <-- LOG 3
             try:
                 file.save(save_path)
-                print(f"Archivo guardado en: {save_path}") # Log para confirmar la ruta
+                print(f"***** Archivo guardado exitosamente en: {save_path} *****") # <-- LOG 4
 
-                # Actualizar base de datos
-                user.profile_picture = filename
+                # --- Guardar ruta relativa con subdirectorio en DB ---
+                db_path = os.path.join('profile_pics', filename).replace('\\', '/') # Asegurar formato /
+                user.profile_picture = db_path
                 db.session.commit()
+                print(f"***** Ruta guardada en DB: {db_path} *****") # <-- LOG 5
 
                 return jsonify({
                     "message": "Foto de perfil actualizada con éxito",
-                    "profile_picture": filename
+                    "profile_picture": db_path # Devolver la ruta relativa correcta
                 }), 200
             except Exception as e:
                 db.session.rollback()
-                print(f"Error al guardar archivo o actualizar DB: {e}")
+                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****") # <-- LOG 6
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
         else:
             # Esta condición 'else' probablemente nunca se alcance si file.filename != ''
@@ -280,16 +291,29 @@ def create_app(config_class=Config):
     # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
     @app.route('/uploads/<path:filename>')
     def serve_upload(filename):
-        print(f"Intentando servir archivo: {filename} desde {app.config['UPLOAD_FOLDER']}") # Log para depurar
+        directory = app.config['UPLOAD_FOLDER']
+        full_path = os.path.join(directory, filename)
+        print(f"***** Intentando servir archivo: {filename} *****") # <-- LOG 7
+        print(f"***** Buscando en directorio: {directory} *****") # <-- LOG 8
+        print(f"***** Ruta absoluta calculada: {full_path} *****") # <-- LOG 9
+        exists = os.path.exists(full_path)
+        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****") # <-- LOG 10
+        if not exists:
+             # Intenta listar el contenido del directorio para depurar
+             try:
+                 print(f"***** Contenido de {directory}: {os.listdir(directory)} *****")
+                 # Intenta listar subdirectorios si filename tiene /
+                 if '/' in filename:
+                     subdir = os.path.join(directory, os.path.dirname(filename))
+                     if os.path.exists(subdir):
+                          print(f"***** Contenido de {subdir}: {os.listdir(subdir)} *****")
+             except Exception as e:
+                 print(f"***** Error al listar directorio: {e} *****")
+             abort(404) # Abortar si no existe
         try:
-            # --- SERVIR DESDE LA RUTA CORRECTA ---
-            # --- IMPORTANTE: Asegúrate que send_from_directory esté importado ---
-            # from flask import send_from_directory
-            return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-        except FileNotFoundError:
-            print(f"Archivo no encontrado: {filename} en {app.config['UPLOAD_FOLDER']}")
-            # Considera devolver una imagen por defecto o un 404
-            # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
+            return send_from_directory(directory, filename)
+        except FileNotFoundError: # Doble chequeo, aunque ya hicimos os.path.exists
+            print(f"***** FileNotFoundError al intentar servir: {filename} desde {directory} *****") # <-- LOG 11
             abort(404)
 
     return app
