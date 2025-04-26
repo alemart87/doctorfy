@@ -262,27 +262,35 @@ const UserProfile = () => {
 
   const handleSaveProfilePicture = async (formData) => {
     try {
-      const response = await api.post('/profile/upload-profile-picture', formData, {
+      // Enviar la solicitud sin esperar la respuesta
+      const uploadPromise = api.post('/profile/upload-profile-picture', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      // Actualizar el estado local y global inmediatamente
-      setProfileData(prev => ({
-        ...prev,
-        profile_picture: response.data.profile_picture
-      }));
+      // Actualizar la UI inmediatamente con un placeholder o la imagen anterior
+      // Esto evita que la UI intente cargar una imagen que aún no está disponible
       
-      setUser(prev => ({
-        ...prev,
-        profile_picture: response.data.profile_picture
-      }));
+      // Manejar la respuesta en segundo plano
+      uploadPromise.then(response => {
+        // Actualizar el estado después de un retraso para dar tiempo a que la imagen esté disponible
+        setTimeout(() => {
+          setProfileData(prev => ({
+            ...prev,
+            profile_picture: response.data.profile_picture
+          }));
+          
+          setUser(prev => ({
+            ...prev,
+            profile_picture: response.data.profile_picture
+          }));
+        }, 2000); // Esperar 2 segundos antes de intentar mostrar la nueva imagen
+      }).catch(error => {
+        console.error('Error en segundo plano:', error);
+      });
       
-      // Cerrar el diálogo desde aquí
-      setPictureDialogOpen(false);
-      
-      return response;
+      return uploadPromise;
     } catch (error) {
       console.error('Error al subir imagen:', error);
       throw error;
@@ -294,8 +302,14 @@ const UserProfile = () => {
 
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
-    // Usar el timestamp de sesión en lugar de uno nuevo cada vez
-    return `${UPLOADS_URL}/${profilePicture}?v=${sessionTimestamp}`;
+    
+    try {
+      // Usar un timestamp de sesión para evitar problemas de caché
+      return `${UPLOADS_URL}/${profilePicture}?v=${sessionTimestamp}`;
+    } catch (error) {
+      console.error('Error al generar URL de imagen:', error);
+      return null;
+    }
   };
 
   return (
@@ -307,6 +321,12 @@ const UserProfile = () => {
               src={getProfilePictureUrl(profileData?.profile_picture)}
               alt={profileData?.first_name || profileData?.email}
               sx={{ width: 150, height: 150, mb: 2 }}
+              imgProps={{
+                onError: (e) => {
+                  console.log('Error al cargar imagen, usando fallback');
+                  e.target.src = null; // Usar el fallback de Avatar
+                }
+              }}
             />
             <Button 
               variant="outlined" 

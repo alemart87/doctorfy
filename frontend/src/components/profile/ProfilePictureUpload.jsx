@@ -57,13 +57,22 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       
-      // Subir la imagen y cerrar inmediatamente
-      await onSave(formData);
+      // Subir la imagen sin esperar la respuesta completa
+      onSave(formData)
+        .then(() => {
+          // Cerrar el diálogo independientemente del resultado
+          handleClose();
+        })
+        .catch(err => {
+          console.error('Error en segundo plano:', err);
+        });
+        
+      // Cerrar el diálogo inmediatamente sin esperar
       handleClose();
       
     } catch (error) {
       console.error('Error al subir imagen:', error);
-      setError('Error al subir la imagen. Por favor, intenta de nuevo.');
+      setError('Error al subir la imagen');
     } finally {
       setLoading(false);
     }
