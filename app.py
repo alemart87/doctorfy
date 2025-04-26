@@ -78,7 +78,10 @@ def ensure_upload_dirs(app):
         os.makedirs(os.path.join(app.root_path, dir_path), exist_ok=True)
 
 def create_app(config_class=Config):
-    app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
+    app = Flask(__name__,
+                static_folder='frontend/build/static', # Carpeta para JS, CSS, etc.
+                template_folder='frontend/build' # Para servir index.html si usas render_template
+               )
     app.config.from_object(config_class)
     
     # Configuración de la base de datos
@@ -291,6 +294,24 @@ def create_app(config_class=Config):
             # Considera devolver una imagen por defecto o un 404
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
+
+    # --- Ruta para servir el index.html del frontend ---
+    # Esta ruta debe ir DESPUÉS de tus blueprints de API
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_react_app(path):
+        # Si la ruta parece un archivo estático dentro de la build, déjalo pasar
+        # (Flask lo manejará con static_folder si está configurado)
+        # O si static_folder es solo para /static, necesitas servirlo explícitamente
+        # if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        #    return send_from_directory(app.static_folder, path)
+
+        # Para cualquier otra ruta (o la raíz), sirve el index.html principal
+        # Esto permite que React Router maneje el enrutamiento en el cliente
+        build_dir = os.path.join(app.root_path, 'frontend/build')
+        if not os.path.exists(os.path.join(build_dir, 'index.html')):
+             return "Frontend build not found!", 404 # Error si no existe
+        return send_from_directory(build_dir, 'index.html')
 
     return app
 
