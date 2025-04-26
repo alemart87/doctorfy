@@ -264,16 +264,16 @@ def create_app(config_class=Config):
             os.makedirs(profile_pics_dir, exist_ok=True) # Asegura que profile_pics/ exista
             # --- Guardar en el subdirectorio ---
             save_path = os.path.join(profile_pics_dir, filename)
-            print(f"***** Intentando guardar foto de perfil en: {save_path} *****") # <-- LOG 3
+            print(f"***** Intentando guardar foto de perfil en: {save_path} *****", flush=True) # <-- LOG 3
             try:
                 file.save(save_path)
-                print(f"***** Archivo guardado exitosamente en: {save_path} *****") # <-- LOG 4
+                print(f"***** Archivo guardado exitosamente en: {save_path} *****", flush=True) # <-- LOG 4
 
                 # --- Guardar ruta relativa con subdirectorio en DB ---
                 db_path = os.path.join('profile_pics', filename).replace('\\', '/') # Asegurar formato /
                 user.profile_picture = db_path
                 db.session.commit()
-                print(f"***** Ruta guardada en DB: {db_path} *****") # <-- LOG 5
+                print(f"***** Ruta guardada en DB: {db_path} *****", flush=True) # <-- LOG 5
 
                 return jsonify({
                     "message": "Foto de perfil actualizada con éxito",
@@ -281,7 +281,10 @@ def create_app(config_class=Config):
                 }), 200
             except Exception as e:
                 db.session.rollback()
-                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****") # <-- LOG 6
+                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****", flush=True) # <-- LOG 6
+                # Considera imprimir traceback completo para más detalles del error
+                import traceback
+                traceback.print_exc()
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
         else:
             # Esta condición 'else' probablemente nunca se alcance si file.filename != ''
@@ -293,27 +296,27 @@ def create_app(config_class=Config):
     def serve_upload(filename):
         directory = app.config['UPLOAD_FOLDER']
         full_path = os.path.join(directory, filename)
-        print(f"***** Intentando servir archivo: {filename} *****") # <-- LOG 7
-        print(f"***** Buscando en directorio: {directory} *****") # <-- LOG 8
-        print(f"***** Ruta absoluta calculada: {full_path} *****") # <-- LOG 9
+        print(f"***** Intentando servir archivo: {filename} *****", flush=True) # <-- LOG 7
+        print(f"***** Buscando en directorio: {directory} *****", flush=True) # <-- LOG 8
+        print(f"***** Ruta absoluta calculada: {full_path} *****", flush=True) # <-- LOG 9
         exists = os.path.exists(full_path)
-        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****") # <-- LOG 10
+        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****", flush=True) # <-- LOG 10
         if not exists:
              # Intenta listar el contenido del directorio para depurar
              try:
-                 print(f"***** Contenido de {directory}: {os.listdir(directory)} *****")
+                 print(f"***** Contenido de {directory}: {os.listdir(directory)} *****", flush=True)
                  # Intenta listar subdirectorios si filename tiene /
                  if '/' in filename:
                      subdir = os.path.join(directory, os.path.dirname(filename))
                      if os.path.exists(subdir):
-                          print(f"***** Contenido de {subdir}: {os.listdir(subdir)} *****")
+                          print(f"***** Contenido de {subdir}: {os.listdir(subdir)} *****", flush=True)
              except Exception as e:
-                 print(f"***** Error al listar directorio: {e} *****")
+                 print(f"***** Error al listar directorio: {e} *****", flush=True)
              abort(404) # Abortar si no existe
         try:
             return send_from_directory(directory, filename)
         except FileNotFoundError: # Doble chequeo, aunque ya hicimos os.path.exists
-            print(f"***** FileNotFoundError al intentar servir: {filename} desde {directory} *****") # <-- LOG 11
+            print(f"***** FileNotFoundError al intentar servir: {filename} desde {directory} *****", flush=True) # <-- LOG 11
             abort(404)
 
     return app
