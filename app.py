@@ -268,22 +268,29 @@ def create_app(config_class=Config):
             print(f"***** Intentando guardar foto de perfil en: {save_path} *****", flush=True) # <-- LOG 3
             try:
                 file.save(save_path)
-                print(f"***** Archivo guardado exitosamente en: {save_path} *****", flush=True) # <-- LOG 4
+                print(f"***** Archivo supuestamente guardado en: {save_path} *****", flush=True) # LOG 4 (renombrado)
 
-                # --- Guardar ruta relativa con subdirectorio en DB ---
-                db_path = os.path.join('profile_pics', filename).replace('\\', '/') # Asegurar formato /
+                # --- ¡NUEVA COMPROBACIÓN CRÍTICA! ---
+                if os.path.exists(save_path):
+                    print(f"***** CONFIRMADO: El archivo SÍ existe en {save_path} después de save() *****", flush=True) # LOG 4.1
+                else:
+                    print(f"***** ERROR CRÍTICO: El archivo NO existe en {save_path} después de save()! *****", flush=True) # LOG 4.2
+                    # Considera devolver un error aquí en lugar de continuar
+                    # return jsonify({"error": "Fallo interno al verificar el guardado del archivo"}), 500
+                # --- FIN DE LA COMPROBACIÓN ---
+
+                db_path = os.path.join('profile_pics', filename).replace('\\', '/')
                 user.profile_picture = db_path
                 db.session.commit()
-                print(f"***** Ruta guardada en DB: {db_path} *****", flush=True) # <-- LOG 5
+                print(f"***** Ruta guardada en DB: {db_path} *****", flush=True) # LOG 5
 
                 return jsonify({
                     "message": "Foto de perfil actualizada con éxito",
-                    "profile_picture": db_path # Devolver la ruta relativa correcta
+                    "profile_picture": db_path
                 }), 200
             except Exception as e:
                 db.session.rollback()
-                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****", flush=True) # <-- LOG 6
-                # Considera imprimir traceback completo para más detalles del error
+                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****", flush=True) # LOG 6
                 import traceback
                 traceback.print_exc()
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
