@@ -23,6 +23,16 @@ COPY . .
 # Crear directorios necesarios
 RUN mkdir -p uploads/medical_studies uploads/nutrition uploads/profile_pics
 
+# Crear directorio persistente si no existe
+RUN mkdir -p /persistent/uploads/profile_pics \
+    /persistent/uploads/medical_studies \
+    /persistent/uploads/nutrition \
+    /persistent/uploads/doctor_credentials \
+    /persistent/uploads/temp
+
+# Asignar permisos
+RUN chmod -R 777 /persistent
+
 # Exponer el puerto que usará la aplicación
 EXPOSE $PORT
 

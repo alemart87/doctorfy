@@ -86,12 +86,9 @@ def update_profile():
 def upload_profile_picture():
     try:
         if 'file' not in request.files:
-            print("No file part in request")  # Para depuración
             return jsonify({'error': 'No se envió ningún archivo'}), 400
 
         file = request.files['file']
-        print(f"Received file: {file.filename}")  # Para depuración
-        
         if file.filename == '':
             return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
             
@@ -107,7 +104,7 @@ def upload_profile_picture():
         # Eliminar la foto anterior si existe
         if user.profile_picture:
             try:
-                old_picture_path = os.path.join(current_app.root_path, 'uploads', user.profile_picture)
+                old_picture_path = os.path.join(current_app.config['UPLOAD_FOLDER'], user.profile_picture)
                 if os.path.exists(old_picture_path):
                     os.remove(old_picture_path)
             except Exception as e:
@@ -115,23 +112,23 @@ def upload_profile_picture():
 
         # Generar nombre de archivo único
         filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4()}_{filename}"
+        unique_filename = f"profile_pics/user_{current_user_id}_{uuid.uuid4()}_{filename}"
         
         # Guardar el archivo
-        file_path = os.path.join(current_app.root_path, 'uploads', 'profile_pics', unique_filename)
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(file_path)
         
         # Actualizar la base de datos
-        user.profile_picture = f"profile_pics/{unique_filename}"
+        user.profile_picture = unique_filename
         db.session.commit()
         
         return jsonify({
             'message': 'Foto de perfil actualizada con éxito',
-            'profile_picture': user.profile_picture
+            'profile_picture': unique_filename
         }), 200
         
     except Exception as e:
-        print(f"Error al subir foto de perfil: {str(e)}")  # Para depuración
+        print(f"Error al subir foto de perfil: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 

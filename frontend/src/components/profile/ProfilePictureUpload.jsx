@@ -43,24 +43,24 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedFile) {
       setError('Por favor, selecciona una imagen');
       return;
     }
     
-    (async () => {
-      try {
-        setLoading(true);
-        // enviamos EL ARCHIVO, no FormData
-        await Promise.resolve(onSave(selectedFile));
-      } finally {
-        setLoading(false);
-        setSelectedFile(null);
-        setPreview(null);
-        setError(null);
-      }
-    })();
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      await onSave(formData);
+      handleClose();
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      setError('Error al subir la imagen');
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleClose = () => {

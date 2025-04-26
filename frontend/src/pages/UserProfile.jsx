@@ -47,9 +47,10 @@ import ActivityList from '../components/profile/ActivityList';
 import WeightChart from '../components/profile/WeightChart';
 import BloodPressureChart from '../components/profile/BloodPressureChart';
 import HealthAnalysis from '../components/profile/HealthAnalysis';
+import { UPLOADS_URL } from '../config';
 
 const UserProfile = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -259,14 +260,38 @@ const UserProfile = () => {
   // Asumiremos que REACT_APP_BACKEND_URL es solo https://dominio-backend.com
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
+  const handleSaveProfilePicture = async (formData) => {
+    try {
+      const response = await api.post('/profile/upload-profile-picture', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Actualizar el estado global con la nueva imagen
+      setUser(prev => ({
+        ...prev,
+        profile_picture: response.data.profile_picture
+      }));
+      
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const getProfilePictureUrl = (profilePicture) => {
+    if (!profilePicture) return null;
+    return `${UPLOADS_URL}/${profilePicture}?t=${Date.now()}`;
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              // --- CONSTRUIR URL ABSOLUTA PARA LA IMAGEN ---
-              src={profileData?.profile_picture && backendUrl ? `${backendUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
+              src={getProfilePictureUrl(profileData?.profile_picture)}
               alt={profileData?.first_name || profileData?.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />
@@ -603,7 +628,7 @@ const UserProfile = () => {
       <ProfilePictureUpload 
         open={pictureDialogOpen}
         onClose={() => setPictureDialogOpen(false)}
-        onSave={handleProfilePictureUpdate}
+        onSave={handleSaveProfilePicture}
       />
     </Container>
   );

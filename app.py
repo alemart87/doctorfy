@@ -45,15 +45,6 @@ serve_frontend = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
 # Obtener orígenes permitidos de las variables de entorno
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://doctorfy-frontend.onrender.com').split(',')
 
-# Definir las rutas de almacenamiento (solo definir las variables, no configurar app todavía)
-UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
-MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
-NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
-
-# Crear directorios si no existen
-os.makedirs(MEDICAL_STUDIES_FOLDER, exist_ok=True)
-os.makedirs(NUTRITION_IMAGES_FOLDER, exist_ok=True)
-
 # Al inicio de tu archivo app.py, después de importar stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
@@ -62,20 +53,31 @@ stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMb
 logger = logging.getLogger('doctorfy')
 
 def ensure_upload_dirs(app):
-    """
-    Asegura que existan todos los directorios necesarios para uploads
-    """
-    upload_dirs = [
-        'uploads',
-        'uploads/medical_studies',
-        'uploads/nutrition',
-        'uploads/profile_pics',
-        'uploads/doctor_credentials',
-        'uploads/temp'
-    ]
+    """Asegura que existan todos los directorios necesarios para uploads"""
+    # En Render, usar /persistent/uploads, en local usar la carpeta del proyecto
+    if os.path.exists('/persistent'):
+        base_upload_dir = '/persistent/uploads'
+        app.config['UPLOADS_SERVE_PATH'] = '/persistent/uploads'  # Para servir archivos
+    else:
+        base_upload_dir = os.path.join(app.root_path, 'uploads')
+        app.config['UPLOADS_SERVE_PATH'] = os.path.join(app.root_path, 'uploads')
+
+    app.config['UPLOAD_FOLDER'] = base_upload_dir
+
+    # Definir y crear todos los subdirectorios necesarios
+    upload_dirs = {
+        'MEDICAL_STUDIES_FOLDER': 'medical_studies',
+        'NUTRITION_IMAGES_FOLDER': 'nutrition',
+        'PROFILE_PICS_FOLDER': 'profile_pics',
+        'DOCTOR_CREDENTIALS_FOLDER': 'doctor_credentials',
+        'TEMP_FOLDER': 'temp'
+    }
     
-    for dir_path in upload_dirs:
-        os.makedirs(os.path.join(app.root_path, dir_path), exist_ok=True)
+    # Crear directorios y configurar rutas
+    for config_key, subdir in upload_dirs.items():
+        full_path = os.path.join(base_upload_dir, subdir)
+        app.config[config_key] = full_path
+        os.makedirs(full_path, exist_ok=True)
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
@@ -95,11 +97,6 @@ def create_app(config_class=Config):
     
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
-    
-    # MOVER ESTA CONFIGURACIÓN AQUÍ
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
-    app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
     
     # Inicializar extensiones
     db.init_app(app)
@@ -221,8 +218,14 @@ def create_app(config_class=Config):
     @app.route('/uploads/<path:filename>')
     def uploaded_files(filename):
         """Devuelve cualquier archivo dentro de la carpeta uploads/"""
-        uploads_dir = os.path.join(app.root_path, 'uploads')
-        return send_from_directory(uploads_dir, filename, as_attachment=False)
+        try:
+            return send_from_directory(
+                app.config['UPLOADS_SERVE_PATH'], 
+                filename, 
+                as_attachment=False
+            )
+        except FileNotFoundError:
+            abort(404)
 
     # ──  IGNORAR JWT SÓLO EN PRE‑FLIGHT (OPTIONS) ────────────────
     @app.before_request

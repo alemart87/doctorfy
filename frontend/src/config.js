@@ -1,6 +1,10 @@
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://doctorfy.onrender.com/api'  // URL de tu backend en Render (con /api)
-  : 'http://localhost:5000/api';         // URL local para desarrollo
+const BACKEND_URL = process.env.NODE_ENV === 'production'
+  ? process.env.REACT_APP_BACKEND_URL || 'https://doctorfy.onrender.com'
+  : process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+const API_URL = `${BACKEND_URL}/api`;
+
+export const UPLOADS_URL = `${BACKEND_URL}/uploads`;
 
 export const endpoints = {
   auth: {
@@ -21,6 +25,9 @@ export const endpoints = {
     directory: `${API_URL}/doctors/directory`,
     subscribe: `${API_URL}/doctors/subscribe`,
   },
+  profile: {
+    uploadPicture: `${API_URL}/profile/upload-profile-picture`,
+  }
 };
 
 const config = {
