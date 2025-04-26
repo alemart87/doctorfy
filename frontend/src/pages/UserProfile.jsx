@@ -267,31 +267,8 @@ const UserProfile = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      // Función de reintento para cargar la imagen
-      const retryLoadImage = async (url, maxRetries = 5, delay = 1000) => {
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-          try {
-            await new Promise((resolve, reject) => {
-              const img = new Image();
-              img.onload = resolve;
-              img.onerror = reject;
-              img.src = url;
-            });
-            return true; // Imagen cargada exitosamente
-          } catch (err) {
-            if (attempt === maxRetries - 1) throw err;
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-        }
-        return false;
-      };
-
-      // Intentar cargar la imagen con reintentos
-      const newImageUrl = getProfilePictureUrl(response.data.profile_picture);
-      await retryLoadImage(newImageUrl);
-
-      // Si llegamos aquí, la imagen se cargó correctamente
+      
+      // Actualizar el estado local y global inmediatamente
       setProfileData(prev => ({
         ...prev,
         profile_picture: response.data.profile_picture
@@ -302,18 +279,23 @@ const UserProfile = () => {
         profile_picture: response.data.profile_picture
       }));
       
+      // Cerrar el diálogo desde aquí
+      setPictureDialogOpen(false);
+      
       return response;
     } catch (error) {
-      console.error('Error al subir o cargar imagen:', error);
-      throw new Error('No se pudo actualizar la imagen. Por favor, intenta de nuevo.');
+      console.error('Error al subir imagen:', error);
+      throw error;
     }
   };
 
+  // Crear un timestamp único para esta sesión
+  const sessionTimestamp = Date.now();
+
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
-    const timestamp = Date.now();
-    const url = `${UPLOADS_URL}/${profilePicture}?v=${timestamp}`;
-    return url;
+    // Usar el timestamp de sesión en lugar de uno nuevo cada vez
+    return `${UPLOADS_URL}/${profilePicture}?v=${sessionTimestamp}`;
   };
 
   return (

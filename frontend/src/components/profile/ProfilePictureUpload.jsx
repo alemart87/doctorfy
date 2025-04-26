@@ -52,30 +52,18 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
     
     try {
       setLoading(true);
-      setUploadStatus('uploading');
       setError(null);
       
       const formData = new FormData();
       formData.append('file', selectedFile);
       
+      // Subir la imagen y cerrar inmediatamente
       await onSave(formData);
-      
-      setUploadStatus('success');
-      // Esperar un momento antes de cerrar para mostrar el éxito
-      setTimeout(() => {
-        handleClose();
-      }, 1500); // Aumentado a 1.5 segundos para mejor feedback
+      handleClose();
       
     } catch (error) {
       console.error('Error al subir imagen:', error);
       setError('Error al subir la imagen. Por favor, intenta de nuevo.');
-      setUploadStatus('error');
-      
-      // Mantener el diálogo abierto por un momento para mostrar el error
-      setTimeout(() => {
-        setError(null);
-        setUploadStatus('idle');
-      }, 3000);
     } finally {
       setLoading(false);
     }
