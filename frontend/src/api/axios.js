@@ -1,13 +1,17 @@
 import axios from 'axios';
-import config from '../config';
+// Eliminar import de config si ya no se usa para API_URL
+// import config from '../config';
 
-// Determinar la URL base según el entorno
-const baseURL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:5000/api';
+// --- USAR LA VARIABLE DE ENTORNO PARA LA BASE URL ---
+// process.env.NODE_ENV se establece automáticamente por Create React App/Vite
+// process.env.REACT_APP_BACKEND_URL lo defines tú en Render
+const baseURL = process.env.NODE_ENV === 'production'
+  ? `${process.env.REACT_APP_BACKEND_URL}/api` // URL de producción con /api
+  : 'http://localhost:5000/api'; // URL local para desarrollo
 
 const api = axios.create({
-    baseURL: config.API_URL,
+    // baseURL: config.API_URL, // <-- Reemplazar esto
+    baseURL: baseURL,          // <-- Con esto
     headers: {
         'Content-Type': 'application/json'
     },
@@ -63,18 +67,14 @@ api.interceptors.response.use(
         
         // Si el error es 401 (Unauthorized) o 422 (Token expirado), cerrar sesión
         if (error.response && (error.response.status === 401 || error.response.status === 422)) {
-            console.warn('Error de autenticación, redirigiendo a login');
-            
-            // Mostrar mensaje al usuario
-            alert('Su sesión ha expirado o es inválida. Será redirigido a la página de inicio de sesión.');
-            
-            // Limpiar token
+            console.error("Unauthorized or Unprocessable Entity:", error.response.data);
+            // Considera usar un estado global o contexto para manejar la redirección
+            // en lugar de window.location.href directamente aquí.
+            // alert('Su sesión ha expirado o es inválida. Será redirigido a la página de inicio de sesión.');
             localStorage.removeItem('token');
-            
-            // Redirigir a login después de un breve retraso
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 1000);
+            // setTimeout(() => {
+            //     window.location.href = '/login'; // Esto puede causar problemas en SPA
+            // }, 1000);
         }
         return Promise.reject(error);
     }

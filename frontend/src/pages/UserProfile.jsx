@@ -191,19 +191,19 @@ const UserProfile = () => {
   const uploadPicture = async (file) => {
     const fd = new FormData();
     fd.append('file', file, file.name);
-
-    // usamos axios "crudo" para que no herede Content-Type:application/json
-    const token = localStorage.getItem('token');
-    return (await import('axios')).default.post(
-      '/api/profile/upload-profile-picture',
-      fd,
-      { headers: { Authorization:`Bearer ${token}` } }
-    );
+    // Usa la instancia 'api' que ya tiene la baseURL correcta y el interceptor de token
+    return await api.post('/profile/upload-profile-picture', fd, {
+        // No necesitas 'axios crudo' ni añadir token manualmente si usas la instancia 'api'
+        headers: {
+            // Axios debería detectar FormData y establecer Content-Type correctamente
+            // 'Content-Type': 'multipart/form-data', // Generalmente no necesario con FormData
+        }
+    });
   };
 
   const handleProfilePictureUpdate = async (file) => {
     try {
-      const { data } = await uploadPicture(file);
+      const { data } = await uploadPicture(file); // Llama a la función que usa la instancia 'api'
       console.log("Respuesta de upload-profile-picture:", data);
       if (data && data.profile_picture) {
         setProfileData(prev => ({
@@ -212,10 +212,12 @@ const UserProfile = () => {
         }));
         setPictureDialogOpen(false);
       } else {
-        console.error("La respuesta de la API no contenía el nuevo nombre de archivo 'profile_picture'.");
+        console.error("La respuesta de la API no contenía 'profile_picture'.");
       }
     } catch (err) {
       console.error('Error al actualizar imagen de perfil:', err);
+      // Considera mostrar un mensaje de error al usuario
+      // setError('No se pudo actualizar la foto de perfil.');
     }
   };
 
@@ -251,14 +253,21 @@ const UserProfile = () => {
     );
   }
   
+  // --- Obtener la URL base del backend (SIN /api) ---
+  // Quita '/api' si tu variable REACT_APP_BACKEND_URL ya lo incluye,
+  // o mejor, define REACT_APP_BACKEND_URL sin /api.
+  // Asumiremos que REACT_APP_BACKEND_URL es solo https://dominio-backend.com
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              src={profileData.profile_picture ? `/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
-              alt={profileData.first_name || profileData.email}
+              // --- CONSTRUIR URL ABSOLUTA PARA LA IMAGEN ---
+              src={profileData?.profile_picture && backendUrl ? `${backendUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
+              alt={profileData?.first_name || profileData?.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />
             <Button 
