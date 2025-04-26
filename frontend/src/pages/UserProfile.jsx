@@ -71,6 +71,9 @@ const UserProfile = () => {
   const [bloodPressureRecords, setBloodPressureRecords] = useState([]);
   const [healthAnalysis, setHealthAnalysis] = useState(null);
   
+  // --- Obtener la URL base del backend ---
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  
   // Cargar datos del perfil
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -212,7 +215,7 @@ const UserProfile = () => {
         }));
         setPictureDialogOpen(false);
       } else {
-        console.error("La respuesta de la API no contenía el nuevo nombre de archivo 'profile_picture'.");
+        console.error("La respuesta de la API no contenía 'profile_picture'.");
       }
     } catch (err) {
       console.error('Error al actualizar imagen de perfil:', err);
@@ -257,7 +260,7 @@ const UserProfile = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
-              src={profileData.profile_picture ? `/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
+              src={profileData.profile_picture ? `${backendUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
               alt={profileData.first_name || profileData.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />

@@ -78,15 +78,8 @@ def ensure_upload_dirs(app):
         os.makedirs(os.path.join(app.root_path, dir_path), exist_ok=True)
 
 def create_app(config_class=Config):
-    # --- Determinar si servir frontend ---
-    serve_frontend_env = os.environ.get('SERVE_FRONTEND', 'true').lower() != 'false'
-
-    # --- Configurar static_folder basado en SERVE_FRONTEND ---
-    static_dir = 'frontend/build' if serve_frontend_env else None
-    app = Flask(__name__,
-                static_folder=static_dir, # Apunta a la carpeta build del frontend
-                static_url_path='/')      # Sirve desde la raíz
-
+    # Flask ya NO necesita saber sobre static_folder para el frontend
+    app = Flask(__name__)
     app.config.from_object(config_class)
     
     # Configuración de la base de datos
@@ -227,92 +220,13 @@ def create_app(config_class=Config):
     #  Ej.:  /uploads/profile_pics/1234.jpg
     # ──────────────────────────────────────────────────────────────
     @app.route('/uploads/<path:filename>')
-    def uploaded_files(filename):
-        """Devuelve cualquier archivo dentro de la carpeta uploads/"""
-        uploads_dir = os.path.join(app.root_path, 'uploads')
-        return send_from_directory(uploads_dir, filename, as_attachment=False)
-
-    # ──  IGNORAR JWT SÓLO EN PRE‑FLIGHT (OPTIONS) ────────────────
-    @app.before_request
-    def skip_jwt_on_options():
-        if request.method == "OPTIONS":
-            # simplemente devolvemos 200; CORS se maneja por Flask‑CORS
-            return Response(status=200)
-        # el resto de métodos continúan normalmente;
-        # la verificación se hará únicamente en las rutas con @jwt_required
-
-    # --- Ruta para Subir Foto de Perfil ---
-    @app.route('/api/profile/upload-profile-picture', methods=['POST'])
-    @jwt_required()
-    def upload_profile_picture():
-        user_id = get_jwt_identity()
-        # --- IMPORTANTE: Asegúrate que User y db estén disponibles aquí ---
-        # from models import User, db # Podrías necesitar importar aquí si no están globales
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "Usuario no encontrado"}), 404
-
-        if 'file' not in request.files:
-            return jsonify({"error": "No se encontró el archivo"}), 400
-
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No se seleccionó ningún archivo"}), 400
-
-        if file:
-            # --- IMPORTANTE: Asegúrate que secure_filename esté importado ---
-            # from werkzeug.utils import secure_filename
-            filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}") # Nombre único con extensión original
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            try:
-                file.save(save_path)
-                print(f"Archivo guardado en: {save_path}") # Log para confirmar la ruta
-
-                # Actualizar base de datos
-                user.profile_picture = filename
-                db.session.commit()
-
-                return jsonify({
-                    "message": "Foto de perfil actualizada con éxito",
-                    "profile_picture": filename
-                }), 200
-            except Exception as e:
-                db.session.rollback()
-                print(f"Error al guardar archivo o actualizar DB: {e}")
-                return jsonify({"error": "Error interno al guardar la foto"}), 500
-        else:
-            # Esta condición 'else' probablemente nunca se alcance si file.filename != ''
-            return jsonify({"error": "Archivo inválido"}), 400
-
-
-    # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
-    @app.route('/uploads/<path:filename>')
     def serve_upload(filename):
-        print(f"Intentando servir archivo: {filename} desde {app.config['UPLOAD_FOLDER']}") # Log para depurar
+        print(f"Intentando servir archivo: {filename} desde {app.config['UPLOAD_FOLDER']}")
         try:
-            # --- SERVIR DESDE LA RUTA CORRECTA ---
-            # --- IMPORTANTE: Asegúrate que send_from_directory esté importado ---
-            # from flask import send_from_directory
             return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
         except FileNotFoundError:
             print(f"Archivo no encontrado: {filename} en {app.config['UPLOAD_FOLDER']}")
-            # Considera devolver una imagen por defecto o un 404
-            # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
-
-    # --- Ruta Catch-all para servir index.html del frontend (SPA) ---
-    # --- Solo si Flask está sirviendo el frontend ---
-    if serve_frontend_env and static_dir:
-        @app.route('/', defaults={'path': ''})
-        @app.route('/<path:path>')
-        def serve(path):
-            full_path = os.path.join(app.static_folder, path)
-            if path != "" and os.path.exists(full_path):
-                # Sirve el archivo estático si existe (CSS, JS, imágenes)
-                return send_from_directory(app.static_folder, path)
-            else:
-                # Sirve index.html para cualquier otra ruta (manejo de rutas de React)
-                return send_from_directory(app.static_folder, 'index.html')
 
     return app
 
