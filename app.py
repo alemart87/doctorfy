@@ -32,6 +32,7 @@ import json
 from xml.etree.ElementTree import Element, SubElement, tostring
 from sqlalchemy import func
 import logging
+import sys
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -49,7 +50,15 @@ allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_nhLYQiMMbtBVZhc3miya0R2s2vTbLEy')
 
-# Al inicio del archivo, después de las importaciones
+# Configuración básica de logging
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.DEBUG,
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Crear un logger específico para la aplicación
 logger = logging.getLogger('doctorfy')
 
 def ensure_upload_dirs(app):
@@ -243,55 +252,64 @@ def create_app(config_class=Config):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         if not user:
+            logger.error(f"Usuario no encontrado: {user_id}")
             return jsonify({"error": "Usuario no encontrado"}), 404
 
         if 'file' not in request.files:
+            logger.warning("No se encontró archivo en la solicitud")
             return jsonify({"error": "No se encontró el archivo"}), 400
 
         file = request.files['file']
         if file.filename == '':
+            logger.warning("Nombre de archivo vacío")
             return jsonify({"error": "No se seleccionó ningún archivo"}), 400
 
         if file:
-            # --- MEJOR MANEJO DEL NOMBRE DE ARCHIVO ---
+            # Manejo del nombre de archivo
             name, ext = os.path.splitext(file.filename)
             filename = secure_filename(f"user_{user_id}_{name}{ext}")
+            logger.info(f"Nombre de archivo generado: {filename}")
 
-            # --- CONSTRUIR Y VERIFICAR RUTAS ---
-            save_dir = app.config['UPLOAD_FOLDER']  # Debe ser /persistent/uploads
+            # Construir rutas
+            save_dir = app.config['UPLOAD_FOLDER']
             profile_pics_dir = os.path.join(save_dir, 'profile_pics')
-            os.makedirs(profile_pics_dir, exist_ok=True)
+            
+            try:
+                os.makedirs(profile_pics_dir, exist_ok=True)
+                logger.debug(f"Directorio asegurado: {profile_pics_dir}")
+            except Exception as e:
+                logger.error(f"Error al crear directorio: {str(e)}")
+                return jsonify({"error": "Error al preparar directorio"}), 500
 
-            # --- RUTA COMPLETA PARA GUARDAR ---
             save_path = os.path.join(profile_pics_dir, filename)
-            print(f"💾 Intentando guardar archivo en: {save_path}", flush=True)
+            logger.info(f"💾 Intentando guardar archivo en: {save_path}")
 
             try:
-                # Guardar el archivo
                 file.save(save_path)
-
-                # Verificación inmediata
+                
                 if os.path.exists(save_path):
-                    print(f"✅ ÉXITO: Archivo guardado en {save_path}", flush=True)
-                    # Actualizar DB solo si el archivo existe
+                    logger.info(f"✅ Archivo guardado exitosamente en: {save_path}")
+                    file_size = os.path.getsize(save_path)
+                    logger.debug(f"Tamaño del archivo: {file_size} bytes")
+
+                    # Actualizar DB
                     db_path = os.path.join('profile_pics', filename).replace('\\', '/')
                     user.profile_picture = db_path
                     db.session.commit()
-                    print(f"✅ DB actualizada con ruta: {db_path}", flush=True)
+                    logger.info(f"✅ Base de datos actualizada con ruta: {db_path}")
 
                     return jsonify({
                         "message": "Foto de perfil actualizada con éxito",
                         "profile_picture": db_path
                     }), 200
                 else:
-                    print(f"❌ ERROR: Archivo no encontrado después de guardar en {save_path}", flush=True)
+                    logger.error(f"❌ Archivo no encontrado después de guardar en: {save_path}")
                     return jsonify({"error": "Error al guardar el archivo"}), 500
 
             except Exception as e:
                 db.session.rollback()
-                print(f"❌ ERROR al guardar archivo: {str(e)}", flush=True)
-                import traceback
-                traceback.print_exc()
+                logger.error(f"❌ Error al guardar archivo: {str(e)}")
+                logger.exception("Traceback completo:")
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
 
         return jsonify({"error": "Archivo inválido"}), 400
@@ -299,34 +317,37 @@ def create_app(config_class=Config):
     # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
     @app.route('/uploads/<path:filename>')
     def serve_upload(filename):
-        # --- LOG AL INICIO DE LA RUTA ---
-        print(f"***** RUTA /uploads/ LLAMADA con filename: {filename} *****", flush=True) # <-- NUEVO LOG INICIAL
-
+        logger.info(f"📂 Solicitud de archivo: {filename}")
+        
         directory = app.config['UPLOAD_FOLDER']
         full_path = os.path.join(directory, filename)
-        print(f"***** Intentando servir archivo: {filename} *****", flush=True) # LOG 7
-        print(f"***** Buscando en directorio: {directory} *****", flush=True) # LOG 8
-        print(f"***** Ruta absoluta calculada: {full_path} *****", flush=True) # LOG 9
+        
+        logger.debug(f"Buscando en directorio: {directory}")
+        logger.debug(f"Ruta absoluta calculada: {full_path}")
+        
         exists = os.path.exists(full_path)
-        print(f"***** ¿Existe el archivo en la ruta absoluta?: {exists} *****", flush=True) # LOG 10
+        logger.info(f"{'✅' if exists else '❌'} Archivo {'encontrado' if exists else 'no encontrado'} en: {full_path}")
+        
         if not exists:
-             try:
-                 print(f"***** Contenido de {directory}: {os.listdir(directory)} *****", flush=True)
-                 if '/' in filename:
-                     subdir = os.path.join(directory, os.path.dirname(filename))
-                     if os.path.exists(subdir):
-                          print(f"***** Contenido de {subdir}: {os.listdir(subdir)} *****", flush=True)
-             except Exception as e:
-                 print(f"***** Error al listar directorio: {e} *****", flush=True)
-             abort(404)
+            try:
+                dir_contents = os.listdir(directory)
+                logger.debug(f"Contenido del directorio {directory}: {dir_contents}")
+                
+                if '/' in filename:
+                    subdir = os.path.join(directory, os.path.dirname(filename))
+                    if os.path.exists(subdir):
+                        subdir_contents = os.listdir(subdir)
+                        logger.debug(f"Contenido del subdirectorio {subdir}: {subdir_contents}")
+            except Exception as e:
+                logger.error(f"Error al listar directorio: {str(e)}")
+            abort(404)
+        
         try:
-            # Intenta servir directamente sin chequeos extra por ahora
             return send_from_directory(directory, filename)
-        except Exception as e: # Captura cualquier error al servir
-            print(f"***** ERROR DENTRO de send_from_directory: {e} *****", flush=True)
-            import traceback
-            traceback.print_exc()
-            abort(500) # Devuelve 500 si send_from_directory falla
+        except Exception as e:
+            logger.error(f"Error al servir archivo: {str(e)}")
+            logger.exception("Traceback completo:")
+            abort(500)
 
     return app
 
