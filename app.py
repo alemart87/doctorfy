@@ -47,7 +47,7 @@ allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https
 
 # Definir las rutas de almacenamiento (solo definir las variables, no configurar app todavía)
 UPLOAD_FOLDER = '/persistent/uploads' if os.path.exists('/persistent') else 'uploads'
-print(f"***** UPLOAD_FOLDER establecido en: {UPLOAD_FOLDER} *****") # <-- LOG 1
+print(f"***** UPLOAD_FOLDER establecido en: {UPLOAD_FOLDER} *****", flush=True) # <-- LOG 1
 MEDICAL_STUDIES_FOLDER = os.path.join(UPLOAD_FOLDER, 'medical_studies')
 NUTRITION_IMAGES_FOLDER = os.path.join(UPLOAD_FOLDER, 'nutrition')
 
@@ -101,7 +101,7 @@ def create_app(config_class=Config):
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['MEDICAL_STUDIES_FOLDER'] = MEDICAL_STUDIES_FOLDER
     app.config['NUTRITION_IMAGES_FOLDER'] = NUTRITION_IMAGES_FOLDER
-    print(f"***** app.config['UPLOAD_FOLDER'] dentro de create_app: {app.config['UPLOAD_FOLDER']} *****") # <-- LOG 2
+    print(f"***** app.config['UPLOAD_FOLDER'] dentro de create_app: {app.config['UPLOAD_FOLDER']} *****", flush=True) # <-- LOG 2
     
     # Inicializar extensiones
     db.init_app(app)
