@@ -17,6 +17,7 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('idle');
   const fileInputRef = React.useRef(null);
   
   useEffect(() => {
@@ -51,25 +52,33 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
     
     try {
       setLoading(true);
+      setUploadStatus('uploading');
+      setError(null);
+      
       const formData = new FormData();
       formData.append('file', selectedFile);
       await onSave(formData);
       
-      // Limpiar y cerrar
-      handleClose();
+      setUploadStatus('success');
+      // Esperar un momento antes de cerrar para mostrar el éxito
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error al subir imagen:', error);
       setError('Error al subir la imagen');
+      setUploadStatus('error');
     } finally {
       setLoading(false);
     }
   };
   
   const handleClose = () => {
-    // Limpiar el estado al cerrar
     setSelectedFile(null);
     setPreview(null);
     setError(null);
+    setUploadStatus('idle');
     onClose();
   };
   
@@ -81,6 +90,18 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
           {error && (
             <Alert severity="error" sx={{ mb: 2, width: '100%' }}>
               {error}
+            </Alert>
+          )}
+          
+          {uploadStatus === 'uploading' && (
+            <Alert severity="info" sx={{ mb: 2, width: '100%' }}>
+              Subiendo imagen...
+            </Alert>
+          )}
+          
+          {uploadStatus === 'success' && (
+            <Alert severity="success" sx={{ mb: 2, width: '100%' }}>
+              ¡Imagen actualizada con éxito!
             </Alert>
           )}
           
@@ -142,14 +163,24 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancelar</Button>
+        <Button 
+          onClick={handleClose}
+          disabled={uploadStatus === 'uploading'}
+        >
+          Cancelar
+        </Button>
         <Button 
           onClick={handleSubmit} 
           variant="contained" 
           color="primary"
           disabled={!selectedFile || loading}
         >
-          {loading ? <CircularProgress size={24} /> : 'Guardar'}
+          {loading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <CircularProgress size={24} sx={{ mr: 1 }} />
+              Subiendo...
+            </Box>
+          ) : 'Guardar'}
         </Button>
       </DialogActions>
     </Dialog>

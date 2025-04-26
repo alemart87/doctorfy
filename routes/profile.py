@@ -120,15 +120,27 @@ def upload_profile_picture():
         file.save(file_path)
         
         # Verificar que el archivo se guardó correctamente
-        if not os.path.exists(file_path):
+        max_retries = 3
+        retry_delay = 0.5  # segundos
+        
+        for attempt in range(max_retries):
+            if os.path.exists(file_path):
+                # Verificar que el archivo sea accesible y tenga tamaño
+                try:
+                    with open(file_path, 'rb') as f:
+                        f.read(1)  # Intentar leer 1 byte
+                    break
+                except IOError:
+                    pass
+            
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+        else:
             return jsonify({'error': 'Error al guardar el archivo'}), 500
             
         # Actualizar la base de datos
         user.profile_picture = unique_filename
         db.session.commit()
-        
-        # Esperar un momento para asegurar que el archivo esté disponible
-        time.sleep(0.5)
         
         return jsonify({
             'message': 'Foto de perfil actualizada con éxito',

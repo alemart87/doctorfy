@@ -268,37 +268,41 @@ const UserProfile = () => {
         },
       });
       
-      // Actualizar el estado local y global
+      // Esperar un momento para asegurar que la imagen esté disponible
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Intentar precargar la imagen
+      const newImageUrl = getProfilePictureUrl(response.data.profile_picture);
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = newImageUrl;
+      });
+      
+      // Si llegamos aquí, la imagen se cargó correctamente
       setProfileData(prev => ({
         ...prev,
         profile_picture: response.data.profile_picture
       }));
       
-      // Actualizar el estado global del usuario
       setUser(prev => ({
         ...prev,
         profile_picture: response.data.profile_picture
       }));
       
-      // Cerrar el diálogo
-      setPictureDialogOpen(false);
-      
-      // Forzar recarga de la imagen añadiendo timestamp
-      const img = new Image();
-      img.src = getProfilePictureUrl(response.data.profile_picture);
-      
       return response;
     } catch (error) {
-      console.error('Error al subir imagen:', error);
-      throw error;
+      console.error('Error al subir o cargar imagen:', error);
+      throw new Error('No se pudo actualizar la imagen. Por favor, intenta de nuevo.');
     }
   };
 
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
-    // Asegurarse de que la URL sea absoluta y añadir timestamp
     const timestamp = Date.now();
-    return `${UPLOADS_URL}/${profilePicture}?v=${timestamp}`;
+    const url = `${UPLOADS_URL}/${profilePicture}?v=${timestamp}`;
+    return url;
   };
 
   return (
