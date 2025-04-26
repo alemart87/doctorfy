@@ -241,8 +241,6 @@ def create_app(config_class=Config):
     @jwt_required()
     def upload_profile_picture():
         user_id = get_jwt_identity()
-        # --- IMPORTANTE: Asegúrate que User y db estén disponibles aquí ---
-        # from models import User, db # Podrías necesitar importar aquí si no están globales
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "Usuario no encontrado"}), 404
@@ -255,51 +253,48 @@ def create_app(config_class=Config):
             return jsonify({"error": "No se seleccionó ningún archivo"}), 400
 
         if file:
-            # --- IMPORTANTE: Asegúrate que secure_filename esté importado ---
-            # from werkzeug.utils import secure_filename
-            filename = secure_filename(f"user_{user_id}_{os.path.splitext(file.filename)[1]}")
-            # --- ¡NUEVO LOG PARA VERIFICAR LA CONFIG! ---
-            current_upload_folder = app.config['UPLOAD_FOLDER']
-            print(f"***** VALOR DE app.config['UPLOAD_FOLDER'] ANTES DE GUARDAR: {current_upload_folder} *****", flush=True) # LOG 2.5
-            # --- FIN DEL NUEVO LOG ---
+            # --- MEJOR MANEJO DEL NOMBRE DE ARCHIVO ---
+            name, ext = os.path.splitext(file.filename)
+            filename = secure_filename(f"user_{user_id}_{name}{ext}")
 
-            save_dir = current_upload_folder # Usar la variable que acabamos de loguear
+            # --- CONSTRUIR Y VERIFICAR RUTAS ---
+            save_dir = app.config['UPLOAD_FOLDER']  # Debe ser /persistent/uploads
             profile_pics_dir = os.path.join(save_dir, 'profile_pics')
             os.makedirs(profile_pics_dir, exist_ok=True)
+
+            # --- RUTA COMPLETA PARA GUARDAR ---
             save_path = os.path.join(profile_pics_dir, filename)
-            print(f"***** Intentando guardar foto de perfil en: {save_path} *****", flush=True) # LOG 3
+            print(f"💾 Intentando guardar archivo en: {save_path}", flush=True)
+
             try:
+                # Guardar el archivo
                 file.save(save_path)
-                print(f"***** Archivo supuestamente guardado en: {save_path} *****", flush=True) # LOG 4 (renombrado)
 
-                # --- ¡NUEVA COMPROBACIÓN CRÍTICA! ---
+                # Verificación inmediata
                 if os.path.exists(save_path):
-                    print(f"***** CONFIRMADO: El archivo SÍ existe en {save_path} después de save() *****", flush=True) # LOG 4.1
+                    print(f"✅ ÉXITO: Archivo guardado en {save_path}", flush=True)
+                    # Actualizar DB solo si el archivo existe
+                    db_path = os.path.join('profile_pics', filename).replace('\\', '/')
+                    user.profile_picture = db_path
+                    db.session.commit()
+                    print(f"✅ DB actualizada con ruta: {db_path}", flush=True)
+
+                    return jsonify({
+                        "message": "Foto de perfil actualizada con éxito",
+                        "profile_picture": db_path
+                    }), 200
                 else:
-                    print(f"***** ERROR CRÍTICO: El archivo NO existe en {save_path} después de save()! *****", flush=True) # LOG 4.2
-                    # Considera devolver un error aquí en lugar de continuar
-                    # return jsonify({"error": "Fallo interno al verificar el guardado del archivo"}), 500
-                # --- FIN DE LA COMPROBACIÓN ---
+                    print(f"❌ ERROR: Archivo no encontrado después de guardar en {save_path}", flush=True)
+                    return jsonify({"error": "Error al guardar el archivo"}), 500
 
-                db_path = os.path.join('profile_pics', filename).replace('\\', '/')
-                user.profile_picture = db_path
-                db.session.commit()
-                print(f"***** Ruta guardada en DB: {db_path} *****", flush=True) # LOG 5
-
-                return jsonify({
-                    "message": "Foto de perfil actualizada con éxito",
-                    "profile_picture": db_path
-                }), 200
             except Exception as e:
                 db.session.rollback()
-                print(f"***** ERROR al guardar archivo o actualizar DB: {e} *****", flush=True) # LOG 6
+                print(f"❌ ERROR al guardar archivo: {str(e)}", flush=True)
                 import traceback
                 traceback.print_exc()
                 return jsonify({"error": "Error interno al guardar la foto"}), 500
-        else:
-            # Esta condición 'else' probablemente nunca se alcance si file.filename != ''
-            return jsonify({"error": "Archivo inválido"}), 400
 
+        return jsonify({"error": "Archivo inválido"}), 400
 
     # --- Ruta para Servir Archivos de la Carpeta de Subidas ---
     @app.route('/uploads/<path:filename>')
