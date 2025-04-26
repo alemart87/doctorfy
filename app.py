@@ -109,7 +109,8 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     CORS(app, 
          resources={
-             r"/api/*": {"origins": allowed_origins}, 
+             r"/api/*": {"origins": allowed_origins},
+             r"/uploads/*": {"origins": allowed_origins},
              r"/api/webhook/stripe": {"origins": "*"},
              r"/api/webhook/stripe/debug": {"origins": "*"},
              r"/api/webhook/stripe/accept": {"origins": "*"}
