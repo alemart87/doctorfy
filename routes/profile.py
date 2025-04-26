@@ -6,6 +6,7 @@ import os
 import uuid
 from datetime import datetime, date
 import json
+import time
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -113,14 +114,21 @@ def upload_profile_picture():
         # Generar nombre de archivo único
         filename = secure_filename(file.filename)
         unique_filename = f"profile_pics/user_{current_user_id}_{uuid.uuid4()}_{filename}"
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         
         # Guardar el archivo
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(file_path)
         
+        # Verificar que el archivo se guardó correctamente
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Error al guardar el archivo'}), 500
+            
         # Actualizar la base de datos
         user.profile_picture = unique_filename
         db.session.commit()
+        
+        # Esperar un momento para asegurar que el archivo esté disponible
+        time.sleep(0.5)
         
         return jsonify({
             'message': 'Foto de perfil actualizada con éxito',

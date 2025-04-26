@@ -268,21 +268,37 @@ const UserProfile = () => {
         },
       });
       
-      // Actualizar el estado global con la nueva imagen
+      // Actualizar el estado local y global
+      setProfileData(prev => ({
+        ...prev,
+        profile_picture: response.data.profile_picture
+      }));
+      
+      // Actualizar el estado global del usuario
       setUser(prev => ({
         ...prev,
         profile_picture: response.data.profile_picture
       }));
       
+      // Cerrar el diálogo
+      setPictureDialogOpen(false);
+      
+      // Forzar recarga de la imagen añadiendo timestamp
+      const img = new Image();
+      img.src = getProfilePictureUrl(response.data.profile_picture);
+      
       return response;
     } catch (error) {
+      console.error('Error al subir imagen:', error);
       throw error;
     }
   };
 
   const getProfilePictureUrl = (profilePicture) => {
     if (!profilePicture) return null;
-    return `${UPLOADS_URL}/${profilePicture}?t=${Date.now()}`;
+    // Asegurarse de que la URL sea absoluta y añadir timestamp
+    const timestamp = Date.now();
+    return `${UPLOADS_URL}/${profilePicture}?v=${timestamp}`;
   };
 
   return (

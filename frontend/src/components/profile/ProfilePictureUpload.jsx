@@ -54,6 +54,8 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       await onSave(formData);
+      
+      // Limpiar y cerrar
       handleClose();
     } catch (error) {
       console.error('Error al subir imagen:', error);
