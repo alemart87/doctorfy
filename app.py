@@ -233,38 +233,35 @@ def create_app(config_class=Config):
     @app.route('/uploads/<path:filename>')
     def serve_upload(filename):
         logger.info(f"📂 Solicitud de archivo: {filename}")
-        
         directory = app.config['UPLOAD_FOLDER']
+        full_path = os.path.join(directory, filename)
         
-        # Si el filename incluye un subdirectorio (como 'profile_pics/archivo.png')
-        if '/' in filename:
-            # Extraer el subdirectorio y el nombre real del archivo
-            subdir = os.path.dirname(filename)
-            basename = os.path.basename(filename)
-            # Construir la ruta completa del directorio
-            full_dir = os.path.join(directory, subdir)
-            logger.debug(f"Buscando en subdirectorio: {full_dir}")
+        logger.debug(f"Buscando en directorio: {directory}")
+        logger.debug(f"Ruta absoluta calculada: {full_path}")
+        
+        exists = os.path.exists(full_path)
+        logger.info(f"{'✅' if exists else '❌'} Archivo {'encontrado' if exists else 'no encontrado'} en: {full_path}")
+        
+        if not exists:
             try:
-                # Intentar servir desde el subdirectorio
-                return send_from_directory(full_dir, basename)
+                dir_contents = os.listdir(directory)
+                logger.debug(f"Contenido del directorio {directory}: {dir_contents}")
+                
+                if '/' in filename:
+                    subdir = os.path.join(directory, os.path.dirname(filename))
+                    if os.path.exists(subdir):
+                        subdir_contents = os.listdir(subdir)
+                        logger.debug(f"Contenido del subdirectorio {subdir}: {subdir_contents}")
             except Exception as e:
-                logger.error(f"Error al servir archivo desde {full_dir}/{basename}: {str(e)}")
-                logger.debug(f"Contenido de {directory}:")
-                try:
-                    logger.debug(os.listdir(directory))
-                    if os.path.exists(full_dir):
-                        logger.debug(f"Contenido de {full_dir}:")
-                        logger.debug(os.listdir(full_dir))
-                except Exception as list_err:
-                    logger.error(f"Error al listar directorios: {str(list_err)}")
-                abort(404)
+                logger.error(f"Error al listar directorio: {str(e)}")
+            abort(404)
         
-        # Si no hay subdirectorio, servir directamente desde directory
         try:
             return send_from_directory(directory, filename)
         except Exception as e:
             logger.error(f"Error al servir archivo: {str(e)}")
-            abort(404)
+            logger.exception("Traceback completo:")
+            abort(500)
 
     # ──  IGNORAR JWT SÓLO EN PRE‑FLIGHT (OPTIONS) ────────────────
     @app.before_request
@@ -295,49 +292,52 @@ def create_app(config_class=Config):
             return jsonify({"error": "No se seleccionó ningún archivo"}), 400
 
         if file:
+            # Manejo del nombre de archivo
             name, ext = os.path.splitext(file.filename)
             filename = secure_filename(f"user_{user_id}_{name}{ext}")
-            
+            logger.info(f"Nombre de archivo generado: {filename}")
+
             # Construir rutas
-            base_dir = app.config['UPLOAD_FOLDER']
-            profile_pics_dir = os.path.join(base_dir, 'profile_pics')
+            save_dir = app.config['UPLOAD_FOLDER']
+            profile_pics_dir = os.path.join(save_dir, 'profile_pics')
             
-            # Crear directorio si no existe
             try:
                 os.makedirs(profile_pics_dir, exist_ok=True)
-                logger.info(f"✅ Directorio asegurado: {profile_pics_dir}")
+                logger.debug(f"Directorio asegurado: {profile_pics_dir}")
             except Exception as e:
-                logger.error(f"❌ Error al crear directorio {profile_pics_dir}: {str(e)}")
+                logger.error(f"Error al crear directorio: {str(e)}")
                 return jsonify({"error": "Error al preparar directorio"}), 500
-            
-            # Ruta completa del archivo
+
             save_path = os.path.join(profile_pics_dir, filename)
-            logger.info(f"�� Intentando guardar en: {save_path}")
-            
+            logger.info(f"💾 Intentando guardar archivo en: {save_path}")
+
             try:
                 file.save(save_path)
                 
-                # Verificar que el archivo se guardó
                 if os.path.exists(save_path):
-                    logger.info(f"✅ Archivo guardado en: {save_path}")
-                    logger.debug(f"Tamaño: {os.path.getsize(save_path)} bytes")
-                    
-                    # Actualizar DB con ruta relativa
+                    logger.info(f"✅ Archivo guardado exitosamente en: {save_path}")
+                    file_size = os.path.getsize(save_path)
+                    logger.debug(f"Tamaño del archivo: {file_size} bytes")
+
+                    # Actualizar DB
                     db_path = os.path.join('profile_pics', filename).replace('\\', '/')
                     user.profile_picture = db_path
                     db.session.commit()
-                    
+                    logger.info(f"✅ Base de datos actualizada con ruta: {db_path}")
+
                     return jsonify({
-                        "message": "Foto actualizada con éxito",
+                        "message": "Foto de perfil actualizada con éxito",
                         "profile_picture": db_path
                     }), 200
                 else:
-                    logger.error(f"❌ Archivo no encontrado después de save(): {save_path}")
-                    return jsonify({"error": "Error al guardar archivo"}), 500
-                
+                    logger.error(f"❌ Archivo no encontrado después de guardar en: {save_path}")
+                    return jsonify({"error": "Error al guardar el archivo"}), 500
+
             except Exception as e:
-                logger.error(f"❌ Error al guardar: {str(e)}")
-                return jsonify({"error": "Error interno"}), 500
+                db.session.rollback()
+                logger.error(f"❌ Error al guardar archivo: {str(e)}")
+                logger.exception("Traceback completo:")
+                return jsonify({"error": "Error interno al guardar la foto"}), 500
 
         return jsonify({"error": "Archivo inválido"}), 400
 

@@ -189,40 +189,33 @@ const UserProfile = () => {
   
   // ─────────────────────  SUBIDA FOTO PERFIL  ────────────────────
   const uploadPicture = async (file) => {
-    const fd = new FormData();
-    fd.append('file', file, file.name);
-    // Usa la instancia 'api' que ya tiene la baseURL correcta y el interceptor de token
-    return await api.post('/profile/upload-profile-picture', fd, {
-        // No necesitas 'axios crudo' ni añadir token manualmente si usas la instancia 'api'
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return await api.post('/api/profile/upload-profile-picture', formData, {
         headers: {
-            // Axios debería detectar FormData y establecer Content-Type correctamente
-            // 'Content-Type': 'multipart/form-data', // Generalmente no necesario con FormData
+            'Content-Type': 'multipart/form-data',
         }
     });
   };
 
   const handleProfilePictureUpdate = async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const { data } = await api.post('/profile/upload-profile-picture', 
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-
+      const { data } = await uploadPicture(file); // Llama a la función que usa la instancia 'api'
+      console.log("Respuesta de upload-profile-picture:", data);
       if (data && data.profile_picture) {
         setProfileData(prev => ({
           ...prev,
           profile_picture: data.profile_picture
         }));
+        setPictureDialogOpen(false);
+      } else {
+        console.error("La respuesta de la API no contenía 'profile_picture'.");
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error al actualizar imagen de perfil:', err);
+      // Considera mostrar un mensaje de error al usuario
+      // setError('No se pudo actualizar la foto de perfil.');
     }
   };
 
@@ -262,7 +255,7 @@ const UserProfile = () => {
   // Quita '/api' si tu variable REACT_APP_BACKEND_URL ya lo incluye,
   // o mejor, define REACT_APP_BACKEND_URL sin /api.
   // Asumiremos que REACT_APP_BACKEND_URL es solo https://dominio-backend.com
-  const apiUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || ''; // Quitar '/api' si está presente
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
@@ -271,7 +264,8 @@ const UserProfile = () => {
           <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Avatar
               src={profileData?.profile_picture ? 
-                `${apiUrl}/uploads/${profileData.profile_picture}?t=${Date.now()}` : null}
+                `${process.env.REACT_APP_API_URL}/uploads/${profileData.profile_picture}?t=${Date.now()}` 
+                : null}
               alt={profileData?.first_name || profileData?.email}
               sx={{ width: 150, height: 150, mb: 2 }}
             />

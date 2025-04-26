@@ -34,13 +34,7 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
     if (file) {
       // Verificar que sea una imagen
       if (!file.type.startsWith('image/')) {
-        setError('Por favor, selecciona un archivo de imagen válido (JPG, PNG, GIF)');
-        return;
-      }
-      
-      // Verificar tamaño (ejemplo: máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen es demasiado grande. Máximo 5MB.');
+        setError('Por favor, selecciona un archivo de imagen válido');
         return;
       }
       
@@ -57,19 +51,15 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
     
     try {
       setLoading(true);
-      setError(null);
-      
-      await onSave(selectedFile);
-      
-      // Limpiar estado
-      setSelectedFile(null);
-      setPreview(null);
-      handleClose(); // Cerrar el diálogo (onClose)
-    } catch (err) {
-      console.error('Error al subir imagen:', err);
-      setError('Error al subir la imagen. Por favor, intenta de nuevo.');
+      await onSave(selectedFile);  // onSave debe ser uploadPicture de UserProfile
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      setError('Error al subir la imagen');
     } finally {
       setLoading(false);
+      setSelectedFile(null);
+      setPreview(null);
+      setError(null);
     }
   };
   
@@ -150,20 +140,14 @@ const ProfilePictureUpload = ({ open, onClose, onSave }) => {
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading}>
-          Cancelar
-        </Button>
+        <Button onClick={handleClose}>Cancelar</Button>
         <Button 
           onClick={handleSubmit} 
           variant="contained" 
           color="primary"
           disabled={!selectedFile || loading}
         >
-          {loading ? (
-            <CircularProgress size={24} />
-          ) : (
-            'Guardar'
-          )}
+          {loading ? <CircularProgress size={24} /> : 'Guardar'}
         </Button>
       </DialogActions>
     </Dialog>
