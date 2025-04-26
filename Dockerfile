@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     && pip install --no-cache-dir gunicorn \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el resto del código
+# Copiar el resto del código, revisar
 COPY . .
 
 # Crear directorios necesarios
