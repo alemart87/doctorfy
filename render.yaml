@@ -22,6 +22,25 @@ services:
         value: 8000
 
   # Base de datos PostgreSQL
+  - type: web
+    name: doctorfy-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+
+  - type: web
+    name: doctorfy-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://doctorfy-api.onrender.com/api/:splat
+
 databases:
   - name: doctorfy-db
     plan: free

@@ -102,17 +102,13 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    CORS(app, 
-         resources={
-             r"/api/*": {"origins": allowed_origins}, 
-             r"/api/webhook/stripe": {"origins": "*"},
-             r"/api/webhook/stripe/debug": {"origins": "*"},
-             r"/api/webhook/stripe/accept": {"origins": "*"}
-         }, 
-         supports_credentials=True, 
-         expose_headers=['Authorization'],
-         allow_headers=["Content-Type", "Authorization", "Accept", "Stripe-Signature"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    
+    # Configurar CORS para permitir solicitudes desde cualquier origen en desarrollo
+    # y solo desde tu dominio en producción
+    if app.config['ENV'] == 'production':
+        CORS(app, resources={r"/api/*": {"origins": ["https://doctorfy.app", "https://www.doctorfy.app"]}})
+    else:
+        CORS(app)
 
     # Asegurar que existan los directorios necesarios
     with app.app_context():
