@@ -50,12 +50,23 @@ api.interceptors.request.use(
         }
         
         const token = localStorage.getItem('token');
-        if (token) {
+        // Verificar que el token sea válido (al menos tenga la estructura básica de JWT)
+        if (token && token.split('.').length === 3) {
             config.headers.Authorization = `Bearer ${token}`;
             console.log('Enviando solicitud a:', config.url);
             console.log('Con token configurado en headers');
         } else {
-            console.warn('No se encontró token para la solicitud a:', config.url);
+            // Si el token existe pero no es válido, limpiarlo
+            if (token) {
+                console.error('Token inválido encontrado, limpiando:', token);
+                localStorage.removeItem('token');
+                // Redirigir a login solo si la ruta actual requiere autenticación
+                if (!config.url.includes('/auth/login') && !config.url.includes('/blog')) {
+                    window.location.href = '/login';
+                }
+            } else {
+                console.warn('No se encontró token para la solicitud a:', config.url);
+            }
         }
         return config;
     },
