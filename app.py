@@ -14,7 +14,7 @@ from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
-from routes.blog import blog_bp
+from routes.blog import blog_bp, ensure_blog_banner_dir
 from routes.credits import credits_bp
 from routes.payments import payments_bp
 from routes.notifications import notifications_bp
@@ -131,11 +131,14 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
-    app.register_blueprint(blog_bp)
+    app.register_blueprint(blog_bp, url_prefix='/api/blog')
     app.register_blueprint(credits_bp)
     app.register_blueprint(payments_bp, url_prefix='/api/payments')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(calories_bp, url_prefix='/api/calories')
+
+    # Asegúrate de que el directorio de uploads exista
+    ensure_blog_banner_dir(app)
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader
