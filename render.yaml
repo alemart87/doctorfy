@@ -2,28 +2,28 @@ services:
   # Servicio web principal
   - type: web
     name: doctorfy
-    runtime: python
+    env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
+    disk:
+      name: uploads
+      mountPath: /persistent
+      sizeGB: 10
     envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: FLASK_APP
-        value: app.py
-      - key: JWT_SECRET_KEY
-        generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: doctorfy-db
           property: connectionString
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/uploads
-      sizeGB: 1
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: PORT
+        value: 8000
 
-# Base de datos PostgreSQL
+  # Base de datos PostgreSQL
 databases:
   - name: doctorfy-db
-    plan: starter
+    plan: free
     databaseName: doctorfy
     user: doctorfy_user 

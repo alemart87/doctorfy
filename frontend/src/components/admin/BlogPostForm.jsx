@@ -34,7 +34,7 @@ const BlogPostForm = ({ isEditMode = false }) => {
   useEffect(() => {
     if (isEditMode && postId) {
       setLoading(true);
-      api.get(`/blog/id/${postId}`)
+      api.get(`/api/blog/id/${postId}`)
         .then(response => {
           const post = response.data;
           setTitle(post.title);
@@ -94,7 +94,7 @@ const BlogPostForm = ({ isEditMode = false }) => {
     setGeneratingAI(true);
     setAiError(null);
     try {
-      const response = await api.post('/blog/generate-content', { prompt: title });
+      const response = await api.post('/api/blog/generate-content', { prompt: title });
       setContent(response.data.content);
       setMetaDescription(response.data.meta_description);
     } catch (err) {
@@ -131,12 +131,12 @@ const BlogPostForm = ({ isEditMode = false }) => {
     try {
       let response;
       if (isEditMode) {
-        response = await api.put(`/blog/${postId}`, formData, {
+        response = await api.put(`/api/blog/${postId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setSuccess("Post actualizado con éxito.");
       } else {
-        response = await api.post('/blog', formData, {
+        response = await api.post('/api/blog', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setSuccess("Post creado con éxito.");

@@ -19,7 +19,7 @@ const BlogPost = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get(`/blog/${slug}`);
+        const response = await api.get(`/api/blog/${slug}`);
         setPost(response.data);
       } catch (err) {
         console.error(`Error fetching post ${slug}:`, err);

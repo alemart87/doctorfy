@@ -20,7 +20,7 @@ const BlogPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get('/blog');
+        const response = await api.get('/api/blog');
         setPosts(response.data);
       } catch (err) {
         console.error("Error fetching blog posts:", err);

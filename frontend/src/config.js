@@ -1,15 +1,10 @@
-// Configuración de URLs según el entorno
-const isDev = process.env.NODE_ENV === 'development';
+const BACKEND_URL = process.env.NODE_ENV === 'production'
+  ? process.env.REACT_APP_BACKEND_URL || 'https://doctorfy.onrender.com'
+  : process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
-// URL base para la API
-export const API_URL = isDev 
-  ? 'http://localhost:5000/api'
-  : 'https://doctorfy.onrender.com/api';  // Ajusta a tu URL de Render
+const API_URL = `${BACKEND_URL}/api`;
 
-// URL base para archivos subidos
-export const UPLOADS_URL = isDev
-  ? 'http://localhost:5000/uploads'
-  : 'https://doctorfy.onrender.com/uploads';  // Ajusta a tu URL de Render
+export const UPLOADS_URL = `${BACKEND_URL}/uploads`;
 
 export const endpoints = {
   auth: {

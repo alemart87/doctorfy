@@ -14,7 +14,7 @@ from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
-from routes.blog import blog_bp, ensure_blog_banner_dir
+from routes.blog import blog_bp
 from routes.credits import credits_bp
 from routes.payments import payments_bp
 from routes.notifications import notifications_bp
@@ -79,10 +79,6 @@ def ensure_upload_dirs(app):
         app.config[config_key] = full_path
         os.makedirs(full_path, exist_ok=True)
 
-    # Asegúrate que la carpeta de blog_banners exista
-    blog_banners_dir = os.path.join(base_upload_dir, 'blog_banners')
-    os.makedirs(blog_banners_dir, exist_ok=True)
-
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
     app.config.from_object(config_class)
@@ -108,11 +104,7 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     CORS(app, 
          resources={
-             r"/api/*": {"origins": [
-                 "http://localhost:3000",
-                 "https://doctorfy.onrender.com",  # Añade tu dominio de Render
-                 "https://doctorfy.app"            # Y cualquier otro dominio que uses
-             ]}, 
+             r"/api/*": {"origins": allowed_origins}, 
              r"/api/webhook/stripe": {"origins": "*"},
              r"/api/webhook/stripe/debug": {"origins": "*"},
              r"/api/webhook/stripe/accept": {"origins": "*"}
@@ -302,9 +294,6 @@ def create_app(config_class=Config):
             # Considera devolver una imagen por defecto o un 404
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
-
-    # Asegurar directorio de banners para el blog
-    ensure_blog_banner_dir(app)
 
     return app
 
