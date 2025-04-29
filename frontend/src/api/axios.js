@@ -2,16 +2,21 @@ import axios from 'axios';
 // Eliminar import de config si ya no se usa para API_URL
 // import config from '../config';
 
-// --- USAR LA VARIABLE DE ENTORNO PARA LA BASE URL ---
-// process.env.NODE_ENV se establece automáticamente por Create React App/Vite
-// process.env.REACT_APP_BACKEND_URL lo defines tú en Render
-const baseURL = process.env.NODE_ENV === 'production'
-  ? `${process.env.REACT_APP_BACKEND_URL}/api` // URL de producción con /api
-  : 'http://localhost:5000/api'; // URL local para desarrollo
+// Determinar la URL base según el entorno
+const getBaseURL = () => {
+  // En producción (Render)
+  if (window.location.hostname !== 'localhost') {
+    // Usar la misma base que el navegador (evita problemas CORS)
+    return '';
+  }
+  // En desarrollo local
+  return 'http://localhost:5000';
+};
 
 const api = axios.create({
     // baseURL: config.API_URL, // <-- Reemplazar esto
-    baseURL: baseURL,          // <-- Con esto
+    baseURL: getBaseURL(),          // <-- Con esto
+    timeout: 30000, // Aumentar timeout para generación de contenido
     headers: {
         'Content-Type': 'application/json'
     },

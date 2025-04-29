@@ -98,6 +98,10 @@ def create_app(config_class=Config):
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
     
+    # Desactivar el modo debug en producción
+    if os.environ.get('FLASK_ENV') == 'production':
+        app.debug = False
+    
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)

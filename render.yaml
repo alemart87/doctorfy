@@ -2,13 +2,18 @@ services:
   # Servicio web principal
   - type: web
     name: doctorfy
-    env: python
+    runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: UPLOAD_FOLDER
+        value: uploads
     disk:
       name: uploads
-      mountPath: /persistent
-      sizeGB: 10
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         fromDatabase:

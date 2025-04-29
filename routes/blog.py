@@ -233,6 +233,12 @@ def create_post():
         current_app.logger.error(f"Error en create_post: {str(e)}")
         return jsonify({'error': f'Error interno: {str(e)}'}), 500
 
+@blog_bp.route('/', methods=['POST'])
+@admin_required
+def create_post_no_slash():
+    """Alias para create_post que maneja la ruta sin barra final."""
+    return create_post()
+
 @blog_bp.route('/<int:post_id>', methods=['PUT'])
 @admin_required
 def update_post(post_id):
