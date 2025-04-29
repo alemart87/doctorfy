@@ -1,22 +1,12 @@
 import axios from 'axios';
-// Eliminar import de config si ya no se usa para API_URL
-// import config from '../config';
-
-// --- USAR LA VARIABLE DE ENTORNO PARA LA BASE URL ---
-// process.env.NODE_ENV se establece automáticamente por Create React App/Vite
-// process.env.REACT_APP_BACKEND_URL lo defines tú en Render
-const baseURL = process.env.NODE_ENV === 'production'
-  ? `${process.env.REACT_APP_BACKEND_URL}/api` // URL de producción con /api
-  : 'http://localhost:5000/api'; // URL local para desarrollo
+import { API_URL } from '../config';
 
 const api = axios.create({
-    // baseURL: config.API_URL, // <-- Reemplazar esto
-    baseURL: '/api',          // <-- Con esto
-    timeout: 30000,
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    withCredentials: true // Importante para CORS con credenciales
+  baseURL: API_URL,
+  timeout: 30000, // Aumenta el timeout para operaciones lentas como subida de archivos
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Interceptor para mostrar las URLs de las solicitudes
@@ -79,6 +69,22 @@ api.interceptors.response.use(
         }
         return Promise.reject(error);
     }
+);
+
+// Interceptor para manejar errores de red
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Log detallado del error para depuración
+    if (error.response) {
+      console.error('Error de respuesta:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('Error de solicitud (sin respuesta):', error.request);
+    } else {
+      console.error('Error de configuración:', error.message);
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api; 

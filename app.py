@@ -14,7 +14,7 @@ from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
-from routes.blog import blog_bp
+from routes.blog import blog_bp, ensure_blog_banner_dir
 from routes.credits import credits_bp
 from routes.payments import payments_bp
 from routes.notifications import notifications_bp
@@ -79,6 +79,10 @@ def ensure_upload_dirs(app):
         app.config[config_key] = full_path
         os.makedirs(full_path, exist_ok=True)
 
+    # Asegúrate que la carpeta de blog_banners exista
+    blog_banners_dir = os.path.join(base_upload_dir, 'blog_banners')
+    os.makedirs(blog_banners_dir, exist_ok=True)
+
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
     app.config.from_object(config_class)
@@ -102,13 +106,21 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    
-    # Configurar CORS para permitir solicitudes desde cualquier origen en desarrollo
-    # y solo desde tu dominio en producción
-    if app.config['ENV'] == 'production':
-        CORS(app, resources={r"/api/*": {"origins": ["https://doctorfy.app", "https://www.doctorfy.app"]}})
-    else:
-        CORS(app)
+    CORS(app, 
+         resources={
+             r"/api/*": {"origins": [
+                 "http://localhost:3000",
+                 "https://doctorfy.onrender.com",  # Añade tu dominio de Render
+                 "https://doctorfy.app"            # Y cualquier otro dominio que uses
+             ]}, 
+             r"/api/webhook/stripe": {"origins": "*"},
+             r"/api/webhook/stripe/debug": {"origins": "*"},
+             r"/api/webhook/stripe/accept": {"origins": "*"}
+         }, 
+         supports_credentials=True, 
+         expose_headers=['Authorization'],
+         allow_headers=["Content-Type", "Authorization", "Accept", "Stripe-Signature"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     # Asegurar que existan los directorios necesarios
     with app.app_context():
@@ -290,6 +302,9 @@ def create_app(config_class=Config):
             # Considera devolver una imagen por defecto o un 404
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
+
+    # Asegurar directorio de banners para el blog
+    ensure_blog_banner_dir(app)
 
     return app
 
