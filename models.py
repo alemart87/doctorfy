@@ -735,4 +735,39 @@ class NotificationToken(db.Model):
     user = db.relationship('User', backref=db.backref('notification_tokens', lazy=True))
 
     def __repr__(self):
-        return f'<NotificationToken {self.id}: User {self.user_id} - Token {self.token}>' 
+        return f'<NotificationToken {self.id}: User {self.user_id} - Token {self.token}>'
+
+class BlogPost(db.Model):
+    __tablename__ = 'blog_posts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    title = db.Column(db.String(255), nullable=False)
+    meta_title = db.Column(db.String(255))               # Título SEO
+    subtitle = db.Column(db.String(500))
+    content = db.Column(db.Text, nullable=False)
+    banner_url = db.Column(db.String(500)) # Ruta relativa a la imagen del banner
+    meta_description = db.Column(db.String(160))         # Descripción SEO
+    meta_keywords = db.Column(db.String(300))            # Keywords SEO
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id')) # Opcional: enlazar a un usuario
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    author = db.relationship('User', backref='blog_posts') # Relación si usas author_id
+
+    def to_dict(self, full=False):
+        data = {
+            'id': self.id,
+            'slug': self.slug,
+            'title': self.title,
+            'meta_title': self.meta_title,
+            'subtitle': self.subtitle,
+            'banner_url': self.banner_url,
+            'meta_description': self.meta_description,
+            'meta_keywords': self.meta_keywords,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+        }
+        if full:
+            data['content'] = self.content
+        return data 

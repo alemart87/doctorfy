@@ -290,18 +290,11 @@ const DashboardPage = () => {
             {isAdmin && (
               <>
                 <Paper 
-                  sx={{ 
-                    p: 3, 
-                    mb: 3, 
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.2)'
-                  }}
+                  className="admin-section"
+                  elevation={3}
+                  sx={{ p: 2, mb: 4 }}
                 >
-                  <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
-                    Panel de Administración
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Box className="admin-controls">
                     <Button
                       variant="contained"
                       color="primary"
@@ -345,6 +338,15 @@ const DashboardPage = () => {
                       onClick={() => setOpenBlog(true)}
                     >
                       Crear artículo de Blog
+                    </Button>
+
+                    {/* NUEVO: enlace a la gestión completa del blog */}
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => navigate('/admin/blog')}
+                    >
+                      Gestionar Blog
                     </Button>
                   </Box>
                 </Paper>

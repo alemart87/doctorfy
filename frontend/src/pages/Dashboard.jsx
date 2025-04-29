@@ -13,11 +13,14 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import SubscriptionBanner from '../components/SubscriptionBanner';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
+
+  const isAdmin = user?.email === 'alemart87@gmail.com';
 
   // Opciones de navegación con iconos y colores
   const navOptions = [
@@ -64,6 +67,15 @@ const Dashboard = () => {
       color: '#2196F3' // Azul
     }
   ];
+
+  if (isAdmin) {
+    navOptions.push({
+      title: 'Gestionar Blog',
+      icon: <EditNoteIcon sx={{ fontSize: 60 }} />,
+      path: '/admin/blog',
+      color: '#795548'
+    });
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>

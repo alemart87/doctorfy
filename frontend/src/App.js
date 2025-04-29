@@ -8,10 +8,8 @@ import axios from 'axios';
 import ProtectedRoute from './components/ProtectedRoute';
 import { HelmetProvider } from 'react-helmet-async';
 import FloatingChatButton from './components/FloatingChatButton';
-import IntroModal from './components/IntroModal';
 import ErrorBoundary from './components/ErrorBoundary';
-import SplashScreen from './components/SplashScreen';
-import { Button, Box, Typography, Tooltip } from '@mui/material';
+import { Button, Box, Typography, Tooltip, CircularProgress } from '@mui/material';
 import { CreditCard as CreditIcon } from '@mui/icons-material';
 import InstallPrompt from './components/InstallPrompt';
 import UpdateNotification from './components/UpdateNotification';
@@ -58,6 +56,10 @@ import OpenFileHandler from './pages/OpenFileHandler';
 import ComposeEmail from './pages/ComposeEmail';
 import CalorieTrackerPage from './pages/CalorieTrackerPage';
 
+// --- Nuevos imports para Admin Blog ---
+import AdminBlogManagement from './pages/admin/AdminBlogManagement';
+import BlogPostForm from './components/admin/BlogPostForm';
+
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
 const SubscriptionPageLazy = lazy(() => import('./pages/SubscriptionPage'));
@@ -80,8 +82,19 @@ const NavbarWrapper = ({ children }) => {
 const NAVBAR_HEIGHT_XS = 56; // Altura para móviles
 const NAVBAR_HEIGHT_SM = 64; // Altura para pantallas más grandes
 
+// --- Componente AdminRoute ---
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />; // Usa tu componente de carga
+  // Verifica si el usuario existe y si su email es el del admin
+  return user && user.email === 'alemart87@gmail.com' ? children : <Navigate to="/dashboard" replace />;
+};
+
 function App() {
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(() => {
+     // Ejemplo: No mostrar bienvenida si ya se completó antes
+     return !localStorage.getItem('welcomeCompleted');
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -89,6 +102,11 @@ function App() {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
+
+  const handleWelcomeComplete = () => {
+      localStorage.setItem('welcomeCompleted', 'true'); // Marcar como completado
+      setShowWelcome(false);
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -98,7 +116,7 @@ function App() {
           <Router>
             <ErrorBoundary>
               {showWelcome ? (
-                <NewWelcomePage onComplete={() => setShowWelcome(false)} />
+                <NewWelcomePage onComplete={handleWelcomeComplete} />
               ) : (
                 <NavbarWrapper>
                   <Box 
@@ -215,6 +233,32 @@ function App() {
                             <CalorieTrackerPage />
                           </ProtectedRoute>
                         } />
+
+                        {/* Rutas Públicas del Blog */}
+                        <Route
+                          path="/admin/blog"
+                          element={
+                            <AdminRoute>
+                              <AdminBlogManagement />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/blog/create"
+                          element={
+                            <AdminRoute>
+                              <BlogPostForm isEditMode={false} />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/blog/edit/:postId"
+                          element={
+                            <AdminRoute>
+                              <BlogPostForm isEditMode={true} />
+                            </AdminRoute>
+                          }
+                        />
                       </Routes>
                     </Suspense>
                     <FloatingChatButton />
