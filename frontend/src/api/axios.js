@@ -85,4 +85,24 @@ api.interceptors.response.use(
     }
 );
 
+// Interceptor para normalizar URLs y evitar rutas duplicadas
+api.interceptors.request.use(
+  (config) => {
+    // Normalizar la URL para evitar dobles /api/
+    if (config.url.startsWith('/api/api/')) {
+      config.url = config.url.replace('/api/api/', '/api/');
+      console.warn('URL corregida para evitar doble /api/:', config.url);
+    }
+    
+    // Normalizar URLs con doble barra
+    if (config.url.startsWith('//')) {
+      config.url = config.url.replace('//', '/');
+      console.warn('URL corregida para evitar doble barra:', config.url);
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export default api; 

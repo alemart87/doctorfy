@@ -33,7 +33,7 @@ const BlogPage = () => {
   }, []);
 
   const getBannerUrl = (bannerPath) => {
-    if (!bannerPath) return '/images/blog/default.jpg'; // Fallback
+    if (!bannerPath) return '/images/blog/default.jpg'; // Fallback para banners no disponibles
     // Asume que bannerPath es relativo a UPLOADS_URL, ej: "blog_banners/mi-imagen.jpg"
     return `${UPLOADS_URL}/${bannerPath}`;
   };
@@ -126,7 +126,11 @@ const BlogPage = () => {
                         src={getBannerUrl(post.banner_url)}
                         alt={`Banner para ${post.title}`}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.onerror = null; e.target.src='/images/blog/default.jpg'; }} // Fallback en caso de error de imagen
+                        onError={(e) => { 
+                          e.target.onerror = null; 
+                          e.target.src='/images/blog/default.jpg'; 
+                          console.warn(`Banner no encontrado para post: ${post.slug}`);
+                        }}
                       />
                     </Box>
                     {/* <Box

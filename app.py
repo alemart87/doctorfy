@@ -32,6 +32,7 @@ import json
 from xml.etree.ElementTree import Element, SubElement, tostring
 from sqlalchemy import func
 import logging
+from PIL import Image, ImageDraw, ImageFont
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -78,6 +79,23 @@ def ensure_upload_dirs(app):
         full_path = os.path.join(base_upload_dir, subdir)
         app.config[config_key] = full_path
         os.makedirs(full_path, exist_ok=True)
+
+    # Añadir directorio para imágenes por defecto
+    default_images_dir = os.path.join(app.static_folder, 'images', 'blog')
+    os.makedirs(default_images_dir, exist_ok=True)
+    
+    # Copiar imagen por defecto si no existe
+    default_image_path = os.path.join(default_images_dir, 'default.jpg')
+    if not os.path.exists(default_image_path):
+        # Crear una imagen por defecto simple
+        try:
+            img = Image.new('RGB', (800, 400), color=(73, 109, 137))
+            d = ImageDraw.Draw(img)
+            d.text((400, 200), "Doctorfy", fill=(255, 255, 255))
+            img.save(default_image_path)
+            print(f"Imagen por defecto creada en {default_image_path}")
+        except Exception as e:
+            print(f"No se pudo crear imagen por defecto: {e}")
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')

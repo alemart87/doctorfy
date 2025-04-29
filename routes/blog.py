@@ -359,3 +359,33 @@ def ensure_blog_banner_dir(app):
         current_app.logger.info(f"Directorio de banners asegurado: {banner_dir}")
 
 # Podrías llamar a ensure_blog_banner_dir(app) en create_app() en app.py 
+
+@blog_bp.route('/fix-missing-banners', methods=['GET'])
+@admin_required
+def fix_missing_banners():
+    """Corrige referencias a banners faltantes en la base de datos."""
+    try:
+        # Obtener todos los posts
+        posts = BlogPost.query.all()
+        fixed_count = 0
+        
+        for post in posts:
+            if post.banner_url:
+                # Verificar si el archivo existe
+                banner_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), post.banner_url)
+                if not os.path.exists(banner_path):
+                    # Marcar el banner como no disponible
+                    current_app.logger.warning(f"Banner no encontrado para post {post.id}: {post.banner_url}")
+                    post.banner_url = None
+                    fixed_count += 1
+        
+        if fixed_count > 0:
+            db.session.commit()
+            return jsonify({"message": f"Se corrigieron {fixed_count} referencias a banners faltantes"}), 200
+        else:
+            return jsonify({"message": "No se encontraron referencias a banners faltantes"}), 200
+            
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error al corregir banners: {str(e)}")
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500 
