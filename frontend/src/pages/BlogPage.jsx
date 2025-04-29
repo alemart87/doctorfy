@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Container, Typography, Grid, Card, CardContent, Button, Box, CircularProgress, Alert } from '@mui/material';
 import { Link } from 'react-router-dom';
 // import { blogPosts } from '../data/blogPosts'; // Ya no se usa
-import api from '../api/axios'; // Asegúrate que api/axios.js esté configurado
+import api from '../api/axios'; // Asegúrate que es la instancia configurada
 import { UPLOADS_URL } from '../config'; // Importa la URL base de uploads
 
 // Iconos (puedes mapearlos si quieres, o usar uno genérico)
@@ -20,10 +20,14 @@ const BlogPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get('/blog');
+        // --- Log para verificar la baseURL justo antes de la llamada ---
+        console.log('Intentando llamar a /blog con baseURL:', api.defaults.baseURL);
+        // -------------------------------------------------------------
+        const response = await api.get('/blog'); // Usa la instancia importada
         setPosts(response.data);
       } catch (err) {
-        console.error("Error fetching blog posts:", err);
+        // Loguear el error completo puede dar pistas
+        console.error("Error fetching blog posts:", err.toJSON ? err.toJSON() : err);
         setError("No se pudieron cargar los artículos del blog.");
       } finally {
         setLoading(false);

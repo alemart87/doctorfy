@@ -8,7 +8,6 @@ const API_URL = `${BACKEND_URL}/api`;
 const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || 'http://localhost:5000';
 
 // UPLOADS_URL debe apuntar a la URL donde se sirven los archivos estáticos/subidos
-// Podría ser la misma URL base o una diferente si usas CDN o un servicio distinto
 export const UPLOADS_URL = `${API_BASE_URL}/uploads`; // Asume que sirves desde /uploads en tu backend
 
 export const endpoints = {

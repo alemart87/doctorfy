@@ -2,12 +2,12 @@ import axios from 'axios';
 // Eliminar import de config si ya no se usa para API_URL
 // import config from '../config';
 
-// Asegúrate que la URL base SIEMPRE use HTTPS para producción
-const API_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || 'http://localhost:5000'; // Fallback local
+// Obtener la URL base de la variable de entorno
+const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || 'http://localhost:5000'; // Fallback local
 
 const api = axios.create({
-    // baseURL: config.API_URL, // <-- Reemplazar esto
-    baseURL: `${API_URL}/api`,          // <-- Con esto
+    // Construir la baseURL completa añadiendo /api
+    baseURL: `${API_BASE_URL}/api`,
     headers: {
         'Content-Type': 'application/json'
     },
