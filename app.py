@@ -14,7 +14,7 @@ from routes.admin import admin_bp
 from routes.profile import profile_bp
 from routes.doctor_profile import doctor_profile_bp
 from routes.chat_routes import chat_bp
-from routes.blog import blog_bp, ensure_blog_banner_dir
+from routes.blog import blog_bp
 from routes.credits import credits_bp
 from routes.payments import payments_bp
 from routes.notifications import notifications_bp
@@ -32,7 +32,6 @@ import json
 from xml.etree.ElementTree import Element, SubElement, tostring
 from sqlalchemy import func
 import logging
-from PIL import Image, ImageDraw, ImageFont
 
 migrate = Migrate()
 jwt = JWTManager()
@@ -80,23 +79,6 @@ def ensure_upload_dirs(app):
         app.config[config_key] = full_path
         os.makedirs(full_path, exist_ok=True)
 
-    # Añadir directorio para imágenes por defecto
-    default_images_dir = os.path.join(app.static_folder, 'images', 'blog')
-    os.makedirs(default_images_dir, exist_ok=True)
-    
-    # Copiar imagen por defecto si no existe
-    default_image_path = os.path.join(default_images_dir, 'default.jpg')
-    if not os.path.exists(default_image_path):
-        # Crear una imagen por defecto simple
-        try:
-            img = Image.new('RGB', (800, 400), color=(73, 109, 137))
-            d = ImageDraw.Draw(img)
-            d.text((400, 200), "Doctorfy", fill=(255, 255, 255))
-            img.save(default_image_path)
-            print(f"Imagen por defecto creada en {default_image_path}")
-        except Exception as e:
-            print(f"No se pudo crear imagen por defecto: {e}")
-
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
     app.config.from_object(config_class)
@@ -115,13 +97,6 @@ def create_app(config_class=Config):
     
     # Configuración para subida de archivos
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
-    
-    # Desactivar el modo debug en producción
-    if os.environ.get('FLASK_ENV') == 'production':
-        app.debug = False
-    
-    # Desactivar redirección automática para URLs con/sin barra final
-    app.url_map.strict_slashes = False
     
     # Inicializar extensiones
     db.init_app(app)
@@ -156,14 +131,11 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(doctor_profile_bp, url_prefix='/api/doctor-profile')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
-    app.register_blueprint(blog_bp, url_prefix='/api/blog')
+    app.register_blueprint(blog_bp)
     app.register_blueprint(credits_bp)
     app.register_blueprint(payments_bp, url_prefix='/api/payments')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(calories_bp, url_prefix='/api/calories')
-
-    # Asegúrate de que el directorio de uploads exista
-    ensure_blog_banner_dir(app)
 
     # Manejador de errores JWT
     @jwt.invalid_token_loader
@@ -322,6 +294,21 @@ def create_app(config_class=Config):
             # Considera devolver una imagen por defecto o un 404
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
+
+    # Usar variable de entorno o default a la ruta persistente de Render
+    persistent_disk_mount_path = '/persistent' # Ruta base del disco en Render
+    default_upload_path = os.path.join(persistent_disk_mount_path, 'uploads')
+    app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', default_upload_path)
+
+    # Crear directorios necesarios al iniciar
+    try:
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        blog_banner_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'blog_banners')
+        os.makedirs(blog_banner_dir, exist_ok=True)
+        app.logger.info(f"Upload folder set to: {app.config['UPLOAD_FOLDER']}")
+        app.logger.info(f"Blog banner directory ensured: {blog_banner_dir}")
+    except OSError as e:
+        app.logger.error(f"Error creating upload directories: {e}")
 
     return app
 

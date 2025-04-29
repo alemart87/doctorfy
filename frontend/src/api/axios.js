@@ -2,21 +2,12 @@ import axios from 'axios';
 // Eliminar import de config si ya no se usa para API_URL
 // import config from '../config';
 
-// Determinar la URL base según el entorno
-const getBaseURL = () => {
-  // En producción (Render)
-  if (window.location.hostname !== 'localhost') {
-    // Usar la misma base que el navegador (evita problemas CORS)
-    return '';
-  }
-  // En desarrollo local
-  return 'http://localhost:5000';
-};
+// Asegúrate que la URL base SIEMPRE use HTTPS para producción
+const API_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || 'http://localhost:5000'; // Fallback local
 
 const api = axios.create({
     // baseURL: config.API_URL, // <-- Reemplazar esto
-    baseURL: getBaseURL(),          // <-- Con esto
-    timeout: 30000, // Aumentar timeout para generación de contenido
+    baseURL: `${API_URL}/api`,          // <-- Con esto
     headers: {
         'Content-Type': 'application/json'
     },
@@ -43,38 +34,25 @@ api.interceptors.response.use(
 
 // Interceptor para agregar el token a todas las solicitudes
 api.interceptors.request.use(
-  (config) => {
-    // Normalizar URLs
-    if (config.url.startsWith('/api/api/')) {
-      config.url = config.url.replace('/api/api/', '/api/');
+    (config) => {
+        // No sobrescribir Content-Type si ya está establecido (para multipart/form-data)
+        if (config.headers['Content-Type'] === 'multipart/form-data') {
+            delete config.headers['Content-Type'];
+        }
+        
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('Enviando solicitud a:', config.url);
+            console.log('Con token configurado en headers');
+        } else {
+            console.warn('No se encontró token para la solicitud a:', config.url);
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    
-    if (config.url.startsWith('//')) {
-      config.url = config.url.replace('//', '/');
-    }
-    
-    // Mejorar la gestión del token
-    let token = localStorage.getItem('token');
-    
-    // Si no hay token en localStorage, intentar con sessionStorage
-    if (!token) {
-      token = sessionStorage.getItem('token');
-    }
-    
-    // Verificar que el token sea válido (al menos tenga la estructura básica de JWT)
-    if (token && token.split('.').length === 3) {
-      config.headers.Authorization = `Bearer ${token}`;
-    } else if (token) {
-      // Si hay un token pero no es válido, limpiarlo
-      console.warn('Token inválido detectado, limpiando...');
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      // No establecer el header Authorization
-    }
-    
-    return config;
-  },
-  (error) => Promise.reject(error)
 );
 
 // Interceptor para manejar errores de respuesta
@@ -96,26 +74,6 @@ api.interceptors.response.use(
         }
         return Promise.reject(error);
     }
-);
-
-// Interceptor para normalizar URLs y evitar rutas duplicadas
-api.interceptors.request.use(
-  (config) => {
-    // Normalizar la URL para evitar dobles /api/
-    if (config.url.startsWith('/api/api/')) {
-      config.url = config.url.replace('/api/api/', '/api/');
-      console.warn('URL corregida para evitar doble /api/:', config.url);
-    }
-    
-    // Normalizar URLs con doble barra
-    if (config.url.startsWith('//')) {
-      config.url = config.url.replace('//', '/');
-      console.warn('URL corregida para evitar doble barra:', config.url);
-    }
-    
-    return config;
-  },
-  (error) => Promise.reject(error)
 );
 
 export default api; 

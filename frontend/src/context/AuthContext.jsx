@@ -65,25 +65,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
       
-      // Modificar esta parte para mejorar el almacenamiento del token
-      try {
-        localStorage.removeItem('token'); // Limpiar primero
-        localStorage.setItem('token', token);
-        
-        // Verificación adicional para asegurar que se guardó correctamente
-        const storedToken = localStorage.getItem('token');
-        if (!storedToken || storedToken !== token) {
-          console.error('Error: El token no se guardó correctamente en localStorage');
-          // Intento alternativo con sessionStorage como fallback
-          sessionStorage.setItem('token', token);
-        }
-        
-        // Configurar el token en axios para todas las solicitudes futuras
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        setUser(user);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
         
         // Verificar si el usuario ha visto la guía
         const hasSeenGuide = localStorage.getItem('hasSeenGuide');
@@ -93,34 +78,13 @@ export const AuthProvider = ({ children }) => {
           navigate('/dashboard');
         }
         
-        return { success: true, user };
-      } catch (storageError) {
-        console.error('Error al guardar token en localStorage:', storageError);
-        // Usar sessionStorage como alternativa
-        try {
-          sessionStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          setUser(user);
-          
-          // Verificar si el usuario ha visto la guía
-          const hasSeenGuide = localStorage.getItem('hasSeenGuide');
-          if (!hasSeenGuide) {
-            navigate('/guide');
-          } else {
-            navigate('/dashboard');
-          }
-          
-          return { success: true, user };
-        } catch (sessionError) {
-          console.error('Error al guardar token en sessionStorage:', sessionError);
-          return { success: false, error: 'Error al guardar la sesión' };
-        }
+        return { success: true };
       }
     } catch (error) {
-      console.error('Error de login:', error);
+      console.error('Error en login:', error);
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Error al iniciar sesión'
+        message: error.response?.data?.message || 'Error al iniciar sesión'
       };
     } finally {
       setIsLoading(false);

@@ -5,7 +5,7 @@ import openai, re, uuid, os, datetime as dt
 from models import db, BlogPost, User # Importa los modelos necesarios
 from sqlalchemy.exc import IntegrityError
 
-blog_bp = Blueprint('blog', __name__)
+blog_bp = Blueprint('blog', __name__, url_prefix='/api/blog')
 
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_KEY:
@@ -170,46 +170,43 @@ def generate_ai_content():
 @admin_required
 def create_post():
     """Crea un nuevo post (manual o con datos generados por IA)."""
+    data = request.form.to_dict() # Usar request.form para manejar multipart/form-data
+    title, subtitle, content = data['title'], data['subtitle'], data['content']
+    meta_title    = data.get('meta_title', '').strip()[:70]
+    meta_keywords = data.get('meta_keywords', '').strip()[:300]
+    meta_description = data.get('meta_description', '').strip()[:160]
+
+    if not title or not content:
+        return jsonify({'error': 'Título y contenido son requeridos.'}), 400
+
+    # Generar slug único
+    base_slug = slugify(title[:60])
+    slug = base_slug
+    counter = 1
+    while BlogPost.query.filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    banner_rel_path = None
+    if 'banner' in request.files:
+        file = request.files['banner']
+        if file and file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(f"{slug}-{uuid.uuid4().hex[:8]}-{file.filename}")
+            # Asegurarse que el directorio de banners existe
+            banner_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'blog_banners')
+            os.makedirs(banner_dir, exist_ok=True)
+            file_path = os.path.join(banner_dir, filename)
+            try:
+                file.save(file_path)
+                banner_rel_path = f"blog_banners/{filename}" # Ruta relativa para guardar en DB
+                current_app.logger.info(f"Banner guardado en: {file_path}")
+            except Exception as e:
+                current_app.logger.error(f"Error al guardar banner: {str(e)}")
+                return jsonify({"error": f"Error al guardar imagen del banner: {str(e)}"}), 500
+        elif file.filename != '':
+             return jsonify({'error': 'Tipo de archivo de banner no permitido.'}), 400
+
     try:
-        # Log para depurar
-        current_app.logger.info(f"Recibida solicitud POST a /api/blog con datos: {request.form.keys()}")
-        
-        data = request.form.to_dict()
-        title, subtitle, content = data['title'], data['subtitle'], data['content']
-        meta_title    = data.get('meta_title', '').strip()[:70]
-        meta_keywords = data.get('meta_keywords', '').strip()[:300]
-        meta_description = data.get('meta_description', '').strip()[:160]
-
-        if not title or not content:
-            return jsonify({'error': 'Título y contenido son requeridos.'}), 400
-
-        # Generar slug único
-        base_slug = slugify(title[:60])
-        slug = base_slug
-        counter = 1
-        while BlogPost.query.filter_by(slug=slug).first():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
-
-        banner_rel_path = None
-        if 'banner' in request.files:
-            file = request.files['banner']
-            if file and file.filename != '' and allowed_file(file.filename):
-                filename = secure_filename(f"{slug}-{uuid.uuid4().hex[:8]}-{file.filename}")
-                # Asegurarse que el directorio de banners existe
-                banner_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'blog_banners')
-                os.makedirs(banner_dir, exist_ok=True)
-                file_path = os.path.join(banner_dir, filename)
-                try:
-                    file.save(file_path)
-                    banner_rel_path = f"blog_banners/{filename}" # Ruta relativa para guardar en DB
-                    current_app.logger.info(f"Banner guardado en: {file_path}")
-                except Exception as e:
-                    current_app.logger.error(f"Error al guardar banner: {str(e)}")
-                    return jsonify({"error": f"Error al guardar imagen del banner: {str(e)}"}), 500
-            elif file.filename != '':
-                 return jsonify({'error': 'Tipo de archivo de banner no permitido.'}), 400
-
         new_post = BlogPost(
             slug=slug,
             title=title,
@@ -230,14 +227,9 @@ def create_post():
         current_app.logger.error(f"Error de integridad al crear post: {str(e)}")
         return jsonify({'error': 'Error al crear el post (posible slug duplicado).'}), 409
     except Exception as e:
-        current_app.logger.error(f"Error en create_post: {str(e)}")
-        return jsonify({'error': f'Error interno: {str(e)}'}), 500
-
-@blog_bp.route('', methods=['POST'])  # Sin barra
-@admin_required
-def create_post_no_slash():
-    """Alias para create_post que maneja la ruta sin barra final."""
-    return create_post()
+        db.session.rollback()
+        current_app.logger.error(f"Error general al crear post: {str(e)}")
+        return jsonify({'error': f'Error interno al crear el post: {str(e)}'}), 500
 
 @blog_bp.route('/<int:post_id>', methods=['PUT'])
 @admin_required
@@ -330,10 +322,14 @@ def delete_post(post_id):
         current_app.logger.error(f"Error al eliminar post {post_id}: {str(e)}")
         return jsonify({'error': f'Error interno al eliminar el post: {str(e)}'}), 500
 
-@blog_bp.route('/id/<int:post_id>', methods=['GET'])
+@blog_bp.route('/id/<string:post_id_str>', methods=['GET'])
 @admin_required
-def get_post_by_id(post_id):
+def get_post_by_id(post_id_str):
     """Obtiene un post completo por su ID (sólo admin)."""
+    try:
+        post_id = int(post_id_str) # Convertir a entero aquí
+    except ValueError:
+        abort(404, description="ID de post inválido.")
     try:
         post = db.session.get(BlogPost, post_id)
         if not post:
@@ -359,33 +355,3 @@ def ensure_blog_banner_dir(app):
         current_app.logger.info(f"Directorio de banners asegurado: {banner_dir}")
 
 # Podrías llamar a ensure_blog_banner_dir(app) en create_app() en app.py 
-
-@blog_bp.route('/fix-missing-banners', methods=['GET'])
-@admin_required
-def fix_missing_banners():
-    """Corrige referencias a banners faltantes en la base de datos."""
-    try:
-        # Obtener todos los posts
-        posts = BlogPost.query.all()
-        fixed_count = 0
-        
-        for post in posts:
-            if post.banner_url:
-                # Verificar si el archivo existe
-                banner_path = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), post.banner_url)
-                if not os.path.exists(banner_path):
-                    # Marcar el banner como no disponible
-                    current_app.logger.warning(f"Banner no encontrado para post {post.id}: {post.banner_url}")
-                    post.banner_url = None
-                    fixed_count += 1
-        
-        if fixed_count > 0:
-            db.session.commit()
-            return jsonify({"message": f"Se corrigieron {fixed_count} referencias a banners faltantes"}), 200
-        else:
-            return jsonify({"message": "No se encontraron referencias a banners faltantes"}), 200
-            
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Error al corregir banners: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500 

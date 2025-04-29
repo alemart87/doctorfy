@@ -20,7 +20,7 @@ const BlogPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get('/api/blog');
+        const response = await api.get('/blog');
         setPosts(response.data);
       } catch (err) {
         console.error("Error fetching blog posts:", err);
@@ -33,7 +33,7 @@ const BlogPage = () => {
   }, []);
 
   const getBannerUrl = (bannerPath) => {
-    if (!bannerPath) return '/images/blog/default.jpg'; // Fallback para banners no disponibles
+    if (!bannerPath) return '/images/blog/default.jpg'; // Fallback
     // Asume que bannerPath es relativo a UPLOADS_URL, ej: "blog_banners/mi-imagen.jpg"
     return `${UPLOADS_URL}/${bannerPath}`;
   };
@@ -126,10 +126,10 @@ const BlogPage = () => {
                         src={getBannerUrl(post.banner_url)}
                         alt={`Banner para ${post.title}`}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { 
-                          e.target.onerror = null; 
-                          e.target.src='/images/blog/default.jpg'; 
-                          console.warn(`Banner no encontrado para post: ${post.slug}`);
+                        onError={(e) => {
+                          console.warn(`Error cargando banner: ${e.target.src}`);
+                          e.target.onerror = null; // Previene loops si el fallback falla
+                          e.target.src = '/images/blog/default.jpg'; // Asegúrate que esta imagen exista y sea servida
                         }}
                       />
                     </Box>

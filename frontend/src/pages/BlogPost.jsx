@@ -19,7 +19,7 @@ const BlogPost = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get(`/api/blog/${slug}`);
+        const response = await api.get(`/blog/${slug}`);
         setPost(response.data);
       } catch (err) {
         console.error(`Error fetching post ${slug}:`, err);
@@ -126,7 +126,12 @@ const BlogPost = () => {
                 src={bannerUrl}
                 alt={`Banner para ${post.title}`}
                 style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                onError={(e) => { e.target.style.display='none'; }} // Ocultar si hay error
+                onError={(e) => {
+                  console.warn(`Error cargando banner: ${e.target.src}`);
+                  e.target.onerror = null;
+                  e.target.style.display = 'none'; // Oculta la imagen si falla
+                  // Alternativa: e.target.src = '/images/blog/default.jpg';
+                }}
               />
             </Box>
           )}
