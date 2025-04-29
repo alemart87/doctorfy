@@ -102,6 +102,9 @@ def create_app(config_class=Config):
     if os.environ.get('FLASK_ENV') == 'production':
         app.debug = False
     
+    # Desactivar redirección automática para URLs con/sin barra final
+    app.url_map.strict_slashes = False
+    
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
