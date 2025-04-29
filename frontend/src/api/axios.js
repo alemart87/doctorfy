@@ -43,36 +43,38 @@ api.interceptors.response.use(
 
 // Interceptor para agregar el token a todas las solicitudes
 api.interceptors.request.use(
-    (config) => {
-        // No sobrescribir Content-Type si ya está establecido (para multipart/form-data)
-        if (config.headers['Content-Type'] === 'multipart/form-data') {
-            delete config.headers['Content-Type'];
-        }
-        
-        const token = localStorage.getItem('token');
-        // Verificar que el token sea válido (al menos tenga la estructura básica de JWT)
-        if (token && token.split('.').length === 3) {
-            config.headers.Authorization = `Bearer ${token}`;
-            console.log('Enviando solicitud a:', config.url);
-            console.log('Con token configurado en headers');
-        } else {
-            // Si el token existe pero no es válido, limpiarlo
-            if (token) {
-                console.error('Token inválido encontrado, limpiando:', token);
-                localStorage.removeItem('token');
-                // Redirigir a login solo si la ruta actual requiere autenticación
-                if (!config.url.includes('/auth/login') && !config.url.includes('/blog')) {
-                    window.location.href = '/login';
-                }
-            } else {
-                console.warn('No se encontró token para la solicitud a:', config.url);
-            }
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    // Normalizar URLs
+    if (config.url.startsWith('/api/api/')) {
+      config.url = config.url.replace('/api/api/', '/api/');
     }
+    
+    if (config.url.startsWith('//')) {
+      config.url = config.url.replace('//', '/');
+    }
+    
+    // Mejorar la gestión del token
+    let token = localStorage.getItem('token');
+    
+    // Si no hay token en localStorage, intentar con sessionStorage
+    if (!token) {
+      token = sessionStorage.getItem('token');
+    }
+    
+    // Verificar que el token sea válido (al menos tenga la estructura básica de JWT)
+    if (token && token.split('.').length === 3) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      // Si hay un token pero no es válido, limpiarlo
+      console.warn('Token inválido detectado, limpiando...');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      // No establecer el header Authorization
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 // Interceptor para manejar errores de respuesta

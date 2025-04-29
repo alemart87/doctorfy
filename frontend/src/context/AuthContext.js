@@ -2,7 +2,6 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 // Quitar authService si ya no se usa o asegurarse que use 'api'
 // import { authService } from '../services/api';
 import api from '../api/axios'; // Usar directamente la instancia de axios configurada
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
@@ -10,8 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
-  const navigate = useNavigate();
   // Quitar estado separado, se derivará de 'user'
   // const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -19,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async () => {
     try {
       // Usa la ruta que devuelve User.to_dict() completo
-      const response = await api.get('/api/profile/me'); // Asegúrate que esta ruta exista y devuelva el perfil
+      const response = await api.get('/profile/me'); // Asegúrate que esta ruta exista y devuelva el perfil
       setUser(response.data); // Guarda el perfil COMPLETO
       setError(null); // Limpiar errores previos si carga bien
       return response.data; // Devolver datos por si se necesitan
@@ -37,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     // --- Lógica de carga inicial modificada ---
     const loadUserFromToken = async () => {
       const token = localStorage.getItem('token');
-      if (token && token.split('.').length === 3) {
+      if (token) {
         try {
           // Llama a la función helper para obtener el perfil completo
           await fetchUserProfile();
@@ -47,31 +44,31 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('token');
           setUser(null); // Asegurarse que user es null si falla
         }
-      } else if (token) {
-        // Si el token existe pero no tiene el formato correcto
-        console.error('Token inválido encontrado, limpiando:', token);
-        localStorage.removeItem('token');
-        setUser(null);
       }
       setLoading(false); // Terminar carga inicial (después del try/catch)
     };
     loadUserFromToken();
   }, []); // Ejecutar solo una vez al montar
 
-  // Añadir un efecto para actualizar el estado de suscripción periódicamente
-  useEffect(() => {
-    // Verificar el estado de suscripción al cargar el componente
-    if (user) {
-      checkSubscription();
-      
-      // Configurar un intervalo para verificar el estado de suscripción cada 5 minutos
-      const subscriptionInterval = setInterval(() => {
-        checkSubscription();
-      }, 5 * 60 * 1000);
-      
-      return () => clearInterval(subscriptionInterval);
+  // Quitar función loadUser separada si ya no se usa
+  /*
+  const loadUser = async () => {
+    try {
+      setLoading(true);
+      const response = await authService.getProfile(); // Esto debería ser api.get('/profile/me')
+      setUser(response.data);
+      setError(null);
+      // setIsAuthenticated(true); // Ya no se necesita
+    } catch (err) {
+      console.error('Error loading user:', err);
+      setError('Error al cargar el perfil de usuario');
+      localStorage.removeItem('token');
+      // setIsAuthenticated(false); // Ya no se necesita
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
+  };
+  */
 
   const login = async (credentials) => {
     // setLoading(true); // Opcional
@@ -79,18 +76,15 @@ export const AuthProvider = ({ children }) => {
     try {
       // 1. Hacer la llamada a la API de login (solo para obtener token)
       // Asegúrate que la ruta '/auth/login' es correcta
-      const loginResponse = await api.post('/api/auth/login', credentials);
-      const { token, user: userData } = loginResponse.data; // Asume que devuelve al menos el token
-
-      // Verificar que el token tenga la estructura correcta
-      if (!token || token.split('.').length !== 3) {
-        throw new Error('Token inválido recibido del servidor');
-      }
+      const loginResponse = await api.post('/auth/login', credentials);
+      const { token } = loginResponse.data; // Asume que devuelve al menos el token
 
       // 2. Guardar token
       localStorage.setItem('token', token);
-      setUser(userData);
       // api.defaults.headers.common['Authorization'] = `Bearer ${token}`; // Interceptor ya lo hace
+
+      // 3. OBTENER PERFIL COMPLETO usando la función helper
+      await fetchUserProfile(); // Esto llamará a setUser internamente
 
       // setLoading(false); // Opcional
       return { success: true };
@@ -112,23 +106,24 @@ export const AuthProvider = ({ children }) => {
     try {
       // 1. Hacer la llamada a la API de registro
       // Asegúrate que la ruta '/auth/register' es correcta
-      const registerResponse = await api.post('/api/auth/register', userData);
+      const registerResponse = await api.post('/auth/register', userData);
 
       // Verificar si la respuesta contiene el token
       const { token } = registerResponse.data;
 
-      if (!token || token.split('.').length !== 3) {
-        throw new Error('Token inválido recibido del servidor');
+      if (!token) {
+         // Si no devuelve token, intentar hacer login inmediatamente después
+         console.warn("Registro exitoso pero no devolvió token. Intentando login...");
+         return await login({ email: userData.email, password: userData.password });
       }
 
       // Si el registro SÍ devuelve token:
       // 2. Guardar token
       localStorage.setItem('token', token);
-      setUser(registerResponse.data.user);
       // api.defaults.headers.common['Authorization'] = `Bearer ${token}`; // Interceptor ya lo hace
 
-      // Redirigir a la guía para nuevos usuarios
-      navigate('/guide');
+      // 3. OBTENER PERFIL COMPLETO
+      await fetchUserProfile(); // Esto llamará a setUser
 
       return { success: true };
 
@@ -147,57 +142,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     // delete api.defaults.headers.common['Authorization']; // Opcional
     console.log("User logged out.");
-    navigate('/login');
-  };
-
-  // Función para verificar el estado de la suscripción
-  const checkSubscription = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token || token.split('.').length !== 3) {
-        console.error('No hay token válido disponible');
-        return { active: false, subscription: false, trial: false };
-      }
-
-      const response = await api.get('/api/subscription/status');
-      
-      console.log("Respuesta de verificación de suscripción:", response.data);
-      setSubscriptionStatus(response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error al verificar suscripción:', error);
-      return { active: false, subscription: false, trial: false };
-    }
-  };
-
-  // Función simplificada para iniciar el proceso de suscripción
-  const startSubscription = async () => {
-    try {
-      // Redirigir directamente al enlace de pago de Stripe
-      window.location.href = 'https://buy.stripe.com/8wM14lh1j3Jo7L23cI';
-      return { success: true };
-    } catch (error) {
-      console.error('Error al iniciar suscripción:', error);
-      return { 
-        success: false, 
-        message: 'Error al procesar la suscripción'
-      };
-    }
-  };
-
-  // Función simplificada para acceder al portal de clientes
-  const accessCustomerPortal = async () => {
-    try {
-      // Redirigir directamente al portal de clientes de Stripe
-      window.location.href = 'https://billing.stripe.com/p/login/bIYg2u2eNbOl7mgdQQ';
-      return { success: true };
-    } catch (error) {
-      console.error('Error al acceder al portal de clientes:', error);
-      return { 
-        success: false, 
-        message: 'Error al acceder al portal de clientes'
-      };
-    }
+    // Considera redirigir aquí si es necesario
   };
 
   // --- isAdmin y isSuperAdmin (sin cambios) ---
@@ -211,15 +156,11 @@ export const AuthProvider = ({ children }) => {
     // setUser, // Exponer solo si es necesario
     loading, // Estado de carga inicial
     error,   // Último error
-    subscriptionStatus,
     login,
     register,
     logout,
     isAdmin,
     isSuperAdmin,
-    checkSubscription,
-    startSubscription,
-    accessCustomerPortal,
     isAuthenticated: !!user, // Derivado directamente
   };
 
