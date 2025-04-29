@@ -136,7 +136,7 @@ const BlogPostForm = ({ isEditMode = false }) => {
         });
         setSuccess("Post actualizado con éxito.");
       } else {
-        response = await api.post('/api/blog/', formData, {
+        response = await api.post('/api/blog', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setSuccess("Post creado con éxito.");
