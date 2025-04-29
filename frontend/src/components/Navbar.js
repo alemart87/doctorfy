@@ -84,7 +84,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 const Navbar = () => {
-  const { user, logout, isAdmin, isDoctor } = useAuth();
+  const { user, logout, isDoctor } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -98,6 +98,9 @@ const Navbar = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+
+  // Definir isAdmin basado en el email del usuario
+  const isAdmin = user?.email === 'alemart87@gmail.com';
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -186,8 +189,7 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const handleNavigate = (path) => {
-    handleClose();
+  const handleNavigation = (path) => {
     setDrawerOpen(false);
     navigate(path);
   };
@@ -268,201 +270,305 @@ const Navbar = () => {
   };
 
   const drawer = (
-    <Box sx={{ width: drawerWidth }} role="presentation">
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
-         <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Doctorfy
-        </Typography>
-      </Box>
-
-      {user && (
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
-          <Avatar
-            alt={user.name || 'Usuario'}
-            src={user.profilePicture || undefined}
-            sx={{ width: 40, height: 40, mr: 1.5, bgcolor: 'primary.main' }}
-          >
-            {!user.profilePicture && user.name ? user.name.charAt(0).toUpperCase() : <PersonIcon />}
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', lineHeight: 1.2 }}>
-              {user.name || 'Usuario'}
+    <Box sx={{ 
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      <Box sx={{ 
+        p: 2, 
+        pb: 0,
+        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+        backgroundColor: alpha(theme.palette.common.black, 0.95),
+      }}>
+        {user && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 500 }}>
+              {user.name || user.email}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+            <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
               {user.email}
             </Typography>
           </Box>
+        )}
+      </Box>
+
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <Box sx={{ 
+          position: 'sticky', 
+          top: 0,
+          zIndex: 1,
+          backgroundColor: alpha(theme.palette.common.black, 0.95),
+          borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+          py: 1,
+          px: 2
+        }}>
+          <Typography variant="overline" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
+            Navegación
+          </Typography>
         </Box>
-      )}
 
-      <List onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)} sx={{ pt: 0, color: 'common.white', '& .MuiListItemIcon-root': { color: brightCyan, minWidth: 'auto', marginRight: 1.5 } }}>
-        {user && (
-          <>
-            <ListItem disablePadding sx={{ my: 0.5 }}>
-              <ListItemButton component={RouterLink} to="/credits-info" sx={{ py: 0.8 }}>
-                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: brightCyan }}>
-                  {creditsLoading ? <CircularProgress size={20} sx={{ color: brightCyan }}/> : <AccountBalanceWalletIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    creditsLoading ? "Cargando..." :
-                    (credits !== null && credits !== 'Error'
-                      ? `${credits.toFixed(1)} Créditos`
-                      : (credits === 'Error' ? 'Error al cargar' : '-- Créditos')
-                    )
-                  }
-                  primaryTypographyProps={{
-                    fontWeight: 'bold',
-                    color: brightCyan,
-                    sx: { textShadow: `0 0 5px ${alpha(brightCyan, 0.7)}` }
-                  }}
-                  secondary="Ver planes y detalles"
-                  secondaryTypographyProps={{fontSize: '0.8rem'}}
-                />
-              </ListItemButton>
-            </ListItem>
-            <Divider sx={{ mb: 1 }} />
-          </>
-        )}
-
-        {(showInstallButton || !isOnline) && (
-          <>
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Aplicación</ListSubheader>
-            {!isOnline && (
-              <ListItem disablePadding sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
-                <ListItemButton sx={{ py: 0.8 }}>
-                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'warning.main' }}>
-                    <WifiOffIcon />
+        <List 
+          component="nav"
+          sx={{
+            flexGrow: 1,
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: alpha(theme.palette.common.white, 0.2),
+              borderRadius: '4px',
+            },
+            '& .MuiListItemIcon-root': { 
+              color: brightCyan, 
+              minWidth: 'auto', 
+              marginRight: 1.5 
+            }
+          }}
+        >
+          {user && (
+            <>
+              <ListItem disablePadding sx={{ my: 0.5 }}>
+                <ListItemButton component={RouterLink} to="/credits-info" sx={{ py: 0.8 }}>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: brightCyan }}>
+                    {creditsLoading ? <CircularProgress size={20} sx={{ color: brightCyan }}/> : <AccountBalanceWalletIcon />}
                   </ListItemIcon>
-                  <ListItemText primary="Sin conexión" primaryTypographyProps={{ color: 'warning.main', fontWeight: 'medium' }} />
+                  <ListItemText
+                    primary={
+                      creditsLoading ? "Cargando..." :
+                      (credits !== null && credits !== 'Error'
+                        ? `${credits.toFixed(1)} Créditos`
+                        : (credits === 'Error' ? 'Error al cargar' : '-- Créditos')
+                      )
+                    }
+                    primaryTypographyProps={{
+                      fontWeight: 'bold',
+                      color: brightCyan,
+                      sx: { textShadow: `0 0 5px ${alpha(brightCyan, 0.7)}` }
+                    }}
+                    secondary="Ver planes y detalles"
+                    secondaryTypographyProps={{fontSize: '0.8rem'}}
+                  />
                 </ListItemButton>
               </ListItem>
-            )}
-            {showInstallButton && (
-              <ListItem disablePadding>
-                <ListItemButton onClick={handleInstallClick} sx={{ py: 0.8 }}>
-                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'primary.main' }}>
-                    <GetAppIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Instalar App" />
-                </ListItemButton>
-              </ListItem>
-            )}
-            <Divider sx={{ my: 1 }} />
-          </>
-        )}
+              <Divider sx={{ mb: 1 }} />
+            </>
+          )}
 
-        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Navegación</ListSubheader>
-        {commonNavItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              component={RouterLink} 
-              to={item.path} 
-              sx={location.pathname === item.path 
-                ? {
-                    ...activeStyle,
-                    py: 0.8, 
-                    backgroundColor: alpha(brightCyan, 0.15),
-                    '& .MuiListItemIcon-root': { color: brightCyan },
-                    '& .MuiListItemText-primary': { color: brightCyan, fontWeight: 'bold' }
-                  } 
-                : { 
-                    py: 0.8, 
-                    '&:hover': { backgroundColor: alpha(theme.palette.common.white, 0.1) }
-                  }
-              }
-            >
-              <ListItemIcon> 
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+          {(showInstallButton || !isOnline) && (
+            <>
+              <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Aplicación</ListSubheader>
+              {!isOnline && (
+                <ListItem disablePadding sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
+                  <ListItemButton sx={{ py: 0.8 }}>
+                    <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'warning.main' }}>
+                      <WifiOffIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Sin conexión" primaryTypographyProps={{ color: 'warning.main', fontWeight: 'medium' }} />
+                  </ListItemButton>
+                </ListItem>
+              )}
+              {showInstallButton && (
+                <ListItem disablePadding>
+                  <ListItemButton onClick={handleInstallClick} sx={{ py: 0.8 }}>
+                    <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5, color: 'primary.main' }}>
+                      <GetAppIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Instalar App" />
+                  </ListItemButton>
+                </ListItem>
+              )}
+              <Divider sx={{ my: 1 }} />
+            </>
+          )}
 
-        {isAdmin && (
-          <>
-            <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Admin</ListSubheader>
-            {adminNavItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
-                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </>
-        )}
-        {isDoctor && !isAdmin && (
-          <>
-            <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
-            <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Doctor</ListSubheader>
-            {doctorNavItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
-                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </>
-        )}
-
-        <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
-        <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>{user ? 'Mi Cuenta' : 'Acceso'}</ListSubheader>
-        {user ? (
-          <>
-            {userAccountItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
-                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-            <ListItem disablePadding>
-              <ListItemButton onClick={handleLogout} sx={{ py: 0.8, '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.2) } }}>
-                <ListItemIcon sx={{ color: theme.palette.error.light }}>
-                  <ExitToAppIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Cerrar Sesión" sx={{ color: theme.palette.error.light }} />
-              </ListItemButton>
-            </ListItem>
-          </>
-        ) : (
-          authItems.map((item) => (
+          {commonNavItems.map((item) => (
             <ListItem key={item.text} disablePadding>
-              <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
-                <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+              <ListItemButton 
+                onClick={() => handleNavigation(item.path)}
+                sx={location.pathname === item.path 
+                  ? {
+                      ...activeStyle,
+                      py: 0.8, 
+                      backgroundColor: alpha(brightCyan, 0.15),
+                      '& .MuiListItemIcon-root': { color: brightCyan },
+                      '& .MuiListItemText-primary': { color: brightCyan, fontWeight: 'bold' }
+                    } 
+                  : { 
+                      py: 0.8, 
+                      '&:hover': { backgroundColor: alpha(theme.palette.common.white, 0.1) }
+                    }
+                }
+              >
+                <ListItemIcon> 
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>
-          ))
-        )}
-      </List>
+          ))}
+
+          {/* Sección de Admin - Solo visible para alemart87@gmail.com */}
+          {isAdmin && (
+            <>
+              <Box sx={{ 
+                position: 'sticky', 
+                top: 0,
+                zIndex: 1,
+                backgroundColor: alpha(theme.palette.common.black, 0.95),
+                borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+                py: 1,
+                px: 2,
+                mt: 2
+              }}>
+                <Typography 
+                  variant="overline" 
+                  sx={{ 
+                    color: theme.palette.warning.light,
+                    fontWeight: 'bold' 
+                  }}
+                >
+                  Admin
+                </Typography>
+              </Box>
+              {adminNavItems.map((item) => (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton 
+                    onClick={() => handleNavigation(item.path)}
+                    sx={location.pathname === item.path 
+                      ? {
+                          ...activeStyle,
+                          py: 0.8,
+                          '& .MuiListItemIcon-root': { 
+                            color: theme.palette.warning.light 
+                          }
+                        } 
+                      : { 
+                          py: 0.8,
+                          '& .MuiListItemIcon-root': { 
+                            color: theme.palette.warning.light 
+                          }
+                        }
+                    }
+                  >
+                    <ListItemIcon>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={item.text} 
+                      sx={{ 
+                        color: theme.palette.warning.light
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </>
+          )}
+          {isDoctor && !isAdmin && (
+            <>
+              <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
+              <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Doctor</ListSubheader>
+              {doctorNavItems.map((item) => (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton component={RouterLink} to={item.path} sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}>
+                    <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </>
+          )}
+
+          <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
+          <Box sx={{ 
+            position: 'sticky', 
+            top: 0,
+            zIndex: 1,
+            backgroundColor: alpha(theme.palette.common.black, 0.95),
+            borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+            py: 1,
+            px: 2,
+            mt: 2
+          }}>
+            <Typography variant="overline" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
+              {user ? 'Mi Cuenta' : 'Acceso'}
+            </Typography>
+          </Box>
+          {user ? (
+            <>
+              {userAccountItems.map((item) => (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton 
+                    onClick={() => handleNavigation(item.path)}
+                    sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+              <ListItem disablePadding>
+                <ListItemButton onClick={handleLogout} sx={{ py: 0.8, '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.2) } }}>
+                  <ListItemIcon sx={{ color: theme.palette.error.light }}>
+                    <ExitToAppIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Cerrar Sesión" sx={{ color: theme.palette.error.light }} />
+                </ListItemButton>
+              </ListItem>
+            </>
+          ) : (
+            authItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavigation(item.path)}
+                  sx={location.pathname === item.path ? {...activeStyle, py: 0.8} : { py: 0.8 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1.5 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))
+          )}
+        </List>
+      </Box>
     </Box>
   );
 
   return (
     <>
       <AppBar
-        position="fixed"
         elevation={0}
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          zIndex: (theme) => theme.zIndex.drawer + 2,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
           backgroundColor: alpha(theme.palette.background.paper, 0.85),
           backdropFilter: 'blur(8px)',
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
           color: 'text.primary',
+          '&.MuiAppBar-root': {
+            zIndex: theme.zIndex.drawer + 2,
+          },
+          boxShadow: 'rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', minHeight: { xs: NAVBAR_HEIGHT_XS, sm: NAVBAR_HEIGHT_SM } }}>
@@ -727,19 +833,32 @@ const Navbar = () => {
         anchor="right"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
+        ModalProps={{ 
+          keepMounted: true,
+          sx: {
+            '& .MuiBackdrop-root': {
+              backgroundColor: alpha(theme.palette.common.black, 0.5),
+              marginTop: { xs: `${NAVBAR_HEIGHT_XS}px`, sm: `${NAVBAR_HEIGHT_SM}px` },
+            }
+          }
+        }}
+        PaperProps={{
+          sx: {
             width: drawerWidth,
-            backgroundColor: alpha(theme.palette.common.black, 0.85),
+            backgroundColor: alpha(theme.palette.common.black, 0.95),
             backdropFilter: 'blur(8px)',
             borderLeft: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
             color: theme.palette.common.white,
-          },
+            marginTop: { xs: `${NAVBAR_HEIGHT_XS}px`, sm: `${NAVBAR_HEIGHT_SM}px` },
+            height: { 
+              xs: `calc(100% - ${NAVBAR_HEIGHT_XS}px)`, 
+              sm: `calc(100% - ${NAVBAR_HEIGHT_SM}px)` 
+            },
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+          }
         }}
       >
-          {drawer}
+        {drawer}
       </Drawer>
 
       {user && (
@@ -774,7 +893,7 @@ const Navbar = () => {
           <Divider />
 
           {userAccountItems.map((item) => (
-            <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
+            <MenuItem key={item.text} onClick={() => handleNavigation(item.path)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText>{item.text}</ListItemText>
             </MenuItem>
@@ -782,13 +901,13 @@ const Navbar = () => {
 
           {(isAdmin || isDoctor) && <Divider />}
           {isAdmin && adminNavItems.map((item) => (
-            <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
+            <MenuItem key={item.text} onClick={() => handleNavigation(item.path)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText>{item.text}</ListItemText>
             </MenuItem>
           ))}
           {isDoctor && !isAdmin && doctorNavItems.map((item) => (
-            <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
+            <MenuItem key={item.text} onClick={() => handleNavigation(item.path)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText>{item.text}</ListItemText>
             </MenuItem>
