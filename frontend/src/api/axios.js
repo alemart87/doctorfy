@@ -11,7 +11,8 @@ const baseURL = process.env.NODE_ENV === 'production'
 
 const api = axios.create({
     // baseURL: config.API_URL, // <-- Reemplazar esto
-    baseURL: baseURL,          // <-- Con esto
+    baseURL: '/api',          // <-- Con esto
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json'
     },
