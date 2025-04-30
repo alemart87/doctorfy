@@ -23,16 +23,10 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 500,
-    },
-    h2: {
-      fontWeight: 500,
-    },
-    h3: {
-      fontWeight: 500,
-    },
+    fontFamily: "'Inter', sans-serif",
+    h1: undefined,
+    h2: undefined,
+    h3: undefined,
     h4: {
       fontWeight: 500,
     },
@@ -45,6 +39,9 @@ const theme = createTheme({
   },
   components: {
     MuiButton: {
+      defaultProps: {
+        disableRipple: true,
+      },
       styleOverrides: {
         root: {
           borderRadius: 8,
@@ -76,6 +73,9 @@ const theme = createTheme({
       },
     },
     MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
           borderRadius: 12,

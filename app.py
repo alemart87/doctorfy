@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, request, render_template, redirect, Response, abort
+from flask import Flask, send_from_directory, jsonify, request, render_template, redirect, Response, abort, make_response
 from flask_migrate import Migrate
 from flask_jwt_extended import (
     JWTManager, jwt_required, get_jwt_identity
@@ -294,6 +294,17 @@ def create_app(config_class=Config):
             # Considera devolver una imagen por defecto o un 404
             # return send_from_directory('static', 'default_avatar.png'), 404 # Si tienes una carpeta static
             abort(404)
+
+    @app.after_request
+    def add_header(response):
+        # Cache estáticos por 1 año
+        if 'Cache-Control' not in response.headers:
+            if request.path.startswith('/static/'):
+                response.headers['Cache-Control'] = 'public, max-age=31536000'
+            # Cache API por 5 minutos
+            elif request.path.startswith('/api/'):
+                response.headers['Cache-Control'] = 'public, max-age=300'
+        return response
 
     return app
 

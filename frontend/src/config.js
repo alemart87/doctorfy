@@ -6,6 +6,18 @@ const API_URL = `${BACKEND_URL}/api`;
 
 export const UPLOADS_URL = `${BACKEND_URL}/uploads`;
 
+export const IMAGE_SIZES = {
+  thumbnail: '300w',
+  medium: '600w',
+  large: '1200w'
+};
+
+export const getImageSrcSet = (imagePath) => `
+  ${imagePath}-300.webp ${IMAGE_SIZES.thumbnail},
+  ${imagePath}-600.webp ${IMAGE_SIZES.medium},
+  ${imagePath}-1200.webp ${IMAGE_SIZES.large}
+`;
+
 export const endpoints = {
   auth: {
     register: `${API_URL}/auth/register`,

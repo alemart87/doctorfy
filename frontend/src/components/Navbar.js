@@ -37,6 +37,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { FixedSizeList } from 'react-window';
 
 const drawerWidth = 260;
 const brightCyan = '#00ffff';
@@ -82,6 +83,36 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     },
   },
 }));
+
+// Memoizar componentes que no necesitan re-renders frecuentes
+const NavbarButton = memo(({ icon, label, onClick }) => (
+  <Button
+    startIcon={icon}
+    onClick={onClick}
+    sx={{ 
+      minWidth: 'auto',
+      whiteSpace: 'nowrap'
+    }}
+  >
+    {label}
+  </Button>
+));
+
+// Usar virtualizacion para listas largas
+const VirtualizedList = memo(({ items }) => (
+  <FixedSizeList
+    height={400}
+    width="100%"
+    itemCount={items.length}
+    itemSize={50}
+  >
+    {({ index, style }) => (
+      <ListItem style={style}>
+        {items[index]}
+      </ListItem>
+    )}
+  </FixedSizeList>
+));
 
 const Navbar = () => {
   const { user, logout, isDoctor } = useAuth();

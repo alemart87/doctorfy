@@ -7,7 +7,7 @@ import { clientsClaim } from 'workbox-core';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { openDB } from 'idb';
 
 clientsClaim();
@@ -47,18 +47,16 @@ registerRoute(
   createHandlerBoundToURL(process.env.PUBLIC_URL + '/index.html')
 );
 
-// An example runtime caching route for requests that aren't handled by the
-// precache, in this case same-origin .png requests like those from in public/
+// Cache imágenes con estrategia Cache First
 registerRoute(
-  // Add in any other file extensions or routing criteria as needed.
-  ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('.png'),
-  // Customize this strategy as needed, e.g., by changing to CacheFirst.
-  new StaleWhileRevalidate({
+  ({request}) => request.destination === 'image',
+  new CacheFirst({
     cacheName: 'images',
     plugins: [
-      // Ensure that once this runtime cache reaches a maximum size the
-      // least-recently used images are removed.
-      new ExpirationPlugin({ maxEntries: 50 }),
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+      }),
     ],
   })
 );
@@ -66,7 +64,7 @@ registerRoute(
 // Cachear recursos estáticos adicionales
 registerRoute(
   ({ request }) => request.destination === 'image',
-  new StaleWhileRevalidate({
+  new CacheFirst({
     cacheName: 'images-cache',
     plugins: [
       new ExpirationPlugin({
@@ -81,7 +79,7 @@ registerRoute(
 registerRoute(
   ({ url }) => url.origin === 'https://fonts.googleapis.com' || 
                url.origin === 'https://fonts.gstatic.com',
-  new StaleWhileRevalidate({
+  new CacheFirst({
     cacheName: 'google-fonts',
     plugins: [
       new ExpirationPlugin({
@@ -92,9 +90,9 @@ registerRoute(
   })
 );
 
-// Cachear API (ajustar según tus endpoints)
+// Cache API con Network First
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
+  ({url}) => url.pathname.startsWith('/api'),
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [
@@ -112,7 +110,7 @@ registerRoute(
     request.destination === 'script' || 
     request.destination === 'style' ||
     request.destination === 'document',
-  new StaleWhileRevalidate({
+  new CacheFirst({
     cacheName: 'assets-cache',
     plugins: [
       new ExpirationPlugin({
@@ -128,7 +126,7 @@ registerRoute(
   ({ request }) => 
     request.destination === 'audio' || 
     request.destination === 'video',
-  new StaleWhileRevalidate({
+  new CacheFirst({
     cacheName: 'media-cache',
     plugins: [
       new ExpirationPlugin({
