@@ -369,7 +369,7 @@ async def analyze_study(study_id):
         db.session.commit()
         
         current_app.logger.info(f"Análisis unificado completado para estudio {study.id}. Interpretación guardada. Créditos descontados: {CREDITS_PER_ANALYSIS}")
-
+        
         return jsonify({
             'message': 'Estudio analizado con éxito (unificado)',
             'analysis': analysis_result_text,

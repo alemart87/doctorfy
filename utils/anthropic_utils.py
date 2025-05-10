@@ -298,7 +298,7 @@ def extract_from_pdf(file_path):
             
         # Abrir el PDF con manejo de errores
         try:
-            doc = fitz.open(file_path)
+        doc = fitz.open(file_path)
         except Exception as e:
             current_app.logger.error(f"Error al abrir el PDF {file_path}: {str(e)}")
             return {"text": f"Error al abrir el PDF: {str(e)}", "images": []}
@@ -307,7 +307,7 @@ def extract_from_pdf(file_path):
         text = ""
         for page_num in range(len(doc)):
             try:
-                page = doc.load_page(page_num)
+            page = doc.load_page(page_num)
                 page_text = page.get_text()
                 text += page_text
                 current_app.logger.debug(f"Extraído texto de la página {page_num+1}/{len(doc)} del PDF")
@@ -327,17 +327,17 @@ def extract_from_pdf(file_path):
                 break
                 
             try:
-                page = doc.load_page(page_num)
-                image_list = page.get_images(full=True)
-                
-                for img_index, img in enumerate(image_list):
+            page = doc.load_page(page_num)
+            image_list = page.get_images(full=True)
+            
+            for img_index, img in enumerate(image_list):
                     if image_count >= max_images:
-                        break
-                        
+                    break
+                    
                     try:
-                        xref = img[0]
-                        base_image = doc.extract_image(xref)
-                        image_bytes = base_image["image"]
+                xref = img[0]
+                base_image = doc.extract_image(xref)
+                image_bytes = base_image["image"]
                         
                         # Verificar que la imagen tenga un tamaño razonable y no sea un icono pequeño
                         if len(image_bytes) > 500:  # Ignorar imágenes muy pequeñas
@@ -363,10 +363,10 @@ def extract_from_pdf(file_path):
                                 current_app.logger.warning(f"Error al procesar imagen extraída: {str(img_proc_err)}")
                                 # Continuar con la imagen original si hay error
                 
-                            # Convertir bytes a base64
-                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                            result["images"].append(image_base64)
-                            image_count += 1
+                # Convertir bytes a base64
+                image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                result["images"].append(image_base64)
+                image_count += 1
                             current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
                     except Exception as img_err:
                         current_app.logger.warning(f"Error al extraer imagen {img_index} de la página {page_num+1}: {str(img_err)}")

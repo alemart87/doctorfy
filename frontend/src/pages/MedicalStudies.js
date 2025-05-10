@@ -356,11 +356,11 @@ const MedicalStudies = () => {
       return;
     }
 
-    setAnalysisModal({
-      open: true,
+      setAnalysisModal({ 
+        open: true, 
       status: 'loading',
-      studyId: study.id
-    });
+        studyId: study.id 
+      });
 
     try {
       // Configurar axios con un timeout mucho más largo (5 minutos = 300000ms)
@@ -406,9 +406,9 @@ const MedicalStudies = () => {
         }
       }
       
-      setAnalysisModal({
-        open: true,
-        status: 'error',
+      setAnalysisModal({ 
+        open: true, 
+        status: 'error', 
         studyId: study.id,
         error: errorMessage
       });
