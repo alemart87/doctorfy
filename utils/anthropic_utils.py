@@ -329,7 +329,7 @@ def extract_from_pdf(file_path):
             try:
                 page = doc.load_page(page_num)
                 image_list = page.get_images(full=True)
-                
+            
                 for img_index, img in enumerate(image_list):
                     if image_count >= max_images:
                         break
@@ -363,11 +363,11 @@ def extract_from_pdf(file_path):
                                 current_app.logger.warning(f"Error al procesar imagen extraída: {str(img_proc_err)}")
                                 # Continuar con la imagen original si hay error
                 
-                # Convertir bytes a base64
-                image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                result["images"].append(image_base64)
-                image_count += 1
-                current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
+                            # Convertir bytes a base64
+                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                            result["images"].append(image_base64)
+                            image_count += 1
+                            current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
                     except Exception as img_err:
                         current_app.logger.warning(f"Error al extraer imagen {img_index} de la página {page_num+1}: {str(img_err)}")
             except Exception as page_err:
