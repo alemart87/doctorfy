@@ -45,7 +45,8 @@ import {
   AddToHomeScreen as AddToHomeScreenIcon,
   Login as LoginIcon,
   AppRegistration as AppRegistrationIcon,
-  LocalFireDepartment as FireIcon
+  LocalFireDepartment as FireIcon,
+  Scanner as ScannerIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
@@ -123,6 +124,45 @@ const CalorieTrackerButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+// Luego, definimos un estilo para el botón de Diagnóstico de Lunares
+const MoleAnalysisButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#e91e63', // Color rosa/fucsia llamativo
+  color: 'white',
+  fontWeight: 'bold',
+  padding: '12px 24px', // Padding más grande
+  borderRadius: '30px',
+  textTransform: 'none',
+  fontSize: '1.1rem', // Texto más grande
+  boxShadow: '0 6px 20px rgba(233, 30, 99, 0.5)', // Sombra más pronunciada
+  position: 'relative',
+  overflow: 'visible', // Cambiado a visible para que la etiqueta NUEVO pueda sobresalir
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    backgroundColor: '#d81b60',
+    transform: 'translateY(-5px) scale(1.03)', // Efecto de elevación más pronunciado
+    boxShadow: '0 10px 25px rgba(233, 30, 99, 0.7)',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: '-50%',
+    left: '-50%',
+    width: '200%',
+    height: '200%',
+    background: 'linear-gradient(60deg, rgba(255,255,255,0) 10%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 90%)',
+    transform: 'rotate(30deg)',
+    animation: 'shine 3s infinite',
+  },
+  '@keyframes shine': {
+    '0%': {
+      transform: 'translateX(-100%) rotate(30deg)',
+    },
+    '100%': {
+      transform: 'translateX(100%) rotate(30deg)',
+    },
+  },
+}));
+
 const LandingPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -197,6 +237,11 @@ const LandingPage = () => {
       title: "¡NUEVO! Contador de Calorías", // <--- NUEVA CARACTERÍSTICA
       description: "Saca fotos de tu comida y mide automáticamente las calorías consumidas. ¡Controla tu dieta de forma divertida!",
       icon: <CameraAltIcon fontSize="large" sx={{ color: theme.palette.success.main }} />, // Usar icono de cámara
+    },
+    {
+      title: "¡NUEVO! Diagnóstico de Lunares", // <--- NUEVA CARACTERÍSTICA
+      description: "Analiza tus lunares con IA avanzada y recibe una evaluación preliminar de posibles riesgos en segundos.",
+      icon: <ScannerIcon fontSize="large" sx={{ color: '#e91e63' }} />, // Usar icono de escáner
     },
     {
       title: "Análisis de Estudios Médicos",
@@ -410,6 +455,66 @@ const LandingPage = () => {
                         </Box>
                       </motion.div>
                       {/* --- FIN: CÓDIGO A INSERTAR --- */}
+                      
+                      {/* --- INICIO: BOTÓN DIAGNÓSTICO DE LUNARES --- */}
+                      <motion.div variants={itemVariants}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          justifyContent: { xs: 'center', md: 'flex-start' }, 
+                          mb: 4,
+                          mt: 2, // Añadir margen superior para espacio para la etiqueta NUEVO
+                          position: 'relative' // Para posicionar la etiqueta NUEVO
+                        }}>
+                          {/* Etiqueta NUEVO independiente del botón */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: '-20px',
+                              left: { xs: 'calc(50% - 80px)', md: '20px' }, // Centrado en móvil, alineado a la izquierda en desktop
+                              backgroundColor: '#ff3d00',
+                              color: 'white',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                              zIndex: 10, // Asegurar que esté por encima
+                              transform: 'rotate(-2deg)', // Ligera rotación para llamar la atención
+                              border: '2px solid white',
+                            }}
+                          >
+                            ¡NUEVO!
+                          </Box>
+                          <MoleAnalysisButton
+                            component={Link}
+                            to="/login?redirect=/medical-studies"
+                            size="large"
+                            startIcon={<ScannerIcon />}
+                            sx={{
+                              animation: 'pulse 1.5s infinite', // Pulso más rápido
+                              '@keyframes pulse': {
+                                '0%': {
+                                  boxShadow: '0 0 0 0 rgba(233, 30, 99, 0.8)',
+                                },
+                                '70%': {
+                                  boxShadow: '0 0 0 20px rgba(233, 30, 99, 0)',
+                                },
+                                '100%': {
+                                  boxShadow: '0 0 0 0 rgba(233, 30, 99, 0)',
+                                },
+                              },
+                              border: '2px solid rgba(255,255,255,0.8)',
+                              minWidth: '250px',
+                              py: 1.5,
+                            }}
+                          >
+                            <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
+                              DIAGNÓSTICO DE LUNARES
+                            </Typography>
+                          </MoleAnalysisButton>
+                        </Box>
+                      </motion.div>
+                      {/* --- FIN: BOTÓN DIAGNÓSTICO DE LUNARES --- */}
 
                       <motion.div variants={itemVariants}>
                         <Box sx={{ mb: 3 }}>
@@ -2059,6 +2164,44 @@ const LandingPage = () => {
           </Grid>
         </Container>
       </Box>
+
+      {/* Añadir después de la sección de "ALERTA MÉDICA URGENTE" */}
+
+      <motion.div variants={itemVariants}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 3, sm: 4 },
+            mb: 6,
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(233,30,99,0.1) 0%, rgba(156,39,176,0.1) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(233,30,99,0.3)',
+          }}
+        >
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              mb: 3, 
+              fontWeight: 700,
+              color: '#e91e63',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <ScannerIcon /> TESTIMONIO: DIAGNÓSTICO DE LUNARES
+          </Typography>
+          
+          <Typography variant="body1" color="white" sx={{ mb: 2, fontStyle: 'italic', fontWeight: 300 }}>
+            "Tenía un lunar en mi espalda que me preocupaba, pero no podía conseguir una cita con el dermatólogo hasta dentro de 3 meses. Usé Doctorfy para analizarlo y me alertó de posibles signos de riesgo. Conseguí una cita urgente y resultó ser un melanoma en etapa temprana. Gracias a la detección temprana, el tratamiento fue mínimo y efectivo. Doctorfy literalmente salvó mi vida."
+          </Typography>
+          
+          <Typography variant="body2" color="white" sx={{ textAlign: 'right', fontWeight: 500 }}>
+            — María G., 42 años, Madrid
+          </Typography>
+        </Paper>
+      </motion.div>
     </div>
   </ClickSpark>
 </React.Fragment>

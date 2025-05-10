@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, Stack, Divider } from '@mui/material';
+import { Box, Typography, Stack, Divider, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 import Particles from './Particles';
 import { Helmet } from 'react-helmet-async';
@@ -14,17 +14,17 @@ const NewWelcomePage = ({ onComplete }) => {
   return (
     <>
       <Helmet>
-        <title>Doctorfy - Salud, Bienestar y Psicología con IA | Paraguay</title>
+        <title>Doctorfy - Salud, Bienestar y Diagnóstico de Lunares con IA | Paraguay</title>
         <meta 
           name="description" 
-          content="Doctorfy: Plataforma líder en Paraguay para salud digital y bienestar. Obtén análisis médicos con IA (diabetes, etc.), consulta psicológica 24/7 y planes de nutrición. Powered by Anthropic y OpenAI." 
+          content="Doctorfy: Plataforma líder en Paraguay para salud digital y bienestar. Obtén análisis médicos con IA, diagnóstico de lunares sospechosos y planes de nutrición. Powered by Anthropic y OpenAI." 
         />
         <meta 
           name="keywords" 
-          content="Doctorfy, salud digital, bienestar, wellness, psicología online, inteligencia artificial, IA médica, análisis médicos, diabetes, nutrición, telemedicina, Anthropic Claude, OpenAI GPT, Paraguay" 
+          content="Doctorfy, salud digital, bienestar, wellness, diagnóstico de lunares, melanoma, inteligencia artificial, IA médica, análisis médicos, diabetes, nutrición, telemedicina, Anthropic Claude, OpenAI GPT, Paraguay" 
         />
-        <meta property="og:title" content="Doctorfy - Salud, Bienestar y Psicología con IA | Paraguay" />
-        <meta property="og:description" content="Análisis médicos rápidos, psicología 24/7 y bienestar integral con IA. Tu salud digital en Paraguay." />
+        <meta property="og:title" content="Doctorfy - Salud, Bienestar y Diagnóstico de Lunares con IA | Paraguay" />
+        <meta property="og:description" content="Análisis médicos rápidos, diagnóstico de lunares sospechosos y bienestar integral con IA. Tu salud digital en Paraguay." />
         <meta property="og:url" content="https://doctorfy.onrender.com/" /> 
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://doctorfy.onrender.com/" />
@@ -153,8 +153,63 @@ const NewWelcomePage = ({ onComplete }) => {
                 mb: 4
               }}
             >
-              Un Highway hacia la Innovación en SALUD, BIENESTAR y PSICOLOGÍA con IA
+              Un Highway hacia la Innovación en SALUD y BIENESTAR con IA
             </Typography>
+            
+            {/* NUEVO: Mensaje llamativo sobre diagnóstico de lunares */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                transition: { 
+                  duration: 1.2,
+                  delay: 1.5,
+                  ease: [0.25, 0.1, 0.25, 1]
+                }
+              }}
+            >
+              <Typography
+                variant="h3"
+                sx={{
+                  color: '#00bfff', // Color cian brillante
+                  fontSize: { xs: '1.2rem', sm: '1.6rem', md: '2rem' },
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  mb: 3,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textShadow: '0 0 10px rgba(0,191,255,0.8), 0 0 20px rgba(0,191,255,0.5), 0 0 30px rgba(0,191,255,0.3)',
+                  animation: 'glow 1.5s ease-in-out infinite alternate',
+                  '@keyframes glow': {
+                    '0%': {
+                      textShadow: '0 0 10px rgba(0,191,255,0.8), 0 0 20px rgba(0,191,255,0.5), 0 0 30px rgba(0,191,255,0.3)',
+                    },
+                    '100%': {
+                      textShadow: '0 0 15px rgba(0,191,255,0.9), 0 0 25px rgba(0,191,255,0.6), 0 0 35px rgba(0,191,255,0.4), 0 0 45px rgba(0,191,255,0.2)',
+                    }
+                  },
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(90deg, transparent, rgba(0,191,255,0.4), transparent)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shine 2s linear infinite',
+                  },
+                  '@keyframes shine': {
+                    '0%': { backgroundPosition: '-200% 0' },
+                    '100%': { backgroundPosition: '200% 0' },
+                  }
+                }}
+              >
+                ¿Lunares Sospechosos? Prueba Nuestra Nueva Función
+              </Typography>
+            </motion.div>
             
             {/* Powered by logos - Mejorado para SEO */}
             <motion.div
@@ -225,7 +280,7 @@ const NewWelcomePage = ({ onComplete }) => {
             </motion.div>
           </motion.div>
 
-          {/* Logos en la parte inferior - Mejorado para SEO */}
+          {/* Logos en la parte inferior - Rediseñado para mejor apariencia */}
           <Box
             sx={{
               position: 'absolute',
@@ -248,47 +303,69 @@ const NewWelcomePage = ({ onComplete }) => {
                 delay: 2.5,
                 ease: [0.25, 0.1, 0.25, 1]
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '15px'
-              }}
             >
-              <Box component="figure" aria-label="Logo de Anthropic">
-                <img 
-                  src="/ANT.png" 
-                  alt="Anthropic - Empresa líder en IA segura y alineada con valores humanos" 
-                  title="Anthropic - Creadores de Claude, tecnología que potencia Doctorfy"
-                  style={{ 
-                    height: '28px',
-                    width: 'auto',
-                    opacity: 0.85
-                  }} 
-                />
-              </Box>
-              <Divider 
-                orientation="vertical" 
-                flexItem 
-                sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.7)', 
-                  height: '20px',
-                  width: '1px'
-                }} 
-                aria-hidden="true"
-              />
-              <Box component="figure" aria-label="Logo de OpenAI">
-                <img 
-                  src="/OpenAI-white-monoblossom.png" 
-                  alt="OpenAI - Empresa pionera en inteligencia artificial generativa para medicina" 
-                  title="OpenAI - Creadores de GPT, tecnología que impulsa Doctorfy"
-                  style={{ 
-                    height: '28px',
-                    width: 'auto',
-                    opacity: 0.85
-                  }} 
-                />
-              </Box>
+              <Paper
+                elevation={0}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '20px',
+                  padding: '10px 25px',
+                  borderRadius: '30px',
+                  background: 'rgba(0,0,0,0.6)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <Box 
+                  component="figure" 
+                  aria-label="Logo de Anthropic"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '32px',
+                  }}
+                >
+                  <img 
+                    src="/ANT.png" 
+                    alt="Anthropic - Empresa líder en IA segura y alineada con valores humanos" 
+                    title="Anthropic - Creadores de Claude, tecnología que potencia Doctorfy"
+                    style={{ 
+                      height: '28px',
+                      width: 'auto',
+                      opacity: 0.95,
+                      filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))'
+                    }} 
+                  />
+                </Box>
+                
+                {/* Espacio entre logos */}
+                
+                <Box 
+                  component="figure" 
+                  aria-label="Logo de OpenAI"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '32px',
+                  }}
+                >
+                  <img 
+                    src="/OpenAI-white-monoblossom.png" 
+                    alt="OpenAI - Empresa pionera en inteligencia artificial generativa para medicina" 
+                    title="OpenAI - Creadores de GPT, tecnología que impulsa Doctorfy"
+                    style={{ 
+                      height: '28px',
+                      width: 'auto',
+                      opacity: 0.95,
+                      filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.3))'
+                    }} 
+                  />
+                </Box>
+              </Paper>
             </motion.div>
           </Box>
         </Box>

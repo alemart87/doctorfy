@@ -11,7 +11,15 @@ const Login = () => {
   const location = useLocation();
   const [error, setError] = useState(null);
 
-  const from = location.state?.from || '/calorie-tracker';
+  // Función para obtener el parámetro de redirección de la URL
+  const getRedirectPath = () => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const redirectPath = queryParams.get('redirect');
+    return redirectPath || '/dashboard'; // Si no hay parámetro, redirige al dashboard
+  };
+
+  // Usar el parámetro de redirección o la ubicación anterior
+  const from = location.state?.from || getRedirectPath();
 
   const formik = useFormik({
     initialValues: {
@@ -28,6 +36,7 @@ const Login = () => {
       try {
         const result = await login(values);
         if (result.success) {
+          // Usar la ruta de redirección obtenida
           navigate(from, { replace: true });
         } else {
           setError(result.error || 'Email o contraseña incorrectos');

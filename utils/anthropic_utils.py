@@ -15,32 +15,43 @@ import time # Importar time para los reintentos
 from utils.image_utils import compress_image, get_mime_type, get_image_size_mb, resize_image_if_needed
 from models import User, db
 from flask_jwt_extended import get_jwt_identity
+import asyncio
 
 # Cargar variables de entorno
 load_dotenv()
 
+# Definir el nombre del modelo de Claude
+CLAUDE_MODEL_NAME = "claude-3-5-sonnet-20240620" # Actualizado a Claude 3.5 Sonnet (versión de junio 2024)
+
 # Variable global para el cliente de Anthropic (opcional, pero puede ser eficiente)
-client = None
+_anthropic_client = None # Renombrado para evitar confusión con el módulo
+
+# Límites de tokens de salida por modelo:
+# - claude-3-haiku: 4096 tokens máx
+# - claude-3-sonnet: 4096 tokens máx
+# - claude-3-opus: 4096 tokens máx
+# - claude-3-5-sonnet: 15000 tokens máx (¡mayor capacidad!)
+MAX_TOKENS = 8000  # Aumentado para aprovechar la mayor capacidad de Claude 3.5
+
+MAX_ANTHROPIC_IMAGES = 15 # Límite global de imágenes a enviar a Anthropic
 
 def get_anthropic_client():
     """Obtiene o inicializa el cliente de Anthropic."""
-    global client
-    if client is None:
+    global _anthropic_client
+    if _anthropic_client is None:
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             current_app.logger.error("ANTHROPIC_API_KEY no está configurada.")
             raise ValueError("La clave API de Anthropic no está configurada.")
-        client = anthropic.Anthropic(api_key=api_key)
-        current_app.logger.info("Cliente de Anthropic inicializado.")
-    return client
+        # Usar el cliente asíncrono si la función que lo llama es asíncrona
+        _anthropic_client = anthropic.AsyncAnthropic(api_key=api_key)
+        current_app.logger.info(f"Cliente AsyncAnthropic inicializado para el modelo {CLAUDE_MODEL_NAME}.")
+    return _anthropic_client
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"  # versión de la API
 MAX_RETRIES = 3
 INITIAL_BACKOFF = 1
-
-# NUEVO – máx. tokens de salida
-MAX_TOKENS = 7000
 
 def extract_text_from_pdf(pdf_path):
     """
@@ -104,28 +115,6 @@ def compress_image_for_anthropic(image_path, max_size_mb=4.5, min_quality=30):
         
         # Estrategia 3: Si la compresión no es suficiente, redimensionar progresivamente
         if not compressed:
-            scale_factor = 0.9
-            current_img = img
-            
-            while scale_factor > 0.3:
-                new_size = (int(current_img.size[0] * scale_factor), int(current_img.size[1] * scale_factor))
-                current_img = img.resize(new_size, Image.LANCZOS)
-                
-                buffer = io.BytesIO()
-                current_img.save(buffer, format="JPEG", quality=quality, optimize=True)
-                buffer_size = buffer.tell()
-                
-                if buffer_size <= max_size_bytes:
-                    img = current_img
-                    compressed = True
-                    print(f"Imagen redimensionada a {new_size} con factor {scale_factor}")
-                    break
-                    
-                scale_factor -= 0.1
-                print(f"Intentando con factor de escala: {scale_factor}, tamaño actual: {buffer_size / (1024 * 1024):.2f}MB")
-        
-        # Si ninguna estrategia funcionó, usar la compresión más agresiva
-        if not compressed:
             print("Aplicando compresión extrema...")
             buffer = io.BytesIO()
             img = img.resize((800, int(800 * img.size[1] / img.size[0])), Image.LANCZOS)
@@ -148,267 +137,272 @@ def compress_image_for_anthropic(image_path, max_size_mb=4.5, min_quality=30):
         traceback.print_exc()
         return image_path  # Devolver la original en caso de error
 
-async def analyze_medical_study_with_anthropic(file_path, study_type="general", user_info=None):
+async def analyze_medical_study_with_anthropic(
+    study_name: str,
+    concatenated_texts: str,
+    image_data_list: list, # Lista de dicts: {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "..."}}
+    user_info: str = None,
+    study_type_hint: str = None # ej: 'dermatology', 'radiology', 'general'
+):
     """
-    Analiza un estudio médico (imagen) usando la API de Anthropic Claude 3.5 Sonnet.
-
-    Args:
-        file_path (str): Ruta al archivo de imagen del estudio.
-        study_type (str): Tipo de estudio (ej. 'radiografía de tórax', 'resonancia magnética').
-        user_info (dict, optional): Información adicional del usuario/paciente.
-
-    Returns:
-        str: La interpretación generada por la IA, o None si ocurre un error.
+    Analiza un conjunto de textos e imágenes de un estudio médico utilizando Anthropic.
     """
     try:
-        # Obtener usuario y verificar créditos
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            current_app.logger.error(f"Usuario no encontrado: {user_id}")
-            return None
-            
-        if not user.has_enough_credits('medical'):
-            current_app.logger.warning(f"Créditos insuficientes para usuario {user.email} (ID: {user_id}). Créditos: {user.credits}")
-            return "Créditos insuficientes para realizar el análisis. Necesitas 5 créditos."
+        client = get_anthropic_client()
+        current_app.logger.info(f"Iniciando análisis unificado para: {study_name} con {len(image_data_list)} imágenes y {len(concatenated_texts)} caracteres de texto. Study type hint: {study_type_hint}")
 
-        current_app.logger.info(f"Iniciando análisis médico para usuario {user.email} (ID: {user_id}). Créditos actuales: {user.credits}")
-        
-        anthropic_client = get_anthropic_client() # Usar la función para obtener el cliente
-
-        if not os.path.exists(file_path):
-            current_app.logger.error(f"El archivo no existe en la ruta: {file_path}")
-            return None # Devolver None si el archivo no existe
-
-        current_app.logger.info(f"Analizando archivo: {file_path}")
-        current_app.logger.info(f"Tamaño original: {get_image_size_mb(file_path):.2f}MB")
-
-        # Redimensionar imagen si es necesario
-        resized_path = resize_image_if_needed(file_path)
-        if resized_path:
-            current_app.logger.info(f"Imagen redimensionada a: {resized_path}")
-            current_app.logger.info(f"Tamaño redimensionado: {get_image_size_mb(resized_path):.2f}MB")
-            analysis_path = resized_path
-        else:
-            analysis_path = file_path # Usar original si no se redimensionó
-
-        # Leer la imagen y codificarla en base64
-        with open(analysis_path, "rb") as image_file:
-            image_data = base64.b64encode(image_file.read()).decode("utf-8")
-
-        # Determinar el media type
-        media_type = mimetypes.guess_type(analysis_path)[0]
-        if not media_type:
-            # Asumir un tipo por defecto si no se puede adivinar
-            media_type = "image/jpeg"
-            current_app.logger.warning(f"No se pudo determinar el media type para {analysis_path}, asumiendo {media_type}")
-
-        # Construir el prompt
+        # Construcción del prompt base
         prompt_parts = [
-            f"Por favor, analiza la siguiente imagen de un estudio médico ({study_type}).",
-            "Actúa como un radiólogo experto o especialista relevante para el tipo de estudio.",
-            "Proporciona una interpretación detallada, incluyendo hallazgos clave, posibles diagnósticos diferenciales y recomendaciones si aplica.",
-            "Formatea la respuesta en Markdown claro y estructurado."
+            f"Eres un asistente médico virtual avanzado, actuando como un médico especialista con vasta experiencia en la interpretación de una amplia gama de estudios médicos. Tu tarea es analizar exhaustivamente el siguiente estudio médico, titulado: '{study_name}'.\n"
+            f"Este estudio consiste en el siguiente material combinado: texto extraído de documentos (si se proporciona) Y/O una o más imágenes. Debes integrar TODA la información para tu análisis.\n\n"
+            "Genera un informe detallado, estructurado y profesional en formato Markdown, redactado en español. El informe debe ser lo más completo y preciso posible. Incluye las siguientes secciones:\n\n"
+            "1.  **Descripción General del Estudio:**\n"
+            f"    *   Tipo de estudio principal inferido (ej., {study_type_hint if study_type_hint else 'Estudio General Multimodal'}).\n"
+            f"    *   Materiales proporcionados para el análisis (ej., 'Informe de laboratorio en texto y 3 imágenes de radiografía', 'Fotografía de lesión cutánea y notas del paciente', 'Solo texto de un informe de patología').\n"
+            "    *   Menciona cualquier información demográfica del paciente o datos clínicos proporcionados que sean relevantes (contenida en 'Información Adicional del Paciente/Estudio' si se provee más abajo).\n\n"
+            "2.  **Hallazgos Detallados (Análisis Integrado):**\n"
+            "    *   Describe meticulosamente todos los hallazgos observados, tanto normales como anormales, integrando la información del texto y de TODAS las imágenes proporcionadas. Sé específico y utiliza terminología médica apropiada.\n"
+            "    *   Si es posible y relevante, indica de qué archivo o tipo de imagen proviene un hallazgo específico para dar contexto (ej., 'En la imagen 1 (radiografía de tórax)...', 'Según el texto del informe de laboratorio...').\n"
+            "    *   Si hay hallazgos anormales, describe su localización, tamaño (si se puede estimar), forma, contornos, densidad/intensidad de señal, y cualquier otra característica relevante.\n"
+            "    *   Indica la posible significancia clínica de cada hallazgo.\n"
+            "    *   Si la calidad de alguna imagen/documento es subóptima o limita la evaluación, menciónalo explícitamente.\n"
         ]
-        
-        # Verificar que user_info sea un diccionario antes de usarlo
-        if user_info and isinstance(user_info, dict):
-            prompt_parts.append("\nInformación adicional del paciente:")
-            if user_info.get('age'):
-                prompt_parts.append(f"- Edad: {user_info['age']}")
-            if user_info.get('gender'):
-                prompt_parts.append(f"- Género: {user_info['gender']}")
-            if user_info.get('symptoms'):
-                prompt_parts.append(f"- Síntomas/Motivo del estudio: {user_info['symptoms']}")
-        elif user_info and isinstance(user_info, str):
-            # Si es un string, simplemente añadirlo como información adicional
-            prompt_parts.append(f"\nInformación adicional: {user_info}")
 
-        prompt = "\n".join(prompt_parts)
-
-        current_app.logger.info(f"Llamando a Anthropic API con modelo claude-3-5-sonnet-20240620...")
-        
-        # Imprimir información de depuración
-        current_app.logger.info(f"Tipo MIME: {media_type}")
-        current_app.logger.info(f"Tamaño de la imagen en base64: {len(image_data)} caracteres")
-        current_app.logger.info(f"Prompt: {prompt[:100]}...")
-
-        try:
-            message = anthropic_client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=MAX_TOKENS,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": media_type,
-                                    "data": image_data,
-                                },
-                            },
-                            {
-                                "type": "text",
-                                "text": prompt
-                            }
-                        ],
-                    }
-                ],
+        # Añadir sección específica para dermatología si el hint lo sugiere o si detectamos imágenes de piel
+        if (study_type_hint and 'dermatology' in study_type_hint.lower()) or (
+            study_type_hint == 'general' and len(image_data_list) > 0
+        ):
+            prompt_parts.append(
+                "    *   **Análisis Dermatológico Específico (si aplica):** Si observas lesiones cutáneas, lunares, manchas u otras condiciones dermatológicas en las imágenes, realiza un análisis dermatológico detallado..."
             )
 
-            current_app.logger.info("Respuesta recibida de Anthropic.")
+        prompt_parts.extend([
+            "\n3.  **Posibles Diagnósticos Diferenciales (Hipótesis Clínicas Integradas):**\n"
+            "    *   Basado EXCLUSIVAMENTE en TODOS los hallazgos descritos (texto e imágenes) y la información proporcionada, enumera entre 3 y 5 posibles diagnósticos diferenciales que podrían explicar los hallazgos anormales (si los hay).\n"
+            "    *   Para cada diagnóstico diferencial, proporciona una breve justificación (1-2 frases) de por qué se considera una posibilidad en relación con los hallazgos integrados.\n"
+            "    *   **IMPORTANTE**: Inicia esta sección con la siguiente advertencia textual: 'Los siguientes son posibles diagnósticos diferenciales basados en la información analizada. Estos NO constituyen un diagnóstico definitivo y son presentados únicamente con fines informativos y para facilitar la discusión con un profesional médico.'\n\n"
+            "4.  **Conclusión y Recomendaciones (Integradas):**\n"
+            "    *   Resume brevemente los hallazgos más significativos de todo el estudio.\n"
+            "    *   Sugiere posibles siguientes pasos o recomendaciones generales, como la necesidad de correlación con la historia clínica completa, examen físico, o la consulta con un especialista específico (ej., cardiólogo, oncólogo, dermatólogo, neurólogo, etc.).\n"
+            "    *   Menciona si podrían ser útiles estudios de imagen adicionales o pruebas de laboratorio complementarias para aclarar los hallazgos (sin prescribirlos, solo como sugerencia de lo que un médico podría considerar).\n\n"
+            "5.  **ADVERTENCIA MÉDICA FUNDAMENTAL:**\n"
+            "    *   Concluye SIEMPRE tu informe con el siguiente párrafo textual, de manera destacada (por ejemplo, en negrita o como un bloque aparte):\n"
+            "    '**Este análisis es generado por un modelo de inteligencia artificial y NO SUSTITUYE una consulta médica profesional ni una segunda opinión médica. La información aquí presentada es para fines educativos y de orientación preliminar. Cualquier decisión relacionada con su salud debe ser tomada en consulta directa con un médico calificado, quien podrá evaluar su caso de manera integral considerando su historial clínico completo y realizando un examen físico si es necesario. No ignore el consejo médico profesional ni retrase la búsqueda de atención médica debido a algo que haya leído en este informe.**'\n\n"
+        ])
 
-            # Extraer el texto de la respuesta
-            interpretation_text = ""
-            if message.content and isinstance(message.content, list):
-                for block in message.content:
-                    if block.type == 'text':
-                        interpretation_text += block.text
+        if not concatenated_texts and not image_data_list:
+             prompt_parts.append("No se ha proporcionado contenido textual ni imágenes para el estudio. Por favor, indica que no hay datos para analizar y finaliza con la advertencia médica fundamental.")
+        else:
+            prompt_parts.append("Procede con el análisis.")
 
-            if not interpretation_text:
-                current_app.logger.warning("La respuesta de Anthropic no contenía texto interpretable.")
-                return None # Devolver None si no hay texto
+        final_prompt_text = "".join(prompt_parts)
 
-            # --- Asegúrate de devolver el texto ---
-            current_app.logger.info("Interpretación generada exitosamente.")
-            # Consumir créditos
-            user.consume_credits('medical')
-            db.session.commit()
-            current_app.logger.info(f"Análisis médico exitoso. Créditos consumidos: 5. Créditos restantes: {user.credits}")
-            return interpretation_text.strip()
-            
-        except anthropic.APIStatusError as e:
-            current_app.logger.error(f"Error de estado de Anthropic API: status_code={e.status_code}, response={e.response}")
-            # Intentar obtener más detalles del error
-            error_details = None
+        messages_content = []
+
+        # Añadir imágenes primero, si existen
+        if image_data_list:
+            for img_data_dict in image_data_list[:MAX_ANTHROPIC_IMAGES]: # Aplicar límite aquí también como salvaguarda
+                messages_content.append(img_data_dict)
+            if len(image_data_list) > MAX_ANTHROPIC_IMAGES:
+                current_app.logger.warning(f"Se truncaron las imágenes para Anthropic. Se enviaron {MAX_ANTHROPIC_IMAGES} de {len(image_data_list)}.")
+
+        # Añadir el texto del estudio y la información del usuario
+        text_content_for_api = ""
+        if concatenated_texts:
+            text_content_for_api += f"\n--- INICIO DEL TEXTO DEL ESTUDIO ---\n{concatenated_texts[:8000]}\n--- FIN DEL TEXTO DEL ESTUDIO ---\n" # Limitar texto para evitar exceder tokens
+            if len(concatenated_texts) > 15000:
+                 current_app.logger.warning(f"Texto del estudio truncado a 15000 caracteres para Anthropic.")
+
+
+        if user_info:
+            text_content_for_api += f"\nInformación Adicional del Paciente/Estudio proporcionada por el usuario:\n---\n{user_info}\n---\n"
+
+        if text_content_for_api:
+            messages_content.append({"type": "text", "text": text_content_for_api.strip()})
+        
+        if not messages_content: # Si después de todo no hay contenido (ej. solo user_info pero sin estudio)
+            return "No se proporcionó contenido del estudio (texto o imágenes) para analizar. " + \
+                   "**Este análisis es generado por un modelo de inteligencia artificial y NO SUSTITUYE una consulta médica profesional... (etc.)**"
+
+        # Convertir el prompt en una instrucción de sistema
+        system_prompt = "".join(prompt_parts)
+        
+        current_app.logger.debug(f"System prompt para Anthropic (parcial): {system_prompt[:500]}...")
+        
+        # Añadir manejo de reintentos para errores de sobrecarga
+        max_retries = 3
+        retry_delay = 5  # segundos
+        
+        for attempt in range(max_retries):
             try:
-                error_details = e.response.json()
-                current_app.logger.error(f"Detalles del error: {error_details}")
-            except:
-                current_app.logger.error("No se pudieron obtener detalles adicionales del error")
-            
-            # Intentar con un modelo diferente como fallback
-            if e.status_code == 400:
-                current_app.logger.info("Intentando con modelo alternativo claude-3-haiku-20240307...")
-                try:
-                    message = anthropic_client.messages.create(
-                        model="claude-3-haiku-20240307",  # Modelo más ligero
+                response = await client.messages.create(
+                    model=CLAUDE_MODEL_NAME,
                         max_tokens=MAX_TOKENS,
                         messages=[
                             {
                                 "role": "user",
-                                "content": [
-                                    {
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": media_type,
-                                            "data": image_data,
-                                        },
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": prompt
-                                    }
-                                ],
-                            }
-                        ],
-                    )
+                            "content": messages_content
+                        }
+                    ],
+                    system=system_prompt
+                )
+                
+                # Extraer el texto de la respuesta
+                if hasattr(response, 'content') and len(response.content) > 0:
+                    analysis_result = response.content[0].text
+                    current_app.logger.info(f"Análisis recibido de Anthropic para {study_name}")
+                    return analysis_result
+                else:
+                    current_app.logger.error(f"Estructura de respuesta inesperada: {response}")
+                    return "Error: Formato de respuesta inesperado del modelo de IA. Por favor, inténtalo de nuevo más tarde."
+                
+            except anthropic.APIStatusError as api_error:
+                if api_error.status_code == 529 and attempt < max_retries - 1:
+                    # Error de sobrecarga, intentar de nuevo después de un retraso
+                    current_app.logger.warning(f"Anthropic sobrecargado (intento {attempt+1}/{max_retries}). Reintentando en {retry_delay} segundos...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2  # Backoff exponencial
+                else:
+                    # Otros errores de API o último intento fallido
+                    current_app.logger.error(f"Error de API de Anthropic (Status {api_error.status_code}): {api_error.message}")
                     
-                    current_app.logger.info("Respuesta recibida del modelo alternativo.")
-                    
-                    # Extraer el texto de la respuesta
-                    interpretation_text = ""
-                    if message.content and isinstance(message.content, list):
-                        for block in message.content:
-                            if block.type == 'text':
-                                interpretation_text += block.text
-                    
-                    if interpretation_text:
-                        current_app.logger.info("Interpretación generada exitosamente con modelo alternativo.")
-                        # Consumir créditos
-                        user.consume_credits('medical')
-                        db.session.commit()
-                        current_app.logger.info(f"Análisis médico exitoso. Créditos consumidos: 5. Créditos restantes: {user.credits}")
-                        return interpretation_text.strip()
-                except Exception as fallback_error:
-                    current_app.logger.error(f"Error con modelo alternativo: {fallback_error}")
+                    if api_error.status_code == 529:
+                        return "El servicio de análisis está temporalmente sobrecargado. Por favor, inténtalo de nuevo en unos minutos."
+                    elif api_error.status_code == 400 and "image_validation_error" in api_error.message.lower():
+                        return "Error: Una o más imágenes proporcionadas no son válidas o no pudieron ser procesadas por el modelo de IA. Por favor, verifica el formato y la calidad de las imágenes."
+                    elif api_error.status_code == 402:
+                        return "Créditos insuficientes para realizar el análisis. Por favor, contacta al administrador."
+                    else:
+                        return f"Error del servicio de IA (código {api_error.status_code}). Inténtalo más tarde. No se consumieron créditos."
             
-            return None
-
-    except anthropic.APIConnectionError as e:
-        current_app.logger.error(f"Error de conexión con Anthropic API: {e}")
-        return None
-    except anthropic.RateLimitError as e:
-        current_app.logger.error(f"Error de límite de tasa con Anthropic API: {e}")
-        return None
+            except Exception as e:
+                current_app.logger.error(f"Error al llamar a la API de Anthropic: {str(e)}")
+                return f"Error al procesar la solicitud: {str(e)}"
+                
     except Exception as e:
-        current_app.logger.error(f"Error inesperado durante el análisis con Anthropic: {str(e)}")
-        import traceback
+        current_app.logger.error(f"Error general en analyze_medical_study_with_anthropic: {str(e)}")
         current_app.logger.error(traceback.format_exc())
-        return None
-    finally:
-        # Opcional: Eliminar el archivo redimensionado si se creó uno temporal
-        if 'resized_path' in locals() and resized_path and resized_path != file_path and os.path.exists(resized_path):
-             try:
-                 os.remove(resized_path)
-                 current_app.logger.info(f"Archivo redimensionado temporal eliminado: {resized_path}")
-             except OSError as e:
-                 current_app.logger.error(f"Error al eliminar archivo temporal {resized_path}: {e}")
+        return f"Error interno al procesar el estudio: {str(e)}"
 
 def extract_from_pdf(file_path):
     """
-    Extrae texto e imágenes de un archivo PDF
-    
-    Args:
-        file_path (str): Ruta al archivo PDF
-        
-    Returns:
-        dict: Diccionario con texto e imágenes extraídas
+    Extrae texto e imágenes de un archivo PDF de manera más robusta
     """
     result = {"text": "", "images": []}
     
     try:
-        # Abrir el PDF
-        doc = fitz.open(file_path)
+        # Verificar que el archivo existe
+        if not os.path.exists(file_path):
+            current_app.logger.error(f"El archivo PDF no existe: {file_path}")
+            return {"text": "Error: El archivo PDF no existe", "images": []}
+            
+        # Abrir el PDF con manejo de errores
+        try:
+            doc = fitz.open(file_path)
+        except Exception as e:
+            current_app.logger.error(f"Error al abrir el PDF {file_path}: {str(e)}")
+            return {"text": f"Error al abrir el PDF: {str(e)}", "images": []}
         
         # Extraer texto
         text = ""
         for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            text += page.get_text()
+            try:
+                page = doc.load_page(page_num)
+                page_text = page.get_text()
+                text += page_text
+                current_app.logger.debug(f"Extraído texto de la página {page_num+1}/{len(doc)} del PDF")
+            except Exception as e:
+                current_app.logger.warning(f"Error al extraer texto de la página {page_num+1}: {str(e)}")
+                # Continuar con la siguiente página
         
         result["text"] = text
         
-        # Extraer imágenes (máximo 5 para no exceder límites de API)
+        # Extraer imágenes con mejor calidad
         image_count = 0
+        max_images = 10
+        
+        # Método 1: Extraer imágenes usando get_images()
         for page_num in range(len(doc)):
-            if image_count >= 5:
+            if image_count >= max_images:
                 break
                 
-            page = doc.load_page(page_num)
-            image_list = page.get_images(full=True)
-            
-            for img_index, img in enumerate(image_list):
-                if image_count >= 5:
+            try:
+                page = doc.load_page(page_num)
+                image_list = page.get_images(full=True)
+                
+                for img_index, img in enumerate(image_list):
+                    if image_count >= max_images:
+                        break
+                        
+                    try:
+                        xref = img[0]
+                        base_image = doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        
+                        # Verificar que la imagen tenga un tamaño razonable y no sea un icono pequeño
+                        if len(image_bytes) > 500:  # Ignorar imágenes muy pequeñas
+                            # Intentar mejorar la calidad de la imagen
+                            try:
+                                img_obj = Image.open(io.BytesIO(image_bytes))
+                                
+                                # Si la imagen es muy pequeña, ignorarla
+                                if img_obj.width < 50 or img_obj.height < 50:
+                                    continue
+                                
+                                # Convertir a RGB si es necesario
+                                if img_obj.mode in ('RGBA', 'LA') or (img_obj.mode == 'P' and 'transparency' in img_obj.info):
+                                    background = Image.new('RGB', img_obj.size, (255, 255, 255))
+                                    background.paste(img_obj, mask=img_obj.split()[3] if img_obj.mode == 'RGBA' else None)
+                                    img_obj = background
+                                
+                                # Guardar con buena calidad
+                                output = io.BytesIO()
+                                img_obj.save(output, format="JPEG", quality=95)
+                                image_bytes = output.getvalue()
+                            except Exception as img_proc_err:
+                                current_app.logger.warning(f"Error al procesar imagen extraída: {str(img_proc_err)}")
+                                # Continuar con la imagen original si hay error
+                
+                            # Convertir bytes a base64
+                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                            result["images"].append(image_base64)
+                            image_count += 1
+                            current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
+                    except Exception as img_err:
+                        current_app.logger.warning(f"Error al extraer imagen {img_index} de la página {page_num+1}: {str(img_err)}")
+            except Exception as page_err:
+                current_app.logger.warning(f"Error al procesar la página {page_num+1} para imágenes: {str(page_err)}")
+        
+        # Método 2: Si no se encontraron imágenes con el método 1 o se encontraron pocas, renderizar páginas como imágenes
+        if len(result["images"]) < 3:
+            current_app.logger.info(f"Pocas imágenes encontradas con el método 1 ({len(result['images'])}), intentando método 2")
+            for page_num in range(min(5, len(doc))):  # Limitar a las primeras 5 páginas para este método
+                if image_count >= max_images:
                     break
                     
-                xref = img[0]
-                base_image = doc.extract_image(xref)
-                image_bytes = base_image["image"]
-                
-                # Convertir bytes a base64
-                image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                result["images"].append(image_base64)
-                image_count += 1
+                try:
+                    page = doc.load_page(page_num)
+                    # Renderizar la página como una imagen con mayor calidad
+                    pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))  # Escala 3x para mejor calidad
+                    img_bytes = pix.tobytes("jpeg", quality=90)
+                    
+                    # Convertir bytes a base64
+                    image_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                    result["images"].append(image_base64)
+                    image_count += 1
+                    current_app.logger.debug(f"Renderizada página {page_num+1} como imagen (método 2)")
+                except Exception as render_err:
+                    current_app.logger.warning(f"Error al renderizar página {page_num+1} como imagen: {str(render_err)}")
         
+        # Cerrar el documento
+        doc.close()
+        
+        current_app.logger.info(f"Extracción de PDF completada: {len(result['text'])} caracteres de texto y {len(result['images'])} imágenes")
         return result
         
     except Exception as e:
-        print(f"Error al extraer contenido del PDF: {str(e)}")
+        current_app.logger.error(f"Error general al extraer contenido del PDF {file_path}: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
         return {"text": f"Error al procesar el PDF: {str(e)}", "images": []}
 
 def encode_image_to_base64(image_path):
