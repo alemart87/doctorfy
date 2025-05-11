@@ -265,7 +265,7 @@ const Navbar = () => {
     fontWeight: 'bold',
     backgroundColor: alpha(theme.palette.primary.main, 0.08),
     '& .MuiListItemIcon-root': {
-      color: theme.palette.primary.main,
+      color: brightCyan,
     },
   };
 

@@ -559,7 +559,7 @@ const LandingPage = () => {
                               variant="contained"
                               size="large"
                               startIcon={<MedicalServicesIcon />}
-                              onClick={() => handleNavigate('/mole-analysis')}
+                              onClick={() => handleNavigate('/medical-studies')} // <--- CAMBIO AQUÍ
                             >
                               <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
                                 DIAGNÓSTICO DE LUNARES
