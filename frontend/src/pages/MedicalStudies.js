@@ -3,12 +3,12 @@ import { Container, Typography, Button, Box, Paper, CircularProgress,
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
   IconButton, useTheme, useMediaQuery, Alert,
   TextField, InputAdornment, FormControl, InputLabel,
-  Select, MenuItem, Stack, Chip, Backdrop, LinearProgress, Grid, Card, CardActions
+  Select, MenuItem, Stack, Chip, Backdrop, LinearProgress, Grid, Card, CardActions, Fab
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaTimes, FaFileAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaUpload, FaEye, FaRobot, FaDownload, FaCloudUploadAlt, FaSearch, FaTimes, FaFileAlt, FaArrowLeft, FaUserMd } from 'react-icons/fa';
 import '../components/AnimatedList.css';
 
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -1458,6 +1458,33 @@ const MedicalStudies = () => {
               </>
             )}
           </Backdrop>
+
+          {/* Botón Flotante de Acción (CTA) */}
+          <Fab 
+              variant="extended" 
+              color="secondary" // O 'primary', o un color personalizado
+              aria-label="consultar un médico"
+              onClick={() => navigate('/doctors')} // O la ruta que prefieras para consultas
+              sx={{
+                  position: 'fixed',
+                  bottom: { xs: 70, sm: 30 }, // Ajustar para que no choque con otros FABs (como el de chat)
+                  right: { xs: 16, sm: 30 },
+                  zIndex: 1050, // Asegurar que esté por encima de otros elementos si es necesario
+                  backgroundColor: '#FF3B30', // Un rojo llamativo (color de alerta de iOS)
+                  color: 'white',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  '&:hover': {
+                      backgroundColor: '#E03024', // Un poco más oscuro al pasar el cursor
+                      transform: 'scale(1.03)',
+                  },
+                  transition: 'transform 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                  px: 3, // Padding horizontal
+              }}
+          >
+              <FaUserMd sx={{ mr: 1 }} />
+              Consulta con UN MÉDICO YA
+          </Fab>
         </>
       )}
     </div>

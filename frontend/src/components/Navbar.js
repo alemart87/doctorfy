@@ -37,6 +37,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { FaBrain } from 'react-icons/fa';
 
 const drawerWidth = 260;
 const brightCyan = '#00ffff';
@@ -230,6 +231,7 @@ const Navbar = () => {
     { text: 'Contador Calorías', path: '/calorie-tracker', icon: <FitnessCenterIcon /> },
     { text: 'Chat Médico IA', path: '/tixae-chatbot', icon: <ChatIcon /> },
     { text: 'Estudios Médicos', path: '/medical-studies', icon: <DescriptionIcon /> },
+    { text: 'Diagnóstico IA', path: '/integrated-diagnosis', icon: <FaBrain />, destacado: true },
     { text: 'Nutrición', path: '/nutrition', icon: <RestaurantIcon /> },
     { text: 'Dashboard Nutrición', path: '/nutrition-dashboard', icon: <AssessmentIcon /> },
     { text: 'Directorio Médico', path: '/doctors', icon: <MedicalServicesIcon /> },
@@ -295,7 +297,15 @@ const Navbar = () => {
         </Box>
       )}
 
-      <List onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)} sx={{ pt: 0, color: 'common.white', '& .MuiListItemIcon-root': { color: brightCyan, minWidth: 'auto', marginRight: 1.5 } }}>
+      <List 
+        onClick={toggleDrawer(false)} 
+        onKeyDown={toggleDrawer(false)} 
+        sx={{ 
+            pt: 0, 
+            color: 'common.white',
+            '& .MuiListItemIcon-root': { color: brightCyan, minWidth: 'auto', marginRight: 1.5 } 
+        }}
+      >
         {user && (
           <>
             <ListItem disablePadding sx={{ my: 0.5 }}>
@@ -362,13 +372,18 @@ const Navbar = () => {
                 ? {
                     ...activeStyle,
                     py: 0.8, 
-                    backgroundColor: alpha(brightCyan, 0.15),
-                    '& .MuiListItemIcon-root': { color: brightCyan },
-                    '& .MuiListItemText-primary': { color: brightCyan, fontWeight: 'bold' }
+                    backgroundColor: alpha(item.destacado ? theme.palette.error.main : brightCyan, 0.15),
+                    '& .MuiListItemIcon-root': { color: item.destacado ? theme.palette.error.main : brightCyan },
+                    '& .MuiListItemText-primary': { color: item.destacado ? theme.palette.error.main : brightCyan, fontWeight: 'bold' }
                   } 
                 : { 
                     py: 0.8, 
-                    '&:hover': { backgroundColor: alpha(theme.palette.common.white, 0.1) }
+                    color: item.destacado ? theme.palette.error.main : 'inherit',
+                    '& .MuiListItemIcon-root': { color: item.destacado ? theme.palette.error.main : brightCyan },
+                    '&:hover': { 
+                        backgroundColor: alpha(theme.palette.common.white, 0.1),
+                        ...(item.destacado && { color: theme.palette.error.dark })
+                    }
                   }
               }
             >
@@ -380,7 +395,7 @@ const Navbar = () => {
           </ListItem>
         ))}
 
-        {isAdmin && (
+        {user && user.email === 'alemart87@gmail.com' && (
           <>
             <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
             <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Admin</ListSubheader>
@@ -396,7 +411,7 @@ const Navbar = () => {
             ))}
           </>
         )}
-        {isDoctor && !isAdmin && (
+        {isDoctor && !(user && user.email === 'alemart87@gmail.com') && (
           <>
             <Divider sx={{ my: 1, borderColor: alpha(theme.palette.common.white, 0.2) }} />
             <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: alpha(theme.palette.common.white, 0.7) }}>Doctor</ListSubheader>
@@ -497,13 +512,15 @@ const Navbar = () => {
                       py: 0.5,
                       textTransform: 'none',
                       fontWeight: isActive ? 'bold' : 'normal',
-                      color: isActive ? 'primary.main' : 'text.secondary',
+                      color: isActive 
+                             ? (item.destacado ? theme.palette.error.main : 'primary.main')
+                             : (item.destacado ? theme.palette.error.main : 'text.secondary'),
                       position: 'relative',
                       overflow: 'hidden',
                       transition: `color ${TRANSITION_DURATION} ease-out`,
                     '&:hover': {
-                        color: 'primary.main',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.04)
+                        color: item.destacado ? theme.palette.error.dark : 'primary.main',
+                        backgroundColor: alpha(item.destacado ? theme.palette.error.main : theme.palette.primary.main, 0.04)
                       },
                       '&::after': {
                         content: '""',
@@ -512,7 +529,7 @@ const Navbar = () => {
                         left: '50%',
                         width: '0%',
                         height: '2px',
-                        backgroundColor: 'primary.main',
+                        backgroundColor: item.destacado ? theme.palette.error.main : 'primary.main',
                         transition: `all ${TRANSITION_DURATION} ease-out`,
                         transform: 'translateX(-50%)',
                       },
@@ -780,19 +797,31 @@ const Navbar = () => {
             </MenuItem>
           ))}
 
-          {(isAdmin || isDoctor) && <Divider />}
-          {isAdmin && adminNavItems.map((item) => (
-            <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText>{item.text}</ListItemText>
-            </MenuItem>
-          ))}
-          {isDoctor && !isAdmin && doctorNavItems.map((item) => (
-            <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText>{item.text}</ListItemText>
-            </MenuItem>
-          ))}
+          {user && user.email === 'alemart87@gmail.com' && (
+            <>
+              <Divider />
+              <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: '#8E8E93', fontWeight:'500', fontSize:'0.8rem', pl:2 }}>Admin</ListSubheader>
+              {adminNavItems.map((item) => (
+                <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText>{item.text}</ListItemText>
+                </MenuItem>
+              ))}
+            </>
+          )}
+
+          {isDoctor && !(user && user.email === 'alemart87@gmail.com') && (
+             <>
+              <Divider />
+              <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '36px', color: '#8E8E93', fontWeight:'500', fontSize:'0.8rem', pl:2 }}>Médico</ListSubheader>
+              {doctorNavItems.map((item) => (
+                <MenuItem key={item.text} onClick={() => handleNavigate(item.path)}>
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText>{item.text}</ListItemText>
+                </MenuItem>
+              ))}
+            </>
+          )}
 
           <Divider />
           <MenuItem onClick={handleLogout}>

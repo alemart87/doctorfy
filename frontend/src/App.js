@@ -57,11 +57,13 @@ import ProtocolHandler from './pages/ProtocolHandler';
 import OpenFileHandler from './pages/OpenFileHandler';
 import ComposeEmail from './pages/ComposeEmail';
 import CalorieTrackerPage from './pages/CalorieTrackerPage';
+import IntegratedDiagnosisPage from './pages/IntegratedDiagnosisPage';
 
 // Lazy load de componentes pesados
 const LandingPageLazy = lazy(() => import('./pages/LandingPage'));
 const SubscriptionPageLazy = lazy(() => import('./pages/SubscriptionPage'));
 const MedicalStudiesLazy = lazy(() => import('./pages/MedicalStudies'));
+const IntegratedDiagnosisPageLazy = lazy(() => import('./pages/IntegratedDiagnosisPage'));
 
 // Componente para decidir si mostrar el navbar general
 const NavbarWrapper = ({ children }) => {
@@ -213,6 +215,11 @@ function App() {
                         <Route path="/calorie-tracker" element={
                           <ProtectedRoute>
                             <CalorieTrackerPage />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/integrated-diagnosis" element={
+                          <ProtectedRoute requireSubscription={false}>
+                            <IntegratedDiagnosisPageLazy />
                           </ProtectedRoute>
                         } />
                       </Routes>

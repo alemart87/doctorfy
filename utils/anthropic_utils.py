@@ -25,6 +25,7 @@ CLAUDE_MODEL_NAME = "claude-3-5-sonnet-20240620" # Actualizado a Claude 3.5 Sonn
 
 # Variable global para el cliente de Anthropic (opcional, pero puede ser eficiente)
 _anthropic_client = None # Renombrado para evitar confusión con el módulo
+_sync_anthropic_client = None # Cliente síncrono para funciones no asíncronas
 
 # Límites de tokens de salida por modelo:
 # - claude-3-haiku: 4096 tokens máx
@@ -35,18 +36,25 @@ MAX_TOKENS = 8000  # Aumentado para aprovechar la mayor capacidad de Claude 3.5
 
 MAX_ANTHROPIC_IMAGES = 15 # Límite global de imágenes a enviar a Anthropic
 
-def get_anthropic_client():
+def get_anthropic_client(use_async: bool = True):
     """Obtiene o inicializa el cliente de Anthropic."""
-    global _anthropic_client
-    if _anthropic_client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            current_app.logger.error("ANTHROPIC_API_KEY no está configurada.")
-            raise ValueError("La clave API de Anthropic no está configurada.")
-        # Usar el cliente asíncrono si la función que lo llama es asíncrona
-        _anthropic_client = anthropic.AsyncAnthropic(api_key=api_key)
-        current_app.logger.info(f"Cliente AsyncAnthropic inicializado para el modelo {CLAUDE_MODEL_NAME}.")
-    return _anthropic_client
+    global _anthropic_client, _sync_anthropic_client
+    
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        current_app.logger.error("ANTHROPIC_API_KEY no está configurada.")
+        raise ValueError("La clave API de Anthropic no está configurada.")
+
+    if use_async:
+        if _anthropic_client is None:
+            _anthropic_client = anthropic.AsyncAnthropic(api_key=api_key)
+            current_app.logger.info(f"Cliente AsyncAnthropic inicializado para el modelo {CLAUDE_MODEL_NAME}.")
+        return _anthropic_client
+    else:
+        if _sync_anthropic_client is None:
+            _sync_anthropic_client = anthropic.Anthropic(api_key=api_key) # Cliente síncrono
+            current_app.logger.info(f"Cliente Anthropic (síncrono) inicializado para el modelo {CLAUDE_MODEL_NAME}.")
+        return _sync_anthropic_client
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"  # versión de la API
@@ -148,7 +156,7 @@ async def analyze_medical_study_with_anthropic(
     Analiza un conjunto de textos e imágenes de un estudio médico utilizando Anthropic.
     """
     try:
-        client = get_anthropic_client()
+        client = get_anthropic_client(use_async=True)
         current_app.logger.info(f"Iniciando análisis unificado para: {study_name} con {len(image_data_list)} imágenes y {len(concatenated_texts)} caracteres de texto. Study type hint: {study_type_hint}")
 
         # Construcción del prompt base
@@ -291,9 +299,14 @@ def extract_from_pdf(file_path):
     result = {"text": "", "images": []}
     
     try:
-        from config import MAX_ANTHROPIC_IMAGES # Intenta importar si está en config.py
-    except ImportError:
-        MAX_ANTHROPIC_IMAGES = 10 # Valor por defecto si no se puede importar
+        # Intenta obtener MAX_ANTHROPIC_IMAGES desde la configuración de la app actual si está disponible
+        # Esto es útil si la función se llama dentro de un contexto de aplicación Flask
+        if current_app:
+            max_images_config = current_app.config.get('MAX_ANTHROPIC_IMAGES_PER_PDF', 10)
+        else:
+            max_images_config = 10 # Valor por defecto si no hay contexto de app
+    except NameError: # current_app no está definido (ej. script independiente)
+        max_images_config = 10
 
     try:
         # Verificar que el archivo existe
@@ -327,7 +340,7 @@ def extract_from_pdf(file_path):
         
         # Método 1: Extraer imágenes usando get_images()
         for page_num in range(len(doc)):
-            if image_count >= MAX_ANTHROPIC_IMAGES:
+            if image_count >= max_images_config:
                 break
                 
             try:
@@ -335,7 +348,7 @@ def extract_from_pdf(file_path):
                 image_list = page.get_images(full=True)
             
                 for img_index, img in enumerate(image_list):
-                    if image_count >= MAX_ANTHROPIC_IMAGES:
+                    if image_count >= max_images_config:
                         break
                     
                     try:
@@ -375,7 +388,7 @@ def extract_from_pdf(file_path):
         if len(result["images"]) < 3:
             current_app.logger.info(f"Pocas imágenes encontradas con el método 1 ({len(result['images'])}), intentando método 2")
             for page_num in range(min(5, len(doc))):  # Limitar a las primeras 5 páginas para este método
-                if image_count >= MAX_ANTHROPIC_IMAGES:
+                if image_count >= max_images_config:
                     break
                     
                 try:
@@ -593,7 +606,7 @@ def analyze_food_image_with_anthropic(file_path):
             return "Error: El archivo no existe"
         
         # Obtener el cliente de Anthropic
-        client = get_anthropic_client()
+        client = get_anthropic_client(use_async=False) # Usar cliente síncrono aquí
         
         # Leer la imagen y codificarla en base64
         with open(file_path, "rb") as image_file:
@@ -698,7 +711,7 @@ def analyze_general_image_with_anthropic(image_path: str) -> str:
       3. Recomendaciones o siguientes pasos sugeridos.
     """
     try:
-        client = get_anthropic_client()
+        client = get_anthropic_client(use_async=False)
 
         # preparar la imagen (reutilizamos compresión & base64)
         compressed_path = compress_image_for_anthropic(image_path)
@@ -750,3 +763,129 @@ def analyze_general_image_with_anthropic(image_path: str) -> str:
             "## Error\n"
             "No se pudo analizar el estudio. Por favor, inténtalo de nuevo más tarde."
         ) 
+
+# Nueva función para generar diagnóstico integrado
+def generate_integrated_diagnosis_with_anthropic(
+    studies_details: list, # Lista de dicts: [{"name": "Nombre Estudio", "type": "Tipo", "date": "Fecha", "interpretation": "Texto..."}]
+    symptoms_text: str,
+    user_profile_info: dict = None # ej: {"age": 30, "gender": "Masculino", "conditions": "Hipertensión"}
+) -> str:
+    """
+    Genera un análisis diagnóstico integrado utilizando Anthropic,
+    basado en múltiples interpretaciones de estudios y síntomas del usuario.
+    """
+    try:
+        client = get_anthropic_client(use_async=False) # Usar cliente síncrono
+        current_app.logger.info(f"Iniciando generación de diagnóstico integrado. {len(studies_details)} estudios, {len(symptoms_text)} caracteres de síntomas.")
+
+        prompt_introduction = (
+            "Eres un médico especialista consultor altamente experimentado y meticuloso. "
+            "Tu tarea es realizar un análisis diagnóstico integral basado en la información clínica proporcionada, "
+            "que incluye los síntomas actuales del paciente y los resultados de varios estudios médicos previos. "
+            "Debes integrar toda la información de manera coherente y lógica.\n\n"
+        )
+
+        user_info_section = "**Información del Paciente:**\n"
+        if user_profile_info:
+            if user_profile_info.get("age"):
+                user_info_section += f"- Edad: {user_profile_info['age']} años\n"
+            if user_profile_info.get("gender"):
+                user_info_section += f"- Sexo: {user_profile_info['gender']}\n"
+            if user_profile_info.get("conditions"):
+                user_info_section += f"- Condiciones preexistentes conocidas: {user_profile_info['conditions']}\n"
+            if not any(user_profile_info.values()): # Si todos los campos están vacíos o no provistos
+                 user_info_section += "- No se proporcionó información demográfica o de condiciones preexistentes detallada.\n"
+        else:
+            user_info_section += "- No se proporcionó información demográfica o de condiciones preexistentes.\n"
+        user_info_section += "\n"
+
+
+        symptoms_section = f"**Síntomas Actuales del Paciente (según lo reportado):**\n{symptoms_text}\n\n"
+
+        studies_section = "**Resultados de Estudios Médicos Previos:**\n"
+        if not studies_details:
+            studies_section += "No se proporcionaron resultados de estudios médicos previos para este análisis.\n"
+        else:
+            for i, study in enumerate(studies_details):
+                studies_section += (
+                    f"--- Estudio {i+1} ---\n"
+                    f"- Nombre/Tipo: {study.get('name', 'No especificado')} ({study.get('type', 'No especificado')})\n"
+                    f"- Fecha del estudio/interpretación: {study.get('date', 'No especificada')}\n"
+                    f"- Interpretación/Resumen del Estudio:\n{study.get('interpretation', 'No disponible')}\n\n"
+                )
+        
+        prompt_task_instructions = (
+            "**Tarea Analítica y Formato de Respuesta Requerido:**\n"
+            "Basándote EXCLUSIVAMENTE en TODA la información proporcionada (información del paciente, síntomas actuales y todos los resultados de los estudios médicos), "
+            "genera un informe diagnóstico en formato Markdown y en español. El informe debe ser extremadamente preciso, detallado, y seguir estrictamente la siguiente estructura:\n\n"
+            "1.  **Resumen Integrado de Hallazgos Clave:**\n"
+            "    *   Sintetiza los síntomas más relevantes del paciente y los hallazgos significativos de cada uno de los estudios médicos proporcionados. Busca patrones, correlaciones o contradicciones entre las diferentes fuentes de información.\n\n"
+            "2.  **Análisis y Correlación Clínica:**\n"
+            "    *   Discute cómo los síntomas y los hallazgos de los estudios podrían estar interrelacionados. Considera la cronología si la información de fechas lo permite.\n"
+            "    *   Evalúa la consistencia de la información a través de los diferentes estudios y los síntomas.\n\n"
+            "3.  **Diagnóstico Diferencial Principal:**\n"
+            "    *   Enumera de 3 a 5 posibles diagnósticos diferenciales que podrían explicar el cuadro clínico completo (síntomas y hallazgos de estudios).\n"
+            "    *   Para cada diagnóstico diferencial, proporciona una justificación detallada (2-4 frases) explicando por qué se considera una posibilidad, basándote en la evidencia específica de los síntomas y los estudios.\n"
+            "    *   Ordena los diagnósticos diferenciales desde el más probable al menos probable, si es posible, y justifica brevemente este orden.\n\n"
+            "4.  **Diagnóstico Más Probable (Conclusión Diagnóstica Provisional):**\n"
+            "    *   Si la evidencia combinada apunta con una confianza razonable hacia un diagnóstico principal, indícalo aquí. Si no es posible determinar un único diagnóstico más probable con la información actual, explícalo.\n"
+            "    *   Describe tu nivel de confianza en esta conclusión diagnóstica provisional (ej., alta, moderada, baja debido a información limitada o contradictoria).\n\n"
+            "5.  **Recomendaciones y Próximos Pasos Sugeridos:**\n"
+            "    *   Sugiere si se necesitan pruebas diagnósticas adicionales (específicas, si es posible) para confirmar o descartar los diagnósticos diferenciales o para aclarar hallazgos ambiguos.\n"
+            "    *   Recomienda la consulta con especialistas médicos específicos (ej., cardiólogo, neurólogo, endocrinólogo) si es pertinente.\n"
+            "    *   Menciona cualquier medida general o cambio en el estilo de vida que podría ser considerado, siempre supeditado a la evaluación médica profesional.\n\n"
+            "6.  **ADVERTENCIA MÉDICA FUNDAMENTAL (Incluir textualmente y de forma destacada):**\n"
+            "    '**Este análisis diagnóstico es generado por un modelo de inteligencia artificial y NO SUSTITUYE una consulta médica profesional, una evaluación médica completa, ni una segunda opinión médica. La información aquí presentada es para fines educativos y de orientación preliminar, y se basa únicamente en los datos proporcionados. Un diagnóstico definitivo solo puede ser realizado por un médico calificado tras una evaluación exhaustiva que incluya historial clínico completo, examen físico y otras pruebas pertinentes. Cualquier decisión relacionada con su salud debe ser tomada en consulta directa con un médico. No ignore el consejo médico profesional ni retrase la búsqueda de atención médica debido a algo que haya leído en este informe.**'\n"
+        )
+
+        system_prompt = prompt_introduction + user_info_section + symptoms_section + studies_section + prompt_task_instructions
+        
+        current_app.logger.debug(f"System prompt para diagnóstico integrado (parcial): {system_prompt[:500]}...")
+
+        max_retries = 3
+        retry_delay = 5  # segundos
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.messages.create(
+                    model=CLAUDE_MODEL_NAME,
+                    max_tokens=MAX_TOKENS, # Usar el MAX_TOKENS global
+                    system=system_prompt, # Usar el prompt como system message
+                    messages=[{ # El contenido del usuario puede estar vacío si todo está en el system prompt
+                        "role": "user",
+                        "content": "Por favor, procede con el análisis diagnóstico solicitado."
+                    }] 
+                )
+                
+                if hasattr(response, 'content') and len(response.content) > 0:
+                    analysis_result = response.content[0].text
+                    current_app.logger.info("Diagnóstico integrado recibido de Anthropic.")
+                    return analysis_result
+                else:
+                    current_app.logger.error(f"Estructura de respuesta inesperada de Anthropic: {response}")
+                    return "Error: Formato de respuesta inesperado del modelo de IA. Por favor, inténtalo de nuevo más tarde."
+
+            except anthropic.APIStatusError as api_error:
+                if api_error.status_code == 529 and attempt < max_retries - 1:
+                    current_app.logger.warning(f"Anthropic sobrecargado (intento {attempt+1}/{max_retries}). Reintentando en {retry_delay} segundos...")
+                    time.sleep(retry_delay) # Usar time.sleep para cliente síncrono
+                    retry_delay *= 2
+                else:
+                    current_app.logger.error(f"Error de API de Anthropic (Status {api_error.status_code}): {api_error.message}")
+                    if api_error.status_code == 529:
+                        return "El servicio de análisis está temporalmente sobrecargado. Por favor, inténtalo de nuevo en unos minutos."
+                    # Podrías añadir manejo para otros códigos de error específicos si es necesario
+                    return f"Error del servicio de IA (código {api_error.status_code}). Inténtalo más tarde."
+            
+            except Exception as e:
+                current_app.logger.error(f"Error al llamar a la API de Anthropic para diagnóstico: {str(e)}")
+                current_app.logger.error(traceback.format_exc())
+                # No retornar el traceback completo al usuario por seguridad
+                return f"Error al procesar la solicitud de diagnóstico. Por favor, inténtalo de nuevo más tarde."
+        
+        return "El servicio de análisis no pudo procesar la solicitud después de varios intentos. Por favor, inténtalo más tarde."
+
+    except Exception as e:
+        current_app.logger.error(f"Error general en generate_integrated_diagnosis_with_anthropic: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        return f"Error interno al procesar la solicitud de diagnóstico: {str(e)}" 
