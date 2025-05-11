@@ -1464,7 +1464,7 @@ const MedicalStudies = () => {
               variant="extended" 
               color="secondary" // O 'primary', o un color personalizado
               aria-label="consultar un médico"
-              onClick={() => navigate('/doctors')} // O la ruta que prefieras para consultas
+              onClick={() => navigate('/integrated-diagnosis')} // <--- CAMBIO AQUÍ: Redirige a Diagnóstico IA
               sx={{
                   position: 'fixed',
                   bottom: { xs: 70, sm: 30 }, // Ajustar para que no choque con otros FABs (como el de chat)
