@@ -19,9 +19,10 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Tooltip
+  Tooltip,
+  Stack
 } from '@mui/material';
-import { styled, alpha } from '@mui/material/styles';
+import { styled, alpha, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import LandingNavbar from '../components/LandingNavbar';
@@ -46,7 +47,9 @@ import {
   Login as LoginIcon,
   AppRegistration as AppRegistrationIcon,
   LocalFireDepartment as FireIcon,
-  Scanner as ScannerIcon
+  Scanner as ScannerIcon,
+  MedicalServices as MedicalServicesIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
@@ -54,10 +57,10 @@ import Orb from '../components/Orb';
 import ActionButton from '../components/ActionButton';
 import CountUp from '../components/CountUp';
 import LiquidChrome from '../components/LiquidChrome';
-import { keyframes } from '@mui/system';
 import DecryptedText from '../components/DecryptedText';
 import { Helmet } from 'react-helmet-async';
 import CameraAltIcon from '@mui/icons-material/CameraAlt'; // Importar icono de cámara
+import { useAuth } from '../context/AuthContext'; // Asegúrate de que esta importación exista y sea correcta
 
 // Definir la animación de pulso
 const pulse = keyframes`
@@ -124,48 +127,118 @@ const CalorieTrackerButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// Luego, definimos un estilo para el botón de Diagnóstico de Lunares
+// --- Keyframes para animaciones (pueden ser compartidos o específicos) ---
+const pulseAnimation = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
+`;
+
+const shineAnimation = keyframes`
+  0% {
+    transform: translateX(-100%) rotate(30deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(30deg);
+  }
+`;
+
+// --- Estilos para el botón de Diagnóstico de Lunares (existente) ---
 const MoleAnalysisButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#e91e63', // Color rosa/fucsia llamativo
+  backgroundColor: '#e91e63', // Rosa/fucsia
   color: 'white',
   fontWeight: 'bold',
-  padding: '12px 24px', // Padding más grande
+  padding: '12px 24px',
   borderRadius: '30px',
   textTransform: 'none',
-  fontSize: '1.1rem', // Texto más grande
-  boxShadow: '0 6px 20px rgba(233, 30, 99, 0.5)', // Sombra más pronunciada
-  position: 'relative',
-  overflow: 'visible', // Cambiado a visible para que la etiqueta NUEVO pueda sobresalir
+  fontSize: '1.1rem',
+  boxShadow: '0 5px 15px rgba(233, 30, 99, 0.4)',
   transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  border: '2px solid white',
   '&:hover': {
     backgroundColor: '#d81b60',
-    transform: 'translateY(-5px) scale(1.03)', // Efecto de elevación más pronunciado
-    boxShadow: '0 10px 25px rgba(233, 30, 99, 0.7)',
+    boxShadow: '0 8px 20px rgba(233, 30, 99, 0.6)',
+    transform: 'translateY(-3px)',
   },
-  '&::after': {
+  animation: `${pulseAnimation} 2s infinite ease-in-out`,
+  '&::before': {
     content: '""',
     position: 'absolute',
-    top: '-50%',
-    left: '-50%',
-    width: '200%',
-    height: '200%',
-    background: 'linear-gradient(60deg, rgba(255,255,255,0) 10%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 90%)',
-    transform: 'rotate(30deg)',
-    animation: 'shine 3s infinite',
+    top: '0',
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    transition: 'all 0.6s ease',
   },
-  '@keyframes shine': {
-    '0%': {
-      transform: 'translateX(-100%) rotate(30deg)',
-    },
-    '100%': {
-      transform: 'translateX(100%) rotate(30deg)',
-    },
+  '&:hover::before': {
+    left: '100%',
   },
+}));
+
+// --- NUEVO: Estilos para el botón de Análisis Oftalmológico ---
+const OphthalmicAnalysisButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#007bff', // Azul primario, o un azul más específico para oftalmología
+  color: 'white',
+  fontWeight: 'bold',
+  padding: '12px 24px',
+  borderRadius: '30px',
+  textTransform: 'none',
+  fontSize: '1.1rem',
+  boxShadow: '0 5px 15px rgba(0, 123, 255, 0.4)', // Sombra azul
+  transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  border: '2px solid white',
+  '&:hover': {
+    backgroundColor: '#0056b3', // Azul más oscuro al pasar el cursor
+    boxShadow: '0 8px 20px rgba(0, 123, 255, 0.6)',
+    transform: 'translateY(-3px)',
+  },
+  animation: `${pulseAnimation} 2.2s infinite ease-in-out`, // Ligera variación en la animación
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: '0',
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    transition: 'all 0.6s ease',
+  },
+  '&:hover::before': {
+    left: '100%',
+  },
+}));
+
+// --- Estilo para la etiqueta "¡NUEVO!" (puede ser reutilizado) ---
+const NewLabel = styled(Box)(({ theme, color = '#e91e63' }) => ({
+  position: 'absolute',
+  top: '-15px', // Ajusta según sea necesario
+  left: '50%',
+  transform: 'translateX(-50%) rotate(-5deg)',
+  backgroundColor: color, // Usar el color pasado como prop
+  color: 'white',
+  padding: '4px 10px',
+  borderRadius: '10px 10px 10px 0',
+  fontSize: '0.8rem',
+  fontWeight: 'bold',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+  zIndex: 1,
 }));
 
 const LandingPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth(); // <--- AÑADIR ESTO PARA OBTENER EL ESTADO DE AUTENTICACIÓN
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -295,6 +368,14 @@ const LandingPage = () => {
       content: "La función de análisis nutricional es impresionante. Mis clientes ahora pueden hacer un seguimiento de su ingesta con precisión sin complicaciones.",
     },
   ];
+
+  const handleNavigate = (path) => {
+    if (isAuthenticated) { // Ahora isAuthenticated debería estar definido
+      navigate(path);
+    } else {
+      navigate(`/login?redirect=${path}`);
+    }
+  };
 
   return (
     <React.Fragment>
@@ -456,65 +537,61 @@ const LandingPage = () => {
                       </motion.div>
                       {/* --- FIN: CÓDIGO A INSERTAR --- */}
                       
-                      {/* --- INICIO: BOTÓN DIAGNÓSTICO DE LUNARES --- */}
-                      <motion.div variants={itemVariants}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: { xs: 'center', md: 'flex-start' }, 
-                          mb: 4,
-                          mt: 2, // Añadir margen superior para espacio para la etiqueta NUEVO
-                          position: 'relative' // Para posicionar la etiqueta NUEVO
-                        }}>
-                          {/* Etiqueta NUEVO independiente del botón */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: '-20px',
-                              left: { xs: 'calc(50% - 80px)', md: '20px' }, // Centrado en móvil, alineado a la izquierda en desktop
-                              backgroundColor: '#ff3d00',
-                              color: 'white',
-                              fontSize: '0.8rem',
-                              fontWeight: 'bold',
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                              zIndex: 10, // Asegurar que esté por encima
-                              transform: 'rotate(-2deg)', // Ligera rotación para llamar la atención
-                              border: '2px solid white',
-                            }}
-                          >
-                            ¡NUEVO!
+                      {/* --- SECCIÓN DE BOTONES DE ACCIÓN PRINCIPALES --- */}
+                      <Stack 
+                        direction={{ xs: 'column', md: 'row' }} 
+                        spacing={4} // Espacio entre botones
+                        alignItems="center" 
+                        justifyContent="center"
+                        sx={{ mt: 4, mb: 4 }} // Margen general para la sección de botones
+                      >
+                        {/* --- BOTÓN DIAGNÓSTICO DE LUNARES (Existente) --- */}
+                        <motion.div variants={itemVariants}>
+                          <Box sx={{ 
+                            position: 'relative', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center',
+                            mt: 2 // Margen para la etiqueta NUEVO
+                          }}>
+                            <NewLabel color="#e91e63">¡NUEVO!</NewLabel>
+                            <MoleAnalysisButton
+                              variant="contained"
+                              size="large"
+                              startIcon={<MedicalServicesIcon />}
+                              onClick={() => handleNavigate('/mole-analysis')}
+                            >
+                              <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
+                                DIAGNÓSTICO DE LUNARES
+                              </Typography>
+                            </MoleAnalysisButton>
                           </Box>
-                          <MoleAnalysisButton
-                            component={Link}
-                            to="/login?redirect=/medical-studies"
-                            size="large"
-                            startIcon={<ScannerIcon />}
-                            sx={{
-                              animation: 'pulse 1.5s infinite', // Pulso más rápido
-                              '@keyframes pulse': {
-                                '0%': {
-                                  boxShadow: '0 0 0 0 rgba(233, 30, 99, 0.8)',
-                                },
-                                '70%': {
-                                  boxShadow: '0 0 0 20px rgba(233, 30, 99, 0)',
-                                },
-                                '100%': {
-                                  boxShadow: '0 0 0 0 rgba(233, 30, 99, 0)',
-                                },
-                              },
-                              border: '2px solid rgba(255,255,255,0.8)',
-                              minWidth: '250px',
-                              py: 1.5,
-                            }}
-                          >
-                            <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
-                              DIAGNÓSTICO DE LUNARES
-                            </Typography>
-                          </MoleAnalysisButton>
-                        </Box>
-                      </motion.div>
-                      {/* --- FIN: BOTÓN DIAGNÓSTICO DE LUNARES --- */}
+                        </motion.div>
+
+                        {/* --- NUEVO: BOTÓN ANÁLISIS OFTALMOLÓGICO EXTERNO --- */}
+                        <motion.div variants={itemVariants}>
+                           <Box sx={{ 
+                             position: 'relative', 
+                             display: 'flex', 
+                             flexDirection: 'column', 
+                             alignItems: 'center',
+                             mt: 2 // Margen para la etiqueta NUEVO
+                           }}>
+                            <NewLabel color="#007bff">¡NUEVO!</NewLabel>
+                            <OphthalmicAnalysisButton
+                              variant="contained"
+                              size="large"
+                              startIcon={<VisibilityIcon />} // Icono de ojo
+                              onClick={() => handleNavigate('/medical-studies')} // Redirige a medical-studies
+                            >
+                              <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
+                                ANÁLISIS OFTALMOLÓGICO
+                              </Typography>
+                            </OphthalmicAnalysisButton>
+                          </Box>
+                        </motion.div>
+                      </Stack>
+                      {/* --- FIN SECCIÓN DE BOTONES DE ACCIÓN --- */}
 
                       <motion.div variants={itemVariants}>
                         <Box sx={{ mb: 3 }}>

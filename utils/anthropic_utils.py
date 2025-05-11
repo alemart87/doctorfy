@@ -291,6 +291,11 @@ def extract_from_pdf(file_path):
     result = {"text": "", "images": []}
     
     try:
+        from config import MAX_ANTHROPIC_IMAGES # Intenta importar si está en config.py
+    except ImportError:
+        MAX_ANTHROPIC_IMAGES = 10 # Valor por defecto si no se puede importar
+
+    try:
         # Verificar que el archivo existe
         if not os.path.exists(file_path):
             current_app.logger.error(f"El archivo PDF no existe: {file_path}")
@@ -319,11 +324,10 @@ def extract_from_pdf(file_path):
         
         # Extraer imágenes con mejor calidad
         image_count = 0
-        max_images = 10
         
         # Método 1: Extraer imágenes usando get_images()
         for page_num in range(len(doc)):
-            if image_count >= max_images:
+            if image_count >= MAX_ANTHROPIC_IMAGES:
                 break
                 
             try:
@@ -331,7 +335,7 @@ def extract_from_pdf(file_path):
                 image_list = page.get_images(full=True)
             
                 for img_index, img in enumerate(image_list):
-                    if image_count >= max_images:
+                    if image_count >= MAX_ANTHROPIC_IMAGES:
                         break
                     
                     try:
@@ -339,23 +343,18 @@ def extract_from_pdf(file_path):
                         base_image = doc.extract_image(xref)
                         image_bytes = base_image["image"]
                         
-                        # Verificar que la imagen tenga un tamaño razonable y no sea un icono pequeño
                         if len(image_bytes) > 500:  # Ignorar imágenes muy pequeñas
-                            # Intentar mejorar la calidad de la imagen
                             try:
                                 img_obj = Image.open(io.BytesIO(image_bytes))
                                 
-                                # Si la imagen es muy pequeña, ignorarla
                                 if img_obj.width < 50 or img_obj.height < 50:
                                     continue
                                 
-                                # Convertir a RGB si es necesario
                                 if img_obj.mode in ('RGBA', 'LA') or (img_obj.mode == 'P' and 'transparency' in img_obj.info):
                                     background = Image.new('RGB', img_obj.size, (255, 255, 255))
                                     background.paste(img_obj, mask=img_obj.split()[3] if img_obj.mode == 'RGBA' else None)
                                     img_obj = background
                                 
-                                # Guardar con buena calidad
                                 output = io.BytesIO()
                                 img_obj.save(output, format="JPEG", quality=95)
                                 image_bytes = output.getvalue()
@@ -363,11 +362,10 @@ def extract_from_pdf(file_path):
                                 current_app.logger.warning(f"Error al procesar imagen extraída: {str(img_proc_err)}")
                                 # Continuar con la imagen original si hay error
                 
-                            # Convertir bytes a base64
-                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-                            result["images"].append(image_base64)
-                            image_count += 1
-                            current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
+                        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                        result["images"].append(image_base64)
+                        image_count += 1
+                        current_app.logger.debug(f"Extraída imagen {image_count} del PDF (método 1)")
                     except Exception as img_err:
                         current_app.logger.warning(f"Error al extraer imagen {img_index} de la página {page_num+1}: {str(img_err)}")
             except Exception as page_err:
@@ -377,7 +375,7 @@ def extract_from_pdf(file_path):
         if len(result["images"]) < 3:
             current_app.logger.info(f"Pocas imágenes encontradas con el método 1 ({len(result['images'])}), intentando método 2")
             for page_num in range(min(5, len(doc))):  # Limitar a las primeras 5 páginas para este método
-                if image_count >= max_images:
+                if image_count >= MAX_ANTHROPIC_IMAGES:
                     break
                     
                 try:
