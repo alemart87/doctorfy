@@ -16,6 +16,7 @@ import { AdapterDateFns }                          from '@mui/x-date-pickers/Ada
 import { es }                                      from 'date-fns/locale';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';   // ✔️ icono éxito
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 
 // Añadir esta función fuera del componente para que esté disponible en todo el archivo
 const getStudyTypeName = (type) => {
@@ -66,6 +67,8 @@ const getImageUrl = (imagePath) => {
     }
   }
 `}</style>
+
+const brightCyan = '#00ffff'; // Color cian brillante para el botón
 
 const MedicalStudies = () => {
   const [studies, setStudies] = useState([]);
@@ -1459,32 +1462,55 @@ const MedicalStudies = () => {
             )}
           </Backdrop>
 
-          {/* Botón Flotante de Acción (CTA) */}
-          <Fab 
-              variant="extended" 
-              color="secondary" // O 'primary', o un color personalizado
-              aria-label="consultar un médico"
-              onClick={() => navigate('/integrated-diagnosis')} // <--- CAMBIO AQUÍ: Redirige a Diagnóstico IA
-              sx={{
-                  position: 'fixed',
-                  bottom: { xs: 70, sm: 30 }, // Ajustar para que no choque con otros FABs (como el de chat)
-                  right: { xs: 16, sm: 30 },
-                  zIndex: 1050, // Asegurar que esté por encima de otros elementos si es necesario
-                  backgroundColor: '#FF3B30', // Un rojo llamativo (color de alerta de iOS)
-                  color: 'white',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  '&:hover': {
-                      backgroundColor: '#E03024', // Un poco más oscuro al pasar el cursor
-                      transform: 'scale(1.03)',
-                  },
-                  transition: 'transform 0.2s ease-in-out, background-color 0.2s ease-in-out',
-                  px: 3, // Padding horizontal
-              }}
+          {/* Botón de Consulta Médica (Posicionado en el borde inferior izquierdo) */}
+          <Box 
+            sx={{ 
+              position: 'fixed', 
+              left: { xs: 20, sm: 30 },
+              bottom: { xs: 20, sm: 30 }, // Posicionado en el borde inferior
+              zIndex: 1000 
+            }}
           >
-              <FaUserMd sx={{ mr: 1 }} />
-              Consulta con UN MÉDICO YA
-          </Fab>
+            <Button
+              variant="contained"
+              size="medium"
+              startIcon={<MedicalServicesIcon />}
+              onClick={() => navigate('/integrated-diagnosis')}
+              sx={{
+                textTransform: 'none',
+                borderRadius: '30px',
+                backgroundColor: '#00B5D8',
+                color: 'white',
+                fontWeight: 'bold',
+                px: 3,
+                py: 1.2,
+                boxShadow: `0 0 15px ${brightCyan}, 0 0 20px rgba(0,255,255,0.6)`,
+                animation: 'pulse 2.5s infinite',
+                '@keyframes pulse': {
+                  '0%': {
+                    boxShadow: `0 0 15px ${brightCyan}, 0 0 20px rgba(0,255,255,0.6)`,
+                    transform: 'scale(1)'
+                  },
+                  '50%': {
+                    boxShadow: `0 0 20px ${brightCyan}, 0 0 30px rgba(0,255,255,0.8)`,
+                    transform: 'scale(1.03)'
+                  },
+                  '100%': {
+                    boxShadow: `0 0 15px ${brightCyan}, 0 0 20px rgba(0,255,255,0.6)`,
+                    transform: 'scale(1)'
+                  }
+                },
+                '&:hover': {
+                  backgroundColor: '#00A0C0',
+                  transform: 'scale(1.08)',
+                  transition: 'transform 0.3s ease, background-color 0.3s ease',
+                  boxShadow: `0 0 25px ${brightCyan}, 0 0 35px rgba(0,255,255,0.9)`,
+                }
+              }}
+            >
+              Consultar médico ahora
+            </Button>
+          </Box>
         </>
       )}
     </div>
